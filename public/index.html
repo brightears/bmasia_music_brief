@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Atmosphere Brief | BMAsia Group</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #1a1a2e;
+  --navy-light: #16213e;
+  --accent: #6366f1;
+  --accent-light: #a5b4fc;
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --success: #10b981;
+  --error: #ef4444;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+  padding: 32px 24px;
+  text-align: center;
+  border-radius: var(--radius) var(--radius) 0 0;
+  position: relative;
+}
+.header h1 {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.header p {
+  color: var(--accent-light);
+  font-size: 14px;
+}
+
+/* Language toggle */
+.lang-toggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.lang-btn {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.lang-btn.active {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+
+/* Sections */
+.form-body {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 24px;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent-light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title .icon { font-size: 20px; }
+
+/* Form controls */
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.sublabel {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--text);
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+textarea { resize: vertical; min-height: 80px; }
+
+.field { margin-bottom: 16px; }
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 500px) {
+  .field-row { grid-template-columns: 1fr; }
+}
+
+/* Product toggle */
+.product-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.product-card {
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+}
+.product-card:hover { border-color: var(--accent-light); }
+.product-card.selected {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.04);
+}
+.product-card .product-name {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.product-card .product-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.product-card input { display: none; }
+
+/* Vibe cards */
+.vibe-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+@media (max-width: 500px) {
+  .vibe-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.vibe-card {
+  padding: 12px 6px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+  user-select: none;
+}
+.vibe-card:hover { border-color: var(--accent-light); transform: translateY(-1px); }
+.vibe-card.selected {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.06);
+}
+.vibe-card .emoji { font-size: 28px; display: block; margin-bottom: 4px; }
+.vibe-card .vibe-label { font-size: 11px; font-weight: 600; }
+
+/* Energy slider */
+.slider-wrap {
+  position: relative;
+  padding: 8px 0;
+}
+.slider-wrap input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent-light) 0%, var(--accent) 100%);
+  outline: none;
+  border: none;
+  padding: 0;
+}
+.slider-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+.slider-wrap input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.energy-value {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+/* Brief preview */
+.brief-preview {
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 24px 0;
+  display: none;
+}
+.brief-preview h3 {
+  font-size: 15px;
+  color: var(--navy);
+  margin-bottom: 12px;
+}
+.brief-preview .daypart {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #fde68a;
+}
+.brief-preview .daypart-label {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.brief-preview .daypart-genres {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.brief-preview .daypart-energy {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.genre-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(99,102,241,0.08);
+  border-radius: 4px;
+  font-size: 12px;
+  margin: 2px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  font-family: inherit;
+}
+.btn-secondary {
+  background: var(--navy);
+  color: #fff;
+}
+.btn-secondary:hover { background: var(--navy-light); }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: #4f46e5; }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+@media (max-width: 500px) {
+  .btn-row { grid-template-columns: 1fr; }
+}
+
+/* Beat Breeze section */
+.bb-section { display: none; }
+.bb-section.visible { display: block; }
+
+/* Toast / status */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 999;
+  transition: transform 0.3s ease;
+  max-width: 90%;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--success); color: #fff; }
+.toast.error { background: var(--error); color: #fff; }
+
+/* Validation */
+.field.invalid input,
+.field.invalid select,
+.field.invalid textarea {
+  border-color: var(--error);
+}
+.field.invalid label { color: var(--error); }
+
+/* Honeypot */
+.hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; }
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" onclick="setLang('th')">TH</button>
+    </div>
+    <h1 data-i18n="title">Music Atmosphere Brief</h1>
+    <p data-i18n="subtitle">Tell us the vibe. We'll design the sound.</p>
+  </div>
+
+  <form class="form-body" id="briefForm" novalidate>
+    <!-- Honeypot -->
+    <div class="hp-field">
+      <label for="website">Website</label>
+      <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+    </div>
+
+    <!-- Product Selection -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🎵</span> <span data-i18n="sec_product">Product</span></div>
+      <div class="product-toggle">
+        <label class="product-card selected" data-product="syb">
+          <input type="radio" name="product" value="syb" checked>
+          <div class="product-name">Soundtrack Your Brand</div>
+          <div class="product-desc" data-i18n="syb_desc">Licensed commercial music</div>
+        </label>
+        <label class="product-card" data-product="beatbreeze">
+          <input type="radio" name="product" value="beatbreeze">
+          <div class="product-name">Beat Breeze</div>
+          <div class="product-desc" data-i18n="bb_desc">Royalty-free + AI bespoke music</div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Venue Info -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🏢</span> <span data-i18n="sec_venue">Venue Information</span></div>
+      <div class="field">
+        <label data-i18n="venue_name">Venue Name <span style="color:var(--error)">*</span></label>
+        <input type="text" name="venueName" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="venue_type">Venue Type</label>
+          <select name="venueType">
+            <option value="" data-i18n="select_placeholder">Select...</option>
+            <option value="hotel-lobby" data-i18n="vt_hotel">Hotel Lobby</option>
+            <option value="restaurant" data-i18n="vt_restaurant">Restaurant</option>
+            <option value="bar-lounge" data-i18n="vt_bar">Bar / Lounge</option>
+            <option value="spa-wellness" data-i18n="vt_spa">Spa / Wellness</option>
+            <option value="fashion-retail" data-i18n="vt_fashion">Fashion Retail</option>
+            <option value="cafe" data-i18n="vt_cafe">Cafe</option>
+            <option value="gym-fitness" data-i18n="vt_gym">Gym / Fitness</option>
+            <option value="pool-beach" data-i18n="vt_pool">Pool / Beach Club</option>
+            <option value="qsr" data-i18n="vt_qsr">QSR / Fast Casual</option>
+            <option value="coworking" data-i18n="vt_cowork">Co-working Space</option>
+            <option value="other" data-i18n="vt_other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-i18n="location">Location</label>
+          <input type="text" name="location" placeholder="City, Country">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="zones">Number of Zones</label>
+          <input type="number" name="zones" min="1" max="50" placeholder="e.g. 3">
+        </div>
+        <div class="field">
+          <label data-i18n="hours">Operating Hours</label>
+          <input type="text" name="hours" placeholder="e.g. 7:00 - 23:00">
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="section">
+      <div class="section-title"><span class="icon">👤</span> <span data-i18n="sec_contact">Contact</span></div>
+      <div class="field">
+        <label data-i18n="contact_name">Contact Name</label>
+        <input type="text" name="contactName">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="contact_email">Email</label>
+          <input type="email" name="contactEmail">
+        </div>
+        <div class="field">
+          <label data-i18n="contact_phone">Phone</label>
+          <input type="tel" name="contactPhone">
+        </div>
+      </div>
+    </div>
+
+    <!-- Atmosphere & Vibes -->
+    <div class="section">
+      <div class="section-title"><span class="icon">✨</span> <span data-i18n="sec_vibes">Atmosphere & Vibes</span></div>
+      <label data-i18n="pick_vibes">Pick the vibes that match your space <span style="color:var(--error)">*</span></label>
+      <p class="sublabel" data-i18n="pick_vibes_hint">Select up to 3</p>
+      <div class="vibe-grid" id="vibeGrid">
+        <div class="vibe-card" data-vibe="relaxed"><span class="emoji">😌</span><span class="vibe-label" data-i18n="v_relaxed">Relaxed</span></div>
+        <div class="vibe-card" data-vibe="energetic"><span class="emoji">⚡</span><span class="vibe-label" data-i18n="v_energetic">Energetic</span></div>
+        <div class="vibe-card" data-vibe="sophisticated"><span class="emoji">🎩</span><span class="vibe-label" data-i18n="v_sophisticated">Sophisticated</span></div>
+        <div class="vibe-card" data-vibe="warm"><span class="emoji">🕯️</span><span class="vibe-label" data-i18n="v_warm">Warm</span></div>
+        <div class="vibe-card" data-vibe="trendy"><span class="emoji">🔥</span><span class="vibe-label" data-i18n="v_trendy">Trendy</span></div>
+        <div class="vibe-card" data-vibe="upbeat"><span class="emoji">🎉</span><span class="vibe-label" data-i18n="v_upbeat">Upbeat</span></div>
+        <div class="vibe-card" data-vibe="zen"><span class="emoji">🧘</span><span class="vibe-label" data-i18n="v_zen">Zen</span></div>
+        <div class="vibe-card" data-vibe="romantic"><span class="emoji">💕</span><span class="vibe-label" data-i18n="v_romantic">Romantic</span></div>
+        <div class="vibe-card" data-vibe="luxurious"><span class="emoji">💎</span><span class="vibe-label" data-i18n="v_luxurious">Luxurious</span></div>
+        <div class="vibe-card" data-vibe="tropical"><span class="emoji">🌴</span><span class="vibe-label" data-i18n="v_tropical">Tropical</span></div>
+        <div class="vibe-card" data-vibe="creative"><span class="emoji">🎨</span><span class="vibe-label" data-i18n="v_creative">Creative</span></div>
+        <div class="vibe-card" data-vibe="professional"><span class="emoji">💼</span><span class="vibe-label" data-i18n="v_professional">Professional</span></div>
+      </div>
+
+      <div class="field" style="margin-top:20px;">
+        <label data-i18n="energy_level">Energy Level</label>
+        <div class="energy-value" id="energyVal">5</div>
+        <div class="slider-wrap">
+          <input type="range" name="energy" min="1" max="10" value="5" oninput="document.getElementById('energyVal').textContent=this.value">
+        </div>
+        <div class="slider-labels">
+          <span data-i18n="energy_low">Calm & Quiet</span>
+          <span data-i18n="energy_high">High Energy</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="reference_venues">Reference Venues</label>
+        <p class="sublabel" data-i18n="reference_hint">Name a hotel, restaurant, or bar whose music you admire</p>
+        <input type="text" name="referenceVenues" placeholder="e.g. Soho House, Aman, Four Seasons Lobby">
+      </div>
+
+      <div class="field">
+        <label data-i18n="vibe_desc">Describe Your Ideal Atmosphere</label>
+        <textarea name="vibeDescription" rows="3" data-i18n-placeholder="vibe_desc_ph"></textarea>
+      </div>
+    </div>
+
+    <!-- Guest Demographics -->
+    <div class="section">
+      <div class="section-title"><span class="icon">👥</span> <span data-i18n="sec_guests">Guest Demographics</span></div>
+      <div class="field">
+        <label data-i18n="guest_profile">Guest Profile</label>
+        <input type="text" name="guestProfile" data-i18n-placeholder="guest_ph">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="age_range">Primary Age Range</label>
+          <select name="ageRange">
+            <option value="">Select...</option>
+            <option value="18-25">18-25</option>
+            <option value="25-35">25-35</option>
+            <option value="35-50">35-50</option>
+            <option value="50+">50+</option>
+            <option value="mixed" data-i18n="age_mixed">Mixed</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-i18n="nationality">Primary Nationality</label>
+          <input type="text" name="nationality" placeholder="e.g. Thai, International mix">
+        </div>
+      </div>
+    </div>
+
+    <!-- Music Preferences -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🎶</span> <span data-i18n="sec_prefs">Music Preferences</span></div>
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="vocals">Vocals</label>
+          <select name="vocals">
+            <option value="" data-i18n="select_placeholder">Select...</option>
+            <option value="instrumental-only" data-i18n="vo_inst">Instrumental Only</option>
+            <option value="mostly-instrumental" data-i18n="vo_mostly_inst">Mostly Instrumental</option>
+            <option value="mix" data-i18n="vo_mix">Mix of Both</option>
+            <option value="mostly-vocals" data-i18n="vo_mostly_voc">Mostly Vocals</option>
+            <option value="no-preference" data-i18n="vo_no_pref">No Preference</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-i18n="music_languages">Music Languages</label>
+          <input type="text" name="musicLanguages" placeholder="e.g. English, Thai, No Thai lyrics">
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="avoid_list">Avoid / Do Not Play</label>
+        <textarea name="avoidList" rows="2" data-i18n-placeholder="avoid_ph"></textarea>
+      </div>
+      <div class="field">
+        <label data-i18n="mood_changes">Mood Changes Through the Day</label>
+        <textarea name="moodChanges" rows="2" data-i18n-placeholder="mood_ph"></textarea>
+      </div>
+    </div>
+
+    <!-- Beat Breeze Section -->
+    <div class="section bb-section" id="bbSection">
+      <div class="section-title"><span class="icon">🤖</span> <span data-i18n="sec_bb">Beat Breeze Details</span></div>
+      <div class="field">
+        <label data-i18n="ai_interest">Interest in AI-Generated Music</label>
+        <select name="aiInterest">
+          <option value="" data-i18n="select_placeholder">Select...</option>
+          <option value="very-interested" data-i18n="ai_very">Very Interested</option>
+          <option value="somewhat" data-i18n="ai_somewhat">Somewhat Interested</option>
+          <option value="just-royalty-free" data-i18n="ai_rf">Just Royalty-Free Music</option>
+        </select>
+      </div>
+      <div class="field">
+        <label data-i18n="instruments">Preferred Instruments</label>
+        <input type="text" name="instruments" placeholder="e.g. Piano, Acoustic Guitar, Synth Pads">
+      </div>
+      <div class="field">
+        <label data-i18n="brand_story">Brand Story / Identity</label>
+        <p class="sublabel" data-i18n="brand_hint">Helps our AI create music that matches your brand personality</p>
+        <textarea name="brandStory" rows="3" data-i18n-placeholder="brand_ph"></textarea>
+      </div>
+    </div>
+
+    <!-- Brief Preview -->
+    <div class="brief-preview" id="briefPreview">
+      <h3 data-i18n="preview_title">Your Music Brief Preview</h3>
+      <div id="previewContent"></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="btn-row">
+      <button type="button" class="btn btn-secondary" id="generateBtn" data-i18n="btn_generate">Generate Brief</button>
+      <button type="submit" class="btn btn-primary" id="submitBtn" disabled data-i18n="btn_submit">Submit Brief</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =========================================================================
+// Internationalization
+// =========================================================================
+const i18n = {
+  en: {
+    title: 'Music Atmosphere Brief',
+    subtitle: 'Tell us the vibe. We\'ll design the sound.',
+    sec_product: 'Product',
+    syb_desc: 'Licensed commercial music',
+    bb_desc: 'Royalty-free + AI bespoke music',
+    sec_venue: 'Venue Information',
+    venue_name: 'Venue Name <span style="color:var(--error)">*</span>',
+    venue_type: 'Venue Type',
+    location: 'Location',
+    zones: 'Number of Zones',
+    hours: 'Operating Hours',
+    sec_contact: 'Contact',
+    contact_name: 'Contact Name',
+    contact_email: 'Email',
+    contact_phone: 'Phone',
+    sec_vibes: 'Atmosphere & Vibes',
+    pick_vibes: 'Pick the vibes that match your space <span style="color:var(--error)">*</span>',
+    pick_vibes_hint: 'Select up to 3',
+    v_relaxed: 'Relaxed', v_energetic: 'Energetic', v_sophisticated: 'Sophisticated',
+    v_warm: 'Warm', v_trendy: 'Trendy', v_upbeat: 'Upbeat',
+    v_zen: 'Zen', v_romantic: 'Romantic', v_luxurious: 'Luxurious',
+    v_tropical: 'Tropical', v_creative: 'Creative', v_professional: 'Professional',
+    energy_level: 'Energy Level',
+    energy_low: 'Calm & Quiet',
+    energy_high: 'High Energy',
+    reference_venues: 'Reference Venues',
+    reference_hint: 'Name a hotel, restaurant, or bar whose music you admire',
+    vibe_desc: 'Describe Your Ideal Atmosphere',
+    vibe_desc_ph: 'e.g. We want guests to feel like they\'re at a stylish beach club at sunset...',
+    sec_guests: 'Guest Demographics',
+    guest_profile: 'Guest Profile',
+    guest_ph: 'e.g. Business travelers, families, young professionals',
+    age_range: 'Primary Age Range',
+    age_mixed: 'Mixed',
+    nationality: 'Primary Nationality',
+    sec_prefs: 'Music Preferences',
+    vocals: 'Vocals',
+    vo_inst: 'Instrumental Only', vo_mostly_inst: 'Mostly Instrumental',
+    vo_mix: 'Mix of Both', vo_mostly_voc: 'Mostly Vocals', vo_no_pref: 'No Preference',
+    music_languages: 'Music Languages',
+    avoid_list: 'Avoid / Do Not Play',
+    avoid_ph: 'e.g. No heavy metal, no explicit lyrics, no Thai pop...',
+    mood_changes: 'Mood Changes Through the Day',
+    mood_ph: 'e.g. Calm mornings, upbeat lunch, sophisticated evenings...',
+    sec_bb: 'Beat Breeze Details',
+    ai_interest: 'Interest in AI-Generated Music',
+    ai_very: 'Very Interested', ai_somewhat: 'Somewhat Interested', ai_rf: 'Just Royalty-Free Music',
+    instruments: 'Preferred Instruments',
+    brand_story: 'Brand Story / Identity',
+    brand_hint: 'Helps our AI create music that matches your brand personality',
+    brand_ph: 'Tell us about your brand - its values, personality, and what makes it unique...',
+    preview_title: 'Your Music Brief Preview',
+    btn_generate: 'Generate Brief',
+    btn_submit: 'Submit Brief',
+    select_placeholder: 'Select...',
+    vt_hotel: 'Hotel Lobby', vt_restaurant: 'Restaurant', vt_bar: 'Bar / Lounge',
+    vt_spa: 'Spa / Wellness', vt_fashion: 'Fashion Retail', vt_cafe: 'Cafe',
+    vt_gym: 'Gym / Fitness', vt_pool: 'Pool / Beach Club', vt_qsr: 'QSR / Fast Casual',
+    vt_cowork: 'Co-working Space', vt_other: 'Other',
+    toast_success: 'Brief sent successfully! Our team will review it shortly.',
+    toast_error: 'Failed to send. Please try again.',
+    toast_validation: 'Please fill in venue name and select at least one vibe.',
+    preview_top_genres: 'Top Recommended Genres',
+    preview_bpm: 'BPM Ranges',
+    preview_morning: 'Morning',
+    preview_afternoon: 'Afternoon',
+    preview_evening: 'Evening',
+    preview_energy: 'Energy',
+  },
+  th: {
+    title: 'แบบฟอร์มบรรยากาศเพลง',
+    subtitle: 'บอกบรรยากาศที่คุณต้องการ เราจะออกแบบเสียงให้',
+    sec_product: 'ผลิตภัณฑ์',
+    syb_desc: 'เพลงลิขสิทธิ์สำหรับธุรกิจ',
+    bb_desc: 'เพลงปลอดลิขสิทธิ์ + AI สร้างเพลงเฉพาะ',
+    sec_venue: 'ข้อมูลสถานที่',
+    venue_name: 'ชื่อสถานที่ <span style="color:var(--error)">*</span>',
+    venue_type: 'ประเภทสถานที่',
+    location: 'ที่ตั้ง',
+    zones: 'จำนวนโซน',
+    hours: 'เวลาเปิด-ปิด',
+    sec_contact: 'ข้อมูลติดต่อ',
+    contact_name: 'ชื่อผู้ติดต่อ',
+    contact_email: 'อีเมล',
+    contact_phone: 'โทรศัพท์',
+    sec_vibes: 'บรรยากาศและอารมณ์',
+    pick_vibes: 'เลือกบรรยากาศที่เข้ากับพื้นที่ของคุณ <span style="color:var(--error)">*</span>',
+    pick_vibes_hint: 'เลือกได้สูงสุด 3 อย่าง',
+    v_relaxed: 'ผ่อนคลาย', v_energetic: 'มีพลัง', v_sophisticated: 'หรูหรามีระดับ',
+    v_warm: 'อบอุ่น', v_trendy: 'ทันสมัย', v_upbeat: 'สนุกสนาน',
+    v_zen: 'สงบเซน', v_romantic: 'โรแมนติก', v_luxurious: 'หรูเลิศ',
+    v_tropical: 'ทรอปิคอล', v_creative: 'สร้างสรรค์', v_professional: 'มืออาชีพ',
+    energy_level: 'ระดับพลังงาน',
+    energy_low: 'สงบ เงียบ',
+    energy_high: 'พลังงานสูง',
+    reference_venues: 'สถานที่อ้างอิง',
+    reference_hint: 'บอกชื่อโรงแรม ร้านอาหาร หรือบาร์ที่คุณชอบเพลงของเขา',
+    vibe_desc: 'อธิบายบรรยากาศในฝัน',
+    vibe_desc_ph: 'เช่น อยากให้แขกรู้สึกเหมือนอยู่ในบีชคลับหรูยามเย็น...',
+    sec_guests: 'ข้อมูลลูกค้า',
+    guest_profile: 'ลักษณะลูกค้า',
+    guest_ph: 'เช่น นักเดินทางธุรกิจ ครอบครัว คนรุ่นใหม่',
+    age_range: 'ช่วงอายุหลัก',
+    age_mixed: 'หลากหลาย',
+    nationality: 'สัญชาติหลัก',
+    sec_prefs: 'ความชอบเรื่องเพลง',
+    vocals: 'เสียงร้อง',
+    vo_inst: 'ดนตรีบรรเลงเท่านั้น', vo_mostly_inst: 'ดนตรีบรรเลงเป็นหลัก',
+    vo_mix: 'ผสมทั้งสองแบบ', vo_mostly_voc: 'มีเสียงร้องเป็นหลัก', vo_no_pref: 'ไม่มีความชอบเฉพาะ',
+    music_languages: 'ภาษาของเพลง',
+    avoid_list: 'เพลงที่ไม่ต้องการ',
+    avoid_ph: 'เช่น ไม่เอาเฮฟวี่เมทัล ไม่เอาเนื้อหาไม่เหมาะสม ไม่เอาเพลงลูกทุ่ง...',
+    mood_changes: 'อารมณ์เพลงในแต่ละช่วงเวลา',
+    mood_ph: 'เช่น เช้าสงบ กลางวันสดใส เย็นหรูหรา...',
+    sec_bb: 'รายละเอียด Beat Breeze',
+    ai_interest: 'ความสนใจในเพลง AI',
+    ai_very: 'สนใจมาก', ai_somewhat: 'สนใจพอสมควร', ai_rf: 'ต้องการเพลงปลอดลิขสิทธิ์เท่านั้น',
+    instruments: 'เครื่องดนตรีที่ชอบ',
+    brand_story: 'เรื่องราวของแบรนด์',
+    brand_hint: 'ช่วยให้ AI สร้างเพลงที่เข้ากับบุคลิกแบรนด์ของคุณ',
+    brand_ph: 'เล่าเกี่ยวกับแบรนด์ของคุณ - ค่านิยม บุคลิก และจุดเด่น...',
+    preview_title: 'ตัวอย่างบรีฟเพลงของคุณ',
+    btn_generate: 'สร้างบรีฟ',
+    btn_submit: 'ส่งบรีฟ',
+    select_placeholder: 'เลือก...',
+    vt_hotel: 'ล็อบบี้โรงแรม', vt_restaurant: 'ร้านอาหาร', vt_bar: 'บาร์ / เลานจ์',
+    vt_spa: 'สปา / เวลเนส', vt_fashion: 'แฟชั่นรีเทล', vt_cafe: 'คาเฟ่',
+    vt_gym: 'ฟิตเนส', vt_pool: 'สระว่ายน้ำ / บีชคลับ', vt_qsr: 'ร้านฟาสต์ฟู้ด',
+    vt_cowork: 'โคเวิร์กกิ้ง', vt_other: 'อื่นๆ',
+    toast_success: 'ส่งบรีฟสำเร็จ! ทีมงานจะตรวจสอบในเร็วๆ นี้',
+    toast_error: 'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง',
+    toast_validation: 'กรุณากรอกชื่อสถานที่และเลือกบรรยากาศอย่างน้อย 1 อย่าง',
+    preview_top_genres: 'แนวเพลงแนะนำ',
+    preview_bpm: 'ช่วง BPM',
+    preview_morning: 'ช่วงเช้า',
+    preview_afternoon: 'ช่วงบ่าย',
+    preview_evening: 'ช่วงเย็น',
+    preview_energy: 'พลังงาน',
+  }
+};
+
+let currentLang = 'en';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase()));
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (i18n[lang][key]) el.placeholder = i18n[lang][key];
+  });
+  // Re-render preview if visible
+  if (briefPreview.style.display === 'block') generateBrief();
+}
+
+// =========================================================================
+// Vibe Selection
+// =========================================================================
+const selectedVibes = new Set();
+const vibeGrid = document.getElementById('vibeGrid');
+
+vibeGrid.addEventListener('click', (e) => {
+  const card = e.target.closest('.vibe-card');
+  if (!card) return;
+  const vibe = card.dataset.vibe;
+
+  if (selectedVibes.has(vibe)) {
+    selectedVibes.delete(vibe);
+    card.classList.remove('selected');
+  } else if (selectedVibes.size < 3) {
+    selectedVibes.add(vibe);
+    card.classList.add('selected');
+  }
+});
+
+// =========================================================================
+// Product Toggle
+// =========================================================================
+const bbSection = document.getElementById('bbSection');
+document.querySelectorAll('.product-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    bbSection.classList.toggle('visible', card.dataset.product === 'beatbreeze');
+  });
+});
+
+// =========================================================================
+// Vibe-to-genre mapping (client-side mirror)
+// =========================================================================
+const VIBE_GENRES = {
+  relaxed:       { genres: ['Acoustic', 'Soft Pop', 'Bossa Nova', 'Lo-fi', 'Easy Listening'], bpm: '70-100' },
+  energetic:     { genres: ['Pop', 'Dance-Pop', 'House', 'Funk', 'Indie Pop'], bpm: '110-130' },
+  sophisticated: { genres: ['Jazz', 'Neo-Soul', 'Classical Crossover', 'Deep House', 'Bossa Nova'], bpm: '80-115' },
+  warm:          { genres: ['Acoustic', 'Folk', 'Soft Jazz', 'Indie Folk', 'Singer-Songwriter'], bpm: '75-100' },
+  trendy:        { genres: ['Indie Electronic', 'Nu-Disco', 'Alt-Pop', 'Downtempo', 'Afrobeats'], bpm: '95-125' },
+  upbeat:        { genres: ['Pop', 'Funk', 'Disco', 'Tropical House', 'Latin Pop'], bpm: '110-130' },
+  zen:           { genres: ['Ambient', 'New Age', 'Meditation', 'Nature Sounds', 'Minimalist'], bpm: '60-85' },
+  romantic:      { genres: ['Jazz Ballads', 'Neo-Soul', 'Soft R&B', 'Classical Piano', 'Bossa Nova'], bpm: '70-100' },
+  luxurious:     { genres: ['Deep House', 'Jazz Lounge', 'Neo-Soul', 'Orchestral', 'Downtempo'], bpm: '85-115' },
+  tropical:      { genres: ['Tropical House', 'Reggae', 'Bossa Nova', 'Island Pop', 'Afro-House'], bpm: '90-120' },
+  creative:      { genres: ['Indie', 'Art Pop', 'Electronic', 'World Fusion', 'Experimental Pop'], bpm: '85-120' },
+  professional:  { genres: ['Soft Jazz', 'Classical Light', 'Ambient', 'Easy Listening', 'Acoustic'], bpm: '70-100' },
+};
+
+const VENUE_BOOSTERS = {
+  'hotel-lobby':    ['Jazz', 'Bossa Nova', 'Ambient', 'Classical Light'],
+  'restaurant':     ['Jazz', 'Bossa Nova', 'Acoustic', 'Neo-Soul'],
+  'bar-lounge':     ['Deep House', 'Nu-Disco', 'Jazz Lounge', 'Downtempo'],
+  'spa-wellness':   ['Ambient', 'New Age', 'Nature Sounds', 'Minimalist'],
+  'fashion-retail': ['Indie Electronic', 'Alt-Pop', 'Deep House', 'Nu-Disco'],
+  'cafe':           ['Acoustic', 'Indie Folk', 'Lo-fi', 'Soft Pop'],
+  'gym-fitness':    ['EDM', 'Hip-Hop', 'Pop', 'Dance'],
+  'pool-beach':     ['Tropical House', 'Afro-House', 'Reggae', 'Island Pop'],
+  'qsr':            ['Pop', 'Upbeat Acoustic', 'Indie Pop', 'Funk'],
+  'coworking':      ['Lo-fi', 'Ambient', 'Soft Electronic', 'Acoustic'],
+};
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function generateBrief() {
+  const form = document.getElementById('briefForm');
+  const venueName = form.venueName.value.trim();
+  const vibes = [...selectedVibes];
+
+  if (!venueName || vibes.length === 0) {
+    showToast(i18n[currentLang].toast_validation, 'error');
+    if (!venueName) form.venueName.closest('.field').classList.add('invalid');
+    return;
+  }
+  form.venueName.closest('.field').classList.remove('invalid');
+
+  const energy = parseInt(form.energy.value, 10);
+  const venueType = form.venueType.value;
+
+  // Score genres
+  const genreScores = {};
+  for (const vibe of vibes) {
+    const mapping = VIBE_GENRES[vibe];
+    if (!mapping) continue;
+    for (const genre of mapping.genres) {
+      genreScores[genre] = (genreScores[genre] || 0) + 1;
+    }
+  }
+  const boosters = VENUE_BOOSTERS[venueType] || [];
+  for (const genre of boosters) {
+    genreScores[genre] = (genreScores[genre] || 0) + 0.5;
+  }
+
+  const rankedGenres = Object.entries(genreScores).sort((a, b) => b[1] - a[1]).map(([g]) => g);
+  const topGenres = rankedGenres.slice(0, 8);
+  const bpmRanges = [...new Set(vibes.map(v => VIBE_GENRES[v]?.bpm).filter(Boolean))];
+
+  const morningE = clamp(energy - 2, 1, 10);
+  const afternoonE = clamp(energy, 1, 10);
+  const eveningE = clamp(energy + 1, 1, 10);
+
+  const t = i18n[currentLang];
+
+  const genreTags = (list) => list.map(g => `<span class="genre-tag">${g}</span>`).join(' ');
+
+  const previewContent = document.getElementById('previewContent');
+  previewContent.innerHTML = `
+    <p style="margin-bottom:8px;"><strong>${t.preview_top_genres}:</strong></p>
+    <p style="margin-bottom:12px;">${genreTags(topGenres)}</p>
+    <p style="margin-bottom:16px;"><strong>${t.preview_bpm}:</strong> ${bpmRanges.join(', ')}</p>
+    <div class="daypart">
+      <div class="daypart-label">🌅 ${t.preview_morning}</div>
+      <div class="daypart-energy">${t.preview_energy}: ${morningE}/10</div>
+      <div class="daypart-genres">${genreTags(topGenres.slice(0, 5))}</div>
+    </div>
+    <div class="daypart">
+      <div class="daypart-label">☀️ ${t.preview_afternoon}</div>
+      <div class="daypart-energy">${t.preview_energy}: ${afternoonE}/10</div>
+      <div class="daypart-genres">${genreTags(topGenres.slice(0, 6))}</div>
+    </div>
+    <div class="daypart">
+      <div class="daypart-label">🌙 ${t.preview_evening}</div>
+      <div class="daypart-energy">${t.preview_energy}: ${eveningE}/10</div>
+      <div class="daypart-genres">${genreTags(topGenres.slice(0, 6))}</div>
+    </div>
+  `;
+
+  const briefPreview = document.getElementById('briefPreview');
+  briefPreview.style.display = 'block';
+  briefPreview.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  document.getElementById('submitBtn').disabled = false;
+}
+
+// =========================================================================
+// Form submission
+// =========================================================================
+const form = document.getElementById('briefForm');
+const briefPreview = document.getElementById('briefPreview');
+
+document.getElementById('generateBtn').addEventListener('click', generateBrief);
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner"></span>';
+
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData.entries());
+  data.vibes = [...selectedVibes];
+
+  try {
+    const res = await fetch('/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const result = await res.json();
+
+    if (res.ok && result.success) {
+      showToast(i18n[currentLang].toast_success, 'success');
+      form.reset();
+      selectedVibes.clear();
+      document.querySelectorAll('.vibe-card').forEach(c => c.classList.remove('selected'));
+      briefPreview.style.display = 'none';
+      document.getElementById('energyVal').textContent = '5';
+      submitBtn.disabled = true;
+    } else {
+      showToast(result.error || i18n[currentLang].toast_error, 'error');
+    }
+  } catch {
+    showToast(i18n[currentLang].toast_error, 'error');
+  }
+
+  submitBtn.innerHTML = i18n[currentLang].btn_submit;
+  submitBtn.disabled = true;
+});
+
+// =========================================================================
+// Toast
+// =========================================================================
+function showToast(msg, type) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+</script>
+</body>
+</html>
