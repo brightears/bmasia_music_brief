@@ -4,6 +4,7 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 const GMAIL_USER = process.env.GMAIL_USER;
