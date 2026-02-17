@@ -4,15 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Music Atmosphere Brief | BMAsia Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  /* Base – always BMAsia */
   --navy: #1a1a2e;
   --navy-light: #16213e;
-  --accent: #6366f1;
-  --accent-light: #a5b4fc;
-  --bg: #f3f4f6;
+  --dark: #0f0f0f;
+  --bg: #f5f5f7;
   --card: #ffffff;
   --text: #1f2937;
   --text-muted: #6b7280;
@@ -20,11 +23,27 @@
   --success: #10b981;
   --error: #ef4444;
   --radius: 12px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+
+  /* Accent – default SYB purple */
+  --accent: #7B3FF2;
+  --accent-hover: #6930d4;
+  --accent-light: #c4b5fd;
+  --accent-glow: rgba(123, 63, 242, 0.15);
+  --accent-ultra-light: rgba(123, 63, 242, 0.06);
+}
+
+[data-theme="beatbreeze"] {
+  --accent: #EFA634;
+  --accent-hover: #d99530;
+  --accent-light: #f5b84d;
+  --accent-glow: rgba(239, 166, 52, 0.18);
+  --accent-ultra-light: rgba(239, 166, 52, 0.06);
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
@@ -37,23 +56,51 @@ body {
   padding: 16px;
 }
 
-/* Header */
+/* ============ Header ============ */
 .header {
   background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
-  padding: 32px 24px;
+  padding: 36px 24px 32px;
   text-align: center;
   border-radius: var(--radius) var(--radius) 0 0;
   position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 65%);
+  pointer-events: none;
+  transition: background 0.4s ease;
+}
+.header-logo {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 16px;
+}
+.header-logo img {
+  height: 36px;
+  width: auto;
+  opacity: 0.95;
 }
 .header h1 {
   color: #fff;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   margin-bottom: 4px;
+  position: relative;
+  z-index: 1;
+  letter-spacing: -0.3px;
 }
 .header p {
-  color: var(--accent-light);
+  color: rgba(255,255,255,0.6);
   font-size: 14px;
+  position: relative;
+  z-index: 1;
 }
 
 /* Language toggle */
@@ -62,51 +109,75 @@ body {
   top: 16px;
   right: 16px;
   display: flex;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.08);
   border-radius: 8px;
   overflow: hidden;
+  z-index: 2;
+  backdrop-filter: blur(8px);
 }
 .lang-btn {
   padding: 6px 14px;
   border: none;
   background: transparent;
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.5);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  font-family: inherit;
 }
 .lang-btn.active {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.15);
   color: #fff;
 }
 
-/* Sections */
+/* ============ Form body ============ */
 .form-body {
   background: var(--card);
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius) var(--radius);
-  padding: 24px;
+  padding: 28px 24px;
 }
 
+/* ============ Sections ============ */
 .section {
   margin-bottom: 32px;
 }
 .section-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--navy);
   margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--accent-light);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
-.section-title .icon { font-size: 20px; }
+.section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--accent-ultra-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+.section-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.3s ease;
+}
 
-/* Form controls */
+/* ============ Form controls ============ */
 label {
   display: block;
   font-size: 13px;
@@ -128,19 +199,19 @@ select,
 textarea {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 15px;
   font-family: inherit;
   background: #fff;
   color: var(--text);
-  transition: border-color 0.2s;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
   -webkit-appearance: none;
 }
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 textarea { resize: vertical; min-height: 80px; }
 
@@ -150,11 +221,8 @@ textarea { resize: vertical; min-height: 80px; }
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-@media (max-width: 500px) {
-  .field-row { grid-template-columns: 1fr; }
-}
 
-/* Product toggle */
+/* ============ Product toggle ============ */
 .product-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -167,18 +235,50 @@ textarea { resize: vertical; min-height: 80px; }
   border-radius: var(--radius);
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
   background: #fff;
+  position: relative;
 }
-.product-card:hover { border-color: var(--accent-light); }
+.product-card:hover {
+  border-color: var(--accent-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
 .product-card.selected {
   border-color: var(--accent);
-  background: rgba(99,102,241,0.04);
+  background: var(--accent-ultra-light);
+}
+.product-card .check-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.25s ease;
+}
+.product-card.selected .check-indicator {
+  opacity: 1;
+  transform: scale(1);
+}
+.product-card .check-indicator svg {
+  width: 12px;
+  height: 12px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 2.5;
 }
 .product-card .product-name {
   font-weight: 700;
   font-size: 14px;
   margin-bottom: 4px;
+  color: var(--text);
 }
 .product-card .product-desc {
   font-size: 11px;
@@ -186,34 +286,82 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .product-card input { display: none; }
 
-/* Vibe cards */
+/* ============ Vibe cards ============ */
 .vibe-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
-@media (max-width: 500px) {
-  .vibe-grid { grid-template-columns: repeat(3, 1fr); }
-}
 .vibe-card {
-  padding: 12px 6px;
+  padding: 14px 6px 10px;
   border: 2px solid var(--border);
   border-radius: var(--radius);
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   background: #fff;
   user-select: none;
 }
-.vibe-card:hover { border-color: var(--accent-light); transform: translateY(-1px); }
+.vibe-card:hover {
+  border-color: var(--accent-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
 .vibe-card.selected {
   border-color: var(--accent);
-  background: rgba(99,102,241,0.06);
+  background: var(--accent-ultra-light);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
-.vibe-card .emoji { font-size: 28px; display: block; margin-bottom: 4px; }
-.vibe-card .vibe-label { font-size: 11px; font-weight: 600; }
+.vibe-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+}
+.vibe-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.vibe-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
 
-/* Energy slider */
+/* Vibe icon gradients */
+.vi-relaxed    { background: linear-gradient(135deg, #bfdbfe, #99f6e4); }
+.vi-relaxed svg    { stroke: #1d4ed8; }
+.vi-energetic  { background: linear-gradient(135deg, #fed7aa, #fde047); }
+.vi-energetic svg  { stroke: #b45309; }
+.vi-sophisticated { background: linear-gradient(135deg, #c4b5fd, #fbbf24); }
+.vi-sophisticated svg { stroke: #6d28d9; }
+.vi-warm       { background: linear-gradient(135deg, #fcd34d, #fda4af); }
+.vi-warm svg       { stroke: #b45309; }
+.vi-trendy     { background: linear-gradient(135deg, #f9a8d4, #c084fc); }
+.vi-trendy svg     { stroke: #a21caf; }
+.vi-upbeat     { background: linear-gradient(135deg, #fca5a5, #fb923c); }
+.vi-upbeat svg     { stroke: #c2410c; }
+.vi-zen        { background: linear-gradient(135deg, #bbf7d0, #a7f3d0); }
+.vi-zen svg        { stroke: #166534; }
+.vi-romantic   { background: linear-gradient(135deg, #fecdd3, #f9a8d4); }
+.vi-romantic svg   { stroke: #be123c; }
+.vi-luxurious  { background: linear-gradient(135deg, #1f2937, #92400e); }
+.vi-luxurious svg  { stroke: #fbbf24; }
+.vi-tropical   { background: linear-gradient(135deg, #5eead4, #86efac); }
+.vi-tropical svg   { stroke: #065f46; }
+.vi-creative   { background: linear-gradient(135deg, #c084fc, #60a5fa, #34d399); }
+.vi-creative svg   { stroke: #6d28d9; }
+.vi-professional { background: linear-gradient(135deg, #94a3b8, #60a5fa); }
+.vi-professional svg { stroke: #1e40af; }
+
+/* ============ Energy slider ============ */
 .slider-wrap {
   position: relative;
   padding: 8px 0;
@@ -228,6 +376,7 @@ textarea { resize: vertical; min-height: 80px; }
   outline: none;
   border: none;
   padding: 0;
+  transition: background 0.3s ease;
 }
 .slider-wrap input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -236,8 +385,9 @@ textarea { resize: vertical; min-height: 80px; }
   border-radius: 50%;
   background: var(--accent);
   border: 3px solid #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15), 0 0 0 3px var(--accent-glow);
   cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 .slider-wrap input[type="range"]::-moz-range-thumb {
   width: 24px;
@@ -245,8 +395,9 @@ textarea { resize: vertical; min-height: 80px; }
   border-radius: 50%;
   background: var(--accent);
   border: 3px solid #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15), 0 0 0 3px var(--accent-glow);
   cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 .slider-labels {
   display: flex;
@@ -261,34 +412,84 @@ textarea { resize: vertical; min-height: 80px; }
   font-weight: 800;
   color: var(--accent);
   margin-bottom: 8px;
+  transition: color 0.3s ease;
 }
 
-/* Brief preview */
+/* ============ Brief preview ============ */
 .brief-preview {
-  background: #fefce8;
-  border: 1px solid #fde68a;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px;
   margin: 24px 0;
-  display: none;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.4s ease, margin 0.4s ease;
 }
-.brief-preview h3 {
+.brief-preview.visible {
+  max-height: 2000px;
+  opacity: 1;
+}
+.brief-preview-header {
+  background: var(--accent-ultra-light);
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.3s ease;
+}
+.brief-preview-header h3 {
   font-size: 15px;
+  font-weight: 700;
   color: var(--navy);
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brief-preview-header svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.3s ease;
+}
+.brief-preview-body {
+  padding: 20px;
 }
 .brief-preview .daypart {
   margin-bottom: 12px;
   padding: 12px;
-  background: #fff;
+  background: var(--bg);
   border-radius: 8px;
-  border: 1px solid #fde68a;
+  border: 1px solid var(--border);
 }
 .brief-preview .daypart-label {
   font-weight: 700;
   font-size: 13px;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+.daypart-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.daypart-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.daypart-icon.morning svg { stroke: #f59e0b; }
+.daypart-icon.afternoon svg { stroke: #ef4444; }
+.daypart-icon.evening svg { stroke: #6366f1; }
 .brief-preview .daypart-genres {
   font-size: 13px;
   color: var(--text-muted);
@@ -297,19 +498,21 @@ textarea { resize: vertical; min-height: 80px; }
   font-size: 12px;
   color: var(--accent);
   font-weight: 600;
+  transition: color 0.3s ease;
 }
 .genre-tag {
   display: inline-block;
-  padding: 2px 8px;
-  background: rgba(99,102,241,0.08);
-  border-radius: 4px;
+  padding: 3px 10px;
+  background: var(--accent-ultra-light);
+  border-radius: 5px;
   font-size: 12px;
   margin: 2px;
   color: var(--accent);
   font-weight: 500;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Buttons */
+/* ============ Buttons ============ */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -321,39 +524,45 @@ textarea { resize: vertical; min-height: 80px; }
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   width: 100%;
   font-family: inherit;
 }
+.btn:active { transform: scale(0.98); }
 .btn-secondary {
   background: var(--navy);
   color: #fff;
 }
-.btn-secondary:hover { background: var(--navy-light); }
+.btn-secondary:hover {
+  background: var(--navy-light);
+  box-shadow: var(--shadow-lg);
+}
 .btn-primary {
   background: var(--accent);
   color: #fff;
+  transition: background 0.3s ease, box-shadow 0.2s ease;
 }
-.btn-primary:hover { background: #4f46e5; }
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-lg);
+}
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.btn:disabled:active { transform: none; }
 .btn-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 8px;
 }
-@media (max-width: 500px) {
-  .btn-row { grid-template-columns: 1fr; }
-}
 
-/* Beat Breeze section */
+/* ============ Beat Breeze section ============ */
 .bb-section { display: none; }
 .bb-section.visible { display: block; }
 
-/* Toast / status */
+/* ============ Toast ============ */
 .toast {
   position: fixed;
   bottom: 24px;
@@ -366,12 +575,14 @@ textarea { resize: vertical; min-height: 80px; }
   z-index: 999;
   transition: transform 0.3s ease;
   max-width: 90%;
+  font-family: 'Inter', sans-serif;
+  backdrop-filter: blur(8px);
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
 .toast.success { background: var(--success); color: #fff; }
 .toast.error { background: var(--error); color: #fff; }
 
-/* Validation */
+/* ============ Validation ============ */
 .field.invalid input,
 .field.invalid select,
 .field.invalid textarea {
@@ -379,10 +590,10 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .field.invalid label { color: var(--error); }
 
-/* Honeypot */
+/* ============ Honeypot ============ */
 .hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; }
 
-/* Spinner */
+/* ============ Spinner ============ */
 .spinner {
   display: inline-block;
   width: 18px;
@@ -393,6 +604,29 @@ textarea { resize: vertical; min-height: 80px; }
   animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============ Responsive ============ */
+@media (max-width: 640px) {
+  .vibe-grid { grid-template-columns: repeat(3, 1fr); }
+  .header { padding: 28px 20px 24px; }
+  .header-logo img { height: 30px; }
+  .header h1 { font-size: 20px; }
+  .form-body { padding: 22px 18px; }
+}
+@media (max-width: 500px) {
+  .field-row { grid-template-columns: 1fr; }
+  .btn-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .container { padding: 10px; }
+  .header { padding: 24px 16px 20px; }
+  .header-logo img { height: 26px; }
+  .header h1 { font-size: 18px; }
+  .form-body { padding: 18px 14px; }
+  .vibe-icon { width: 40px; height: 40px; border-radius: 10px; }
+  .vibe-icon svg { width: 20px; height: 20px; }
+  .vibe-card { padding: 10px 4px 8px; }
+}
 </style>
 </head>
 <body>
@@ -402,6 +636,9 @@ textarea { resize: vertical; min-height: 80px; }
     <div class="lang-toggle">
       <button class="lang-btn active" onclick="setLang('en')">EN</button>
       <button class="lang-btn" onclick="setLang('th')">TH</button>
+    </div>
+    <div class="header-logo">
+      <img src="/images/BMAsia_Logo.png" alt="BMAsia Group" width="144" height="36">
     </div>
     <h1 data-i18n="title">Music Atmosphere Brief</h1>
     <p data-i18n="subtitle">Tell us the vibe. We'll design the sound.</p>
@@ -416,15 +653,20 @@ textarea { resize: vertical; min-height: 80px; }
 
     <!-- Product Selection -->
     <div class="section">
-      <div class="section-title"><span class="icon">🎵</span> <span data-i18n="sec_product">Product</span></div>
+      <div class="section-title">
+        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+        <span data-i18n="sec_product">Product</span>
+      </div>
       <div class="product-toggle">
         <label class="product-card selected" data-product="syb">
           <input type="radio" name="product" value="syb" checked>
+          <span class="check-indicator"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
           <div class="product-name">Soundtrack Your Brand</div>
           <div class="product-desc" data-i18n="syb_desc">Licensed commercial music</div>
         </label>
         <label class="product-card" data-product="beatbreeze">
           <input type="radio" name="product" value="beatbreeze">
+          <span class="check-indicator"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
           <div class="product-name">Beat Breeze</div>
           <div class="product-desc" data-i18n="bb_desc">Royalty-free + AI bespoke music</div>
         </label>
@@ -433,7 +675,10 @@ textarea { resize: vertical; min-height: 80px; }
 
     <!-- Venue Info -->
     <div class="section">
-      <div class="section-title"><span class="icon">🏢</span> <span data-i18n="sec_venue">Venue Information</span></div>
+      <div class="section-title">
+        <span class="section-icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/></svg></span>
+        <span data-i18n="sec_venue">Venue Information</span>
+      </div>
       <div class="field">
         <label data-i18n="venue_name">Venue Name <span style="color:var(--error)">*</span></label>
         <input type="text" name="venueName" required>
@@ -475,7 +720,10 @@ textarea { resize: vertical; min-height: 80px; }
 
     <!-- Contact -->
     <div class="section">
-      <div class="section-title"><span class="icon">👤</span> <span data-i18n="sec_contact">Contact</span></div>
+      <div class="section-title">
+        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span data-i18n="sec_contact">Contact</span>
+      </div>
       <div class="field">
         <label data-i18n="contact_name">Contact Name</label>
         <input type="text" name="contactName">
@@ -494,22 +742,73 @@ textarea { resize: vertical; min-height: 80px; }
 
     <!-- Atmosphere & Vibes -->
     <div class="section">
-      <div class="section-title"><span class="icon">✨</span> <span data-i18n="sec_vibes">Atmosphere & Vibes</span></div>
+      <div class="section-title">
+        <span class="section-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+        <span data-i18n="sec_vibes">Atmosphere & Vibes</span>
+      </div>
       <label data-i18n="pick_vibes">Pick the vibes that match your space <span style="color:var(--error)">*</span></label>
       <p class="sublabel" data-i18n="pick_vibes_hint">Select up to 3</p>
       <div class="vibe-grid" id="vibeGrid">
-        <div class="vibe-card" data-vibe="relaxed"><span class="emoji">😌</span><span class="vibe-label" data-i18n="v_relaxed">Relaxed</span></div>
-        <div class="vibe-card" data-vibe="energetic"><span class="emoji">⚡</span><span class="vibe-label" data-i18n="v_energetic">Energetic</span></div>
-        <div class="vibe-card" data-vibe="sophisticated"><span class="emoji">🎩</span><span class="vibe-label" data-i18n="v_sophisticated">Sophisticated</span></div>
-        <div class="vibe-card" data-vibe="warm"><span class="emoji">🕯️</span><span class="vibe-label" data-i18n="v_warm">Warm</span></div>
-        <div class="vibe-card" data-vibe="trendy"><span class="emoji">🔥</span><span class="vibe-label" data-i18n="v_trendy">Trendy</span></div>
-        <div class="vibe-card" data-vibe="upbeat"><span class="emoji">🎉</span><span class="vibe-label" data-i18n="v_upbeat">Upbeat</span></div>
-        <div class="vibe-card" data-vibe="zen"><span class="emoji">🧘</span><span class="vibe-label" data-i18n="v_zen">Zen</span></div>
-        <div class="vibe-card" data-vibe="romantic"><span class="emoji">💕</span><span class="vibe-label" data-i18n="v_romantic">Romantic</span></div>
-        <div class="vibe-card" data-vibe="luxurious"><span class="emoji">💎</span><span class="vibe-label" data-i18n="v_luxurious">Luxurious</span></div>
-        <div class="vibe-card" data-vibe="tropical"><span class="emoji">🌴</span><span class="vibe-label" data-i18n="v_tropical">Tropical</span></div>
-        <div class="vibe-card" data-vibe="creative"><span class="emoji">🎨</span><span class="vibe-label" data-i18n="v_creative">Creative</span></div>
-        <div class="vibe-card" data-vibe="professional"><span class="emoji">💼</span><span class="vibe-label" data-i18n="v_professional">Professional</span></div>
+        <!-- Relaxed -->
+        <div class="vibe-card" data-vibe="relaxed">
+          <div class="vibe-icon vi-relaxed"><svg viewBox="0 0 24 24"><path d="M2 12c2-3 5-3 7 0s5 3 7 0 5-3 7 0"/><path d="M2 17c2-3 5-3 7 0s5 3 7 0 5-3 7 0"/><path d="M2 7c2-3 5-3 7 0s5 3 7 0 5-3 7 0"/></svg></div>
+          <span class="vibe-label" data-i18n="v_relaxed">Relaxed</span>
+        </div>
+        <!-- Energetic -->
+        <div class="vibe-card" data-vibe="energetic">
+          <div class="vibe-icon vi-energetic"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+          <span class="vibe-label" data-i18n="v_energetic">Energetic</span>
+        </div>
+        <!-- Sophisticated -->
+        <div class="vibe-card" data-vibe="sophisticated">
+          <div class="vibe-icon vi-sophisticated"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20"/><path d="M10 9l2 13 2-13"/><path d="M6 3l4 6"/><path d="M18 3l-4 6"/></svg></div>
+          <span class="vibe-label" data-i18n="v_sophisticated">Sophisticated</span>
+        </div>
+        <!-- Warm -->
+        <div class="vibe-card" data-vibe="warm">
+          <div class="vibe-icon vi-warm"><svg viewBox="0 0 24 24"><path d="M12 2c-1 4-4 6-4 10a4 4 0 0 0 8 0c0-4-3-6-4-10z"/><line x1="12" y1="22" x2="12" y2="18"/><line x1="8" y1="22" x2="16" y2="22"/></svg></div>
+          <span class="vibe-label" data-i18n="v_warm">Warm</span>
+        </div>
+        <!-- Trendy -->
+        <div class="vibe-card" data-vibe="trendy">
+          <div class="vibe-icon vi-trendy"><svg viewBox="0 0 24 24"><path d="M12 3l1.5 4.5H18l-3.7 2.7 1.4 4.3L12 11.8l-3.7 2.7 1.4-4.3L6 7.5h4.5z"/><path d="M5 19l1-2"/><path d="M19 19l-1-2"/><circle cx="4" cy="4" r="1"/><circle cx="20" cy="4" r="1"/></svg></div>
+          <span class="vibe-label" data-i18n="v_trendy">Trendy</span>
+        </div>
+        <!-- Upbeat -->
+        <div class="vibe-card" data-vibe="upbeat">
+          <div class="vibe-icon vi-upbeat"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+          <span class="vibe-label" data-i18n="v_upbeat">Upbeat</span>
+        </div>
+        <!-- Zen -->
+        <div class="vibe-card" data-vibe="zen">
+          <div class="vibe-icon vi-zen"><svg viewBox="0 0 24 24"><path d="M12 22c-4 0-8-2-8-6 0-2 1-3.5 2.5-4.5"/><path d="M12 22c4 0 8-2 8-6 0-2-1-3.5-2.5-4.5"/><path d="M12 22V12"/><path d="M12 12C9 12 6 9 6 6s3-4 6-4"/><path d="M12 12c3 0 6-3 6-6s-3-4-6-4"/></svg></div>
+          <span class="vibe-label" data-i18n="v_zen">Zen</span>
+        </div>
+        <!-- Romantic -->
+        <div class="vibe-card" data-vibe="romantic">
+          <div class="vibe-icon vi-romantic"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <span class="vibe-label" data-i18n="v_romantic">Romantic</span>
+        </div>
+        <!-- Luxurious -->
+        <div class="vibe-card" data-vibe="luxurious">
+          <div class="vibe-icon vi-luxurious"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3l1 6"/><path d="M13 3l-1 6"/><path d="M2 9h20"/></svg></div>
+          <span class="vibe-label" data-i18n="v_luxurious">Luxurious</span>
+        </div>
+        <!-- Tropical -->
+        <div class="vibe-card" data-vibe="tropical">
+          <div class="vibe-icon vi-tropical"><svg viewBox="0 0 24 24"><path d="M13 8c0-2.76-2.46-5-5.5-5-1.65 0-3.13.73-4.13 1.88"/><path d="M13 8c0-2.76 2.46-5 5.5-5 1.65 0 3.13.73 4.13 1.88"/><path d="M13 8v14"/><path d="M13 8C8 8 4 4 3 1"/><path d="M13 8c5 0 9-4 10-7"/><path d="M9 22h8"/></svg></div>
+          <span class="vibe-label" data-i18n="v_tropical">Tropical</span>
+        </div>
+        <!-- Creative -->
+        <div class="vibe-card" data-vibe="creative">
+          <div class="vibe-icon vi-creative"><svg viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="19" cy="13" r="2"/><circle cx="6" cy="12" r="3"/><path d="M12 22a7 7 0 0 0 7-7c0-3.5-2.5-6.5-7-6.5S5 11.5 5 15a7 7 0 0 0 7 7z"/></svg></div>
+          <span class="vibe-label" data-i18n="v_creative">Creative</span>
+        </div>
+        <!-- Professional -->
+        <div class="vibe-card" data-vibe="professional">
+          <div class="vibe-icon vi-professional"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12.01"/></svg></div>
+          <span class="vibe-label" data-i18n="v_professional">Professional</span>
+        </div>
       </div>
 
       <div class="field" style="margin-top:20px;">
@@ -538,7 +837,10 @@ textarea { resize: vertical; min-height: 80px; }
 
     <!-- Guest Demographics -->
     <div class="section">
-      <div class="section-title"><span class="icon">👥</span> <span data-i18n="sec_guests">Guest Demographics</span></div>
+      <div class="section-title">
+        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <span data-i18n="sec_guests">Guest Demographics</span>
+      </div>
       <div class="field">
         <label data-i18n="guest_profile">Guest Profile</label>
         <input type="text" name="guestProfile" data-i18n-placeholder="guest_ph">
@@ -564,7 +866,10 @@ textarea { resize: vertical; min-height: 80px; }
 
     <!-- Music Preferences -->
     <div class="section">
-      <div class="section-title"><span class="icon">🎶</span> <span data-i18n="sec_prefs">Music Preferences</span></div>
+      <div class="section-title">
+        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+        <span data-i18n="sec_prefs">Music Preferences</span>
+      </div>
       <div class="field-row">
         <div class="field">
           <label data-i18n="vocals">Vocals</label>
@@ -594,7 +899,10 @@ textarea { resize: vertical; min-height: 80px; }
 
     <!-- Beat Breeze Section -->
     <div class="section bb-section" id="bbSection">
-      <div class="section-title"><span class="icon">🤖</span> <span data-i18n="sec_bb">Beat Breeze Details</span></div>
+      <div class="section-title">
+        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect x="2" y="2" width="20" height="8" rx="2"/><path d="M2 14h20"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 18h.01"/><path d="M10 18h.01"/></svg></span>
+        <span data-i18n="sec_bb">Beat Breeze Details</span>
+      </div>
       <div class="field">
         <label data-i18n="ai_interest">Interest in AI-Generated Music</label>
         <select name="aiInterest">
@@ -617,8 +925,13 @@ textarea { resize: vertical; min-height: 80px; }
 
     <!-- Brief Preview -->
     <div class="brief-preview" id="briefPreview">
-      <h3 data-i18n="preview_title">Your Music Brief Preview</h3>
-      <div id="previewContent"></div>
+      <div class="brief-preview-header">
+        <h3>
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span data-i18n="preview_title">Your Music Brief Preview</span>
+        </h3>
+      </div>
+      <div class="brief-preview-body" id="previewContent"></div>
     </div>
 
     <!-- Actions -->
@@ -707,74 +1020,74 @@ const i18n = {
     preview_energy: 'Energy',
   },
   th: {
-    title: 'แบบฟอร์มบรรยากาศเพลง',
-    subtitle: 'บอกบรรยากาศที่คุณต้องการ เราจะออกแบบเสียงให้',
-    sec_product: 'ผลิตภัณฑ์',
-    syb_desc: 'เพลงลิขสิทธิ์สำหรับธุรกิจ',
-    bb_desc: 'เพลงปลอดลิขสิทธิ์ + AI สร้างเพลงเฉพาะ',
-    sec_venue: 'ข้อมูลสถานที่',
-    venue_name: 'ชื่อสถานที่ <span style="color:var(--error)">*</span>',
-    venue_type: 'ประเภทสถานที่',
-    location: 'ที่ตั้ง',
-    zones: 'จำนวนโซน',
-    hours: 'เวลาเปิด-ปิด',
-    sec_contact: 'ข้อมูลติดต่อ',
-    contact_name: 'ชื่อผู้ติดต่อ',
-    contact_email: 'อีเมล',
-    contact_phone: 'โทรศัพท์',
-    sec_vibes: 'บรรยากาศและอารมณ์',
-    pick_vibes: 'เลือกบรรยากาศที่เข้ากับพื้นที่ของคุณ <span style="color:var(--error)">*</span>',
-    pick_vibes_hint: 'เลือกได้สูงสุด 3 อย่าง',
-    v_relaxed: 'ผ่อนคลาย', v_energetic: 'มีพลัง', v_sophisticated: 'หรูหรามีระดับ',
-    v_warm: 'อบอุ่น', v_trendy: 'ทันสมัย', v_upbeat: 'สนุกสนาน',
-    v_zen: 'สงบเซน', v_romantic: 'โรแมนติก', v_luxurious: 'หรูเลิศ',
-    v_tropical: 'ทรอปิคอล', v_creative: 'สร้างสรรค์', v_professional: 'มืออาชีพ',
-    energy_level: 'ระดับพลังงาน',
-    energy_low: 'สงบ เงียบ',
-    energy_high: 'พลังงานสูง',
-    reference_venues: 'สถานที่อ้างอิง',
-    reference_hint: 'บอกชื่อโรงแรม ร้านอาหาร หรือบาร์ที่คุณชอบเพลงของเขา',
-    vibe_desc: 'อธิบายบรรยากาศในฝัน',
-    vibe_desc_ph: 'เช่น อยากให้แขกรู้สึกเหมือนอยู่ในบีชคลับหรูยามเย็น...',
-    sec_guests: 'ข้อมูลลูกค้า',
-    guest_profile: 'ลักษณะลูกค้า',
-    guest_ph: 'เช่น นักเดินทางธุรกิจ ครอบครัว คนรุ่นใหม่',
-    age_range: 'ช่วงอายุหลัก',
-    age_mixed: 'หลากหลาย',
-    nationality: 'สัญชาติหลัก',
-    sec_prefs: 'ความชอบเรื่องเพลง',
-    vocals: 'เสียงร้อง',
-    vo_inst: 'ดนตรีบรรเลงเท่านั้น', vo_mostly_inst: 'ดนตรีบรรเลงเป็นหลัก',
-    vo_mix: 'ผสมทั้งสองแบบ', vo_mostly_voc: 'มีเสียงร้องเป็นหลัก', vo_no_pref: 'ไม่มีความชอบเฉพาะ',
-    music_languages: 'ภาษาของเพลง',
-    avoid_list: 'เพลงที่ไม่ต้องการ',
-    avoid_ph: 'เช่น ไม่เอาเฮฟวี่เมทัล ไม่เอาเนื้อหาไม่เหมาะสม ไม่เอาเพลงลูกทุ่ง...',
-    mood_changes: 'อารมณ์เพลงในแต่ละช่วงเวลา',
-    mood_ph: 'เช่น เช้าสงบ กลางวันสดใส เย็นหรูหรา...',
-    sec_bb: 'รายละเอียด Beat Breeze',
-    ai_interest: 'ความสนใจในเพลง AI',
-    ai_very: 'สนใจมาก', ai_somewhat: 'สนใจพอสมควร', ai_rf: 'ต้องการเพลงปลอดลิขสิทธิ์เท่านั้น',
-    instruments: 'เครื่องดนตรีที่ชอบ',
-    brand_story: 'เรื่องราวของแบรนด์',
-    brand_hint: 'ช่วยให้ AI สร้างเพลงที่เข้ากับบุคลิกแบรนด์ของคุณ',
-    brand_ph: 'เล่าเกี่ยวกับแบรนด์ของคุณ - ค่านิยม บุคลิก และจุดเด่น...',
-    preview_title: 'ตัวอย่างบรีฟเพลงของคุณ',
-    btn_generate: 'สร้างบรีฟ',
-    btn_submit: 'ส่งบรีฟ',
-    select_placeholder: 'เลือก...',
-    vt_hotel: 'ล็อบบี้โรงแรม', vt_restaurant: 'ร้านอาหาร', vt_bar: 'บาร์ / เลานจ์',
-    vt_spa: 'สปา / เวลเนส', vt_fashion: 'แฟชั่นรีเทล', vt_cafe: 'คาเฟ่',
-    vt_gym: 'ฟิตเนส', vt_pool: 'สระว่ายน้ำ / บีชคลับ', vt_qsr: 'ร้านฟาสต์ฟู้ด',
-    vt_cowork: 'โคเวิร์กกิ้ง', vt_other: 'อื่นๆ',
-    toast_success: 'ส่งบรีฟสำเร็จ! ทีมงานจะตรวจสอบในเร็วๆ นี้',
-    toast_error: 'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง',
-    toast_validation: 'กรุณากรอกชื่อสถานที่และเลือกบรรยากาศอย่างน้อย 1 อย่าง',
-    preview_top_genres: 'แนวเพลงแนะนำ',
-    preview_bpm: 'ช่วง BPM',
-    preview_morning: 'ช่วงเช้า',
-    preview_afternoon: 'ช่วงบ่าย',
-    preview_evening: 'ช่วงเย็น',
-    preview_energy: 'พลังงาน',
+    title: '\u0e41\u0e1a\u0e1a\u0e1f\u0e2d\u0e23\u0e4c\u0e21\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e40\u0e1e\u0e25\u0e07',
+    subtitle: '\u0e1a\u0e2d\u0e01\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23 \u0e40\u0e23\u0e32\u0e08\u0e30\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e43\u0e2b\u0e49',
+    sec_product: '\u0e1c\u0e25\u0e34\u0e15\u0e20\u0e31\u0e13\u0e11\u0e4c',
+    syb_desc: '\u0e40\u0e1e\u0e25\u0e07\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e18\u0e38\u0e23\u0e01\u0e34\u0e08',
+    bb_desc: '\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e25\u0e2d\u0e14\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c + AI \u0e2a\u0e23\u0e49\u0e32\u0e07\u0e40\u0e1e\u0e25\u0e07\u0e40\u0e09\u0e1e\u0e32\u0e30',
+    sec_venue: '\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48',
+    venue_name: '\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48 <span style="color:var(--error)">*</span>',
+    venue_type: '\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48',
+    location: '\u0e17\u0e35\u0e48\u0e15\u0e31\u0e49\u0e07',
+    zones: '\u0e08\u0e33\u0e19\u0e27\u0e19\u0e42\u0e0b\u0e19',
+    hours: '\u0e40\u0e27\u0e25\u0e32\u0e40\u0e1b\u0e34\u0e14-\u0e1b\u0e34\u0e14',
+    sec_contact: '\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e15\u0e34\u0e14\u0e15\u0e48\u0e2d',
+    contact_name: '\u0e0a\u0e37\u0e48\u0e2d\u0e1c\u0e39\u0e49\u0e15\u0e34\u0e14\u0e15\u0e48\u0e2d',
+    contact_email: '\u0e2d\u0e35\u0e40\u0e21\u0e25',
+    contact_phone: '\u0e42\u0e17\u0e23\u0e28\u0e31\u0e1e\u0e17\u0e4c',
+    sec_vibes: '\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e41\u0e25\u0e30\u0e2d\u0e32\u0e23\u0e21\u0e13\u0e4c',
+    pick_vibes: '\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e17\u0e35\u0e48\u0e40\u0e02\u0e49\u0e32\u0e01\u0e31\u0e1a\u0e1e\u0e37\u0e49\u0e19\u0e17\u0e35\u0e48\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13 <span style="color:var(--error)">*</span>',
+    pick_vibes_hint: '\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e44\u0e14\u0e49\u0e2a\u0e39\u0e07\u0e2a\u0e38\u0e14 3 \u0e2d\u0e22\u0e48\u0e32\u0e07',
+    v_relaxed: '\u0e1c\u0e48\u0e2d\u0e19\u0e04\u0e25\u0e32\u0e22', v_energetic: '\u0e21\u0e35\u0e1e\u0e25\u0e31\u0e07', v_sophisticated: '\u0e2b\u0e23\u0e39\u0e2b\u0e23\u0e32\u0e21\u0e35\u0e23\u0e30\u0e14\u0e31\u0e1a',
+    v_warm: '\u0e2d\u0e1a\u0e2d\u0e38\u0e48\u0e19', v_trendy: '\u0e17\u0e31\u0e19\u0e2a\u0e21\u0e31\u0e22', v_upbeat: '\u0e2a\u0e19\u0e38\u0e01\u0e2a\u0e19\u0e32\u0e19',
+    v_zen: '\u0e2a\u0e07\u0e1a\u0e40\u0e0b\u0e19', v_romantic: '\u0e42\u0e23\u0e41\u0e21\u0e19\u0e15\u0e34\u0e01', v_luxurious: '\u0e2b\u0e23\u0e39\u0e40\u0e25\u0e34\u0e28',
+    v_tropical: '\u0e17\u0e23\u0e2d\u0e1b\u0e34\u0e04\u0e2d\u0e25', v_creative: '\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e2a\u0e23\u0e23\u0e04\u0e4c', v_professional: '\u0e21\u0e37\u0e2d\u0e2d\u0e32\u0e0a\u0e35\u0e1e',
+    energy_level: '\u0e23\u0e30\u0e14\u0e31\u0e1a\u0e1e\u0e25\u0e31\u0e07\u0e07\u0e32\u0e19',
+    energy_low: '\u0e2a\u0e07\u0e1a \u0e40\u0e07\u0e35\u0e22\u0e1a',
+    energy_high: '\u0e1e\u0e25\u0e31\u0e07\u0e07\u0e32\u0e19\u0e2a\u0e39\u0e07',
+    reference_venues: '\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e2d\u0e49\u0e32\u0e07\u0e2d\u0e34\u0e07',
+    reference_hint: '\u0e1a\u0e2d\u0e01\u0e0a\u0e37\u0e48\u0e2d\u0e42\u0e23\u0e07\u0e41\u0e23\u0e21 \u0e23\u0e49\u0e32\u0e19\u0e2d\u0e32\u0e2b\u0e32\u0e23 \u0e2b\u0e23\u0e37\u0e2d\u0e1a\u0e32\u0e23\u0e4c\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e0a\u0e2d\u0e1a\u0e40\u0e1e\u0e25\u0e07\u0e02\u0e2d\u0e07\u0e40\u0e02\u0e32',
+    vibe_desc: '\u0e2d\u0e18\u0e34\u0e1a\u0e32\u0e22\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e43\u0e19\u0e1d\u0e31\u0e19',
+    vibe_desc_ph: '\u0e40\u0e0a\u0e48\u0e19 \u0e2d\u0e22\u0e32\u0e01\u0e43\u0e2b\u0e49\u0e41\u0e02\u0e01\u0e23\u0e39\u0e49\u0e2a\u0e36\u0e01\u0e40\u0e2b\u0e21\u0e37\u0e2d\u0e19\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e1a\u0e35\u0e0a\u0e04\u0e25\u0e31\u0e1a\u0e2b\u0e23\u0e39\u0e22\u0e32\u0e21\u0e40\u0e22\u0e47\u0e19...',
+    sec_guests: '\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32',
+    guest_profile: '\u0e25\u0e31\u0e01\u0e29\u0e13\u0e30\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32',
+    guest_ph: '\u0e40\u0e0a\u0e48\u0e19 \u0e19\u0e31\u0e01\u0e40\u0e14\u0e34\u0e19\u0e17\u0e32\u0e07\u0e18\u0e38\u0e23\u0e01\u0e34\u0e08 \u0e04\u0e23\u0e2d\u0e1a\u0e04\u0e23\u0e31\u0e27 \u0e04\u0e19\u0e23\u0e38\u0e48\u0e19\u0e43\u0e2b\u0e21\u0e48',
+    age_range: '\u0e0a\u0e48\u0e27\u0e07\u0e2d\u0e32\u0e22\u0e38\u0e2b\u0e25\u0e31\u0e01',
+    age_mixed: '\u0e2b\u0e25\u0e32\u0e01\u0e2b\u0e25\u0e32\u0e22',
+    nationality: '\u0e2a\u0e31\u0e0d\u0e0a\u0e32\u0e15\u0e34\u0e2b\u0e25\u0e31\u0e01',
+    sec_prefs: '\u0e04\u0e27\u0e32\u0e21\u0e0a\u0e2d\u0e1a\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e40\u0e1e\u0e25\u0e07',
+    vocals: '\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e23\u0e49\u0e2d\u0e07',
+    vo_inst: '\u0e14\u0e19\u0e15\u0e23\u0e35\u0e1a\u0e23\u0e23\u0e40\u0e25\u0e07\u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19', vo_mostly_inst: '\u0e14\u0e19\u0e15\u0e23\u0e35\u0e1a\u0e23\u0e23\u0e40\u0e25\u0e07\u0e40\u0e1b\u0e47\u0e19\u0e2b\u0e25\u0e31\u0e01',
+    vo_mix: '\u0e1c\u0e2a\u0e21\u0e17\u0e31\u0e49\u0e07\u0e2a\u0e2d\u0e07\u0e41\u0e1a\u0e1a', vo_mostly_voc: '\u0e21\u0e35\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e23\u0e49\u0e2d\u0e07\u0e40\u0e1b\u0e47\u0e19\u0e2b\u0e25\u0e31\u0e01', vo_no_pref: '\u0e44\u0e21\u0e48\u0e21\u0e35\u0e04\u0e27\u0e32\u0e21\u0e0a\u0e2d\u0e1a\u0e40\u0e09\u0e1e\u0e32\u0e30',
+    music_languages: '\u0e20\u0e32\u0e29\u0e32\u0e02\u0e2d\u0e07\u0e40\u0e1e\u0e25\u0e07',
+    avoid_list: '\u0e40\u0e1e\u0e25\u0e07\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23',
+    avoid_ph: '\u0e40\u0e0a\u0e48\u0e19 \u0e44\u0e21\u0e48\u0e40\u0e2d\u0e32\u0e40\u0e2e\u0e1f\u0e27\u0e35\u0e48\u0e40\u0e21\u0e17\u0e31\u0e25 \u0e44\u0e21\u0e48\u0e40\u0e2d\u0e32\u0e40\u0e19\u0e37\u0e49\u0e2d\u0e2b\u0e32\u0e44\u0e21\u0e48\u0e40\u0e2b\u0e21\u0e32\u0e30\u0e2a\u0e21 \u0e44\u0e21\u0e48\u0e40\u0e2d\u0e32\u0e40\u0e1e\u0e25\u0e07\u0e25\u0e39\u0e01\u0e17\u0e38\u0e48\u0e07...',
+    mood_changes: '\u0e2d\u0e32\u0e23\u0e21\u0e13\u0e4c\u0e40\u0e1e\u0e25\u0e07\u0e43\u0e19\u0e41\u0e15\u0e48\u0e25\u0e30\u0e0a\u0e48\u0e27\u0e07\u0e40\u0e27\u0e25\u0e32',
+    mood_ph: '\u0e40\u0e0a\u0e48\u0e19 \u0e40\u0e0a\u0e49\u0e32\u0e2a\u0e07\u0e1a \u0e01\u0e25\u0e32\u0e07\u0e27\u0e31\u0e19\u0e2a\u0e14\u0e43\u0e2a \u0e40\u0e22\u0e47\u0e19\u0e2b\u0e23\u0e39\u0e2b\u0e23\u0e32...',
+    sec_bb: '\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14 Beat Breeze',
+    ai_interest: '\u0e04\u0e27\u0e32\u0e21\u0e2a\u0e19\u0e43\u0e08\u0e43\u0e19\u0e40\u0e1e\u0e25\u0e07 AI',
+    ai_very: '\u0e2a\u0e19\u0e43\u0e08\u0e21\u0e32\u0e01', ai_somewhat: '\u0e2a\u0e19\u0e43\u0e08\u0e1e\u0e2d\u0e2a\u0e21\u0e04\u0e27\u0e23', ai_rf: '\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e25\u0e2d\u0e14\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19',
+    instruments: '\u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e14\u0e19\u0e15\u0e23\u0e35\u0e17\u0e35\u0e48\u0e0a\u0e2d\u0e1a',
+    brand_story: '\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e23\u0e32\u0e27\u0e02\u0e2d\u0e07\u0e41\u0e1a\u0e23\u0e19\u0e14\u0e4c',
+    brand_hint: '\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49 AI \u0e2a\u0e23\u0e49\u0e32\u0e07\u0e40\u0e1e\u0e25\u0e07\u0e17\u0e35\u0e48\u0e40\u0e02\u0e49\u0e32\u0e01\u0e31\u0e1a\u0e1a\u0e38\u0e04\u0e25\u0e34\u0e01\u0e41\u0e1a\u0e23\u0e19\u0e14\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13',
+    brand_ph: '\u0e40\u0e25\u0e48\u0e32\u0e40\u0e01\u0e35\u0e48\u0e22\u0e27\u0e01\u0e31\u0e1a\u0e41\u0e1a\u0e23\u0e19\u0e14\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13 - \u0e04\u0e48\u0e32\u0e19\u0e34\u0e22\u0e21 \u0e1a\u0e38\u0e04\u0e25\u0e34\u0e01 \u0e41\u0e25\u0e30\u0e08\u0e38\u0e14\u0e40\u0e14\u0e48\u0e19...',
+    preview_title: '\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e1a\u0e23\u0e35\u0e1f\u0e40\u0e1e\u0e25\u0e07\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13',
+    btn_generate: '\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e1a\u0e23\u0e35\u0e1f',
+    btn_submit: '\u0e2a\u0e48\u0e07\u0e1a\u0e23\u0e35\u0e1f',
+    select_placeholder: '\u0e40\u0e25\u0e37\u0e2d\u0e01...',
+    vt_hotel: '\u0e25\u0e47\u0e2d\u0e1a\u0e1a\u0e35\u0e49\u0e42\u0e23\u0e07\u0e41\u0e23\u0e21', vt_restaurant: '\u0e23\u0e49\u0e32\u0e19\u0e2d\u0e32\u0e2b\u0e32\u0e23', vt_bar: '\u0e1a\u0e32\u0e23\u0e4c / \u0e40\u0e25\u0e32\u0e19\u0e08\u0e4c',
+    vt_spa: '\u0e2a\u0e1b\u0e32 / \u0e40\u0e27\u0e25\u0e40\u0e19\u0e2a', vt_fashion: '\u0e41\u0e1f\u0e0a\u0e31\u0e48\u0e19\u0e23\u0e35\u0e40\u0e17\u0e25', vt_cafe: '\u0e04\u0e32\u0e40\u0e1f\u0e48',
+    vt_gym: '\u0e1f\u0e34\u0e15\u0e40\u0e19\u0e2a', vt_pool: '\u0e2a\u0e23\u0e30\u0e27\u0e48\u0e32\u0e22\u0e19\u0e49\u0e33 / \u0e1a\u0e35\u0e0a\u0e04\u0e25\u0e31\u0e1a', vt_qsr: '\u0e23\u0e49\u0e32\u0e19\u0e1f\u0e32\u0e2a\u0e15\u0e4c\u0e1f\u0e39\u0e49\u0e14',
+    vt_cowork: '\u0e42\u0e04\u0e40\u0e27\u0e34\u0e23\u0e4c\u0e01\u0e01\u0e34\u0e49\u0e07', vt_other: '\u0e2d\u0e37\u0e48\u0e19\u0e46',
+    toast_success: '\u0e2a\u0e48\u0e07\u0e1a\u0e23\u0e35\u0e1f\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08! \u0e17\u0e35\u0e21\u0e07\u0e32\u0e19\u0e08\u0e30\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e43\u0e19\u0e40\u0e23\u0e47\u0e27\u0e46 \u0e19\u0e35\u0e49',
+    toast_error: '\u0e2a\u0e48\u0e07\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e25\u0e2d\u0e07\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07',
+    toast_validation: '\u0e01\u0e23\u0e38\u0e13\u0e32\u0e01\u0e23\u0e2d\u0e01\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e41\u0e25\u0e30\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e19\u0e49\u0e2d\u0e22 1 \u0e2d\u0e22\u0e48\u0e32\u0e07',
+    preview_top_genres: '\u0e41\u0e19\u0e27\u0e40\u0e1e\u0e25\u0e07\u0e41\u0e19\u0e30\u0e19\u0e33',
+    preview_bpm: '\u0e0a\u0e48\u0e27\u0e07 BPM',
+    preview_morning: '\u0e0a\u0e48\u0e27\u0e07\u0e40\u0e0a\u0e49\u0e32',
+    preview_afternoon: '\u0e0a\u0e48\u0e27\u0e07\u0e1a\u0e48\u0e32\u0e22',
+    preview_evening: '\u0e0a\u0e48\u0e27\u0e07\u0e40\u0e22\u0e47\u0e19',
+    preview_energy: '\u0e1e\u0e25\u0e31\u0e07\u0e07\u0e32\u0e19',
   }
 };
 
@@ -791,8 +1104,7 @@ function setLang(lang) {
     const key = el.getAttribute('data-i18n-placeholder');
     if (i18n[lang][key]) el.placeholder = i18n[lang][key];
   });
-  // Re-render preview if visible
-  if (briefPreview.style.display === 'block') generateBrief();
+  if (document.getElementById('briefPreview').classList.contains('visible')) generateBrief();
 }
 
 // =========================================================================
@@ -816,7 +1128,7 @@ vibeGrid.addEventListener('click', (e) => {
 });
 
 // =========================================================================
-// Product Toggle
+// Product Toggle + Theme Switch
 // =========================================================================
 const bbSection = document.getElementById('bbSection');
 document.querySelectorAll('.product-card').forEach(card => {
@@ -824,6 +1136,12 @@ document.querySelectorAll('.product-card').forEach(card => {
     document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     bbSection.classList.toggle('visible', card.dataset.product === 'beatbreeze');
+    // Theme switch
+    if (card.dataset.product === 'beatbreeze') {
+      document.body.setAttribute('data-theme', 'beatbreeze');
+    } else {
+      document.body.removeAttribute('data-theme');
+    }
   });
 });
 
@@ -859,6 +1177,13 @@ const VENUE_BOOSTERS = {
 };
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+// Daypart SVG icons
+const DAYPART_ICONS = {
+  morning: '<span class="daypart-icon morning"><svg viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg></span>',
+  afternoon: '<span class="daypart-icon afternoon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>',
+  evening: '<span class="daypart-icon evening"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>',
+};
 
 function generateBrief() {
   const form = document.getElementById('briefForm');
@@ -907,24 +1232,24 @@ function generateBrief() {
     <p style="margin-bottom:12px;">${genreTags(topGenres)}</p>
     <p style="margin-bottom:16px;"><strong>${t.preview_bpm}:</strong> ${bpmRanges.join(', ')}</p>
     <div class="daypart">
-      <div class="daypart-label">🌅 ${t.preview_morning}</div>
+      <div class="daypart-label">${DAYPART_ICONS.morning} ${t.preview_morning}</div>
       <div class="daypart-energy">${t.preview_energy}: ${morningE}/10</div>
       <div class="daypart-genres">${genreTags(topGenres.slice(0, 5))}</div>
     </div>
     <div class="daypart">
-      <div class="daypart-label">☀️ ${t.preview_afternoon}</div>
+      <div class="daypart-label">${DAYPART_ICONS.afternoon} ${t.preview_afternoon}</div>
       <div class="daypart-energy">${t.preview_energy}: ${afternoonE}/10</div>
       <div class="daypart-genres">${genreTags(topGenres.slice(0, 6))}</div>
     </div>
     <div class="daypart">
-      <div class="daypart-label">🌙 ${t.preview_evening}</div>
+      <div class="daypart-label">${DAYPART_ICONS.evening} ${t.preview_evening}</div>
       <div class="daypart-energy">${t.preview_energy}: ${eveningE}/10</div>
       <div class="daypart-genres">${genreTags(topGenres.slice(0, 6))}</div>
     </div>
   `;
 
   const briefPreview = document.getElementById('briefPreview');
-  briefPreview.style.display = 'block';
+  briefPreview.classList.add('visible');
   briefPreview.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   document.getElementById('submitBtn').disabled = false;
@@ -934,7 +1259,6 @@ function generateBrief() {
 // Form submission
 // =========================================================================
 const form = document.getElementById('briefForm');
-const briefPreview = document.getElementById('briefPreview');
 
 document.getElementById('generateBtn').addEventListener('click', generateBrief);
 
@@ -962,8 +1286,13 @@ form.addEventListener('submit', async (e) => {
       form.reset();
       selectedVibes.clear();
       document.querySelectorAll('.vibe-card').forEach(c => c.classList.remove('selected'));
-      briefPreview.style.display = 'none';
+      document.getElementById('briefPreview').classList.remove('visible');
       document.getElementById('energyVal').textContent = '5';
+      // Reset theme to SYB
+      document.body.removeAttribute('data-theme');
+      document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+      document.querySelector('[data-product="syb"]').classList.add('selected');
+      bbSection.classList.remove('visible');
       submitBtn.disabled = true;
     } else {
       showToast(result.error || i18n[currentLang].toast_error, 'error');
