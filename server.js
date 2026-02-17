@@ -2,6 +2,9 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const dns = require('dns');
+
+dns.setDefaultResultOrder('ipv4first');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -12,12 +15,17 @@ const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL || 'production@bmasiamusic.com';
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
   auth: {
     user: GMAIL_USER,
     pass: GMAIL_APP_PASSWORD,
   },
   family: 4,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
 });
 
 // ---------------------------------------------------------------------------

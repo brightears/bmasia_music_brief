@@ -1272,11 +1272,14 @@ form.addEventListener('submit', async (e) => {
   const data = Object.fromEntries(formData.entries());
   data.vibes = [...selectedVibes];
 
+  const controller = new AbortController();
+  const fetchTimeout = setTimeout(() => controller.abort(), 30000);
   try {
     const res = await fetch('/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
+      signal: controller.signal,
     });
 
     const result = await res.json();
@@ -1297,8 +1300,10 @@ form.addEventListener('submit', async (e) => {
     } else {
       showToast(result.error || i18n[currentLang].toast_error, 'error');
     }
-  } catch {
-    showToast(i18n[currentLang].toast_error, 'error');
+  } catch (err) {
+    showToast(err.name === 'AbortError' ? 'Request timed out. Please try again.' : i18n[currentLang].toast_error, 'error');
+  } finally {
+    clearTimeout(fetchTimeout);
   }
 
   submitBtn.innerHTML = i18n[currentLang].btn_submit;
