@@ -17,6 +17,7 @@ const transporter = nodemailer.createTransport({
     user: GMAIL_USER,
     pass: GMAIL_APP_PASSWORD,
   },
+  family: 4,
 });
 
 // ---------------------------------------------------------------------------
