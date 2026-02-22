@@ -745,38 +745,35 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .preview-link:hover { text-decoration: underline; }
 .preview-link svg { width: 14px; height: 14px; }
-.vote-btns { display: flex; gap: 6px; }
+.vote-btns { display: flex; gap: 8px; }
 .vote-btn {
-  width: 34px;
-  height: 34px;
+  height: 36px;
   border: 1.5px solid var(--border);
   border-radius: 8px;
   background: #fff;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   transition: all 0.15s ease;
-  padding: 0;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  font-family: inherit;
 }
-.vote-btn:hover { border-color: var(--primary-light); }
-.vote-btn svg {
-  width: 18px;
-  height: 18px;
-  stroke: var(--muted);
-  stroke-width: 2;
-  fill: none;
-}
+.vote-btn:hover { border-color: var(--primary-light); color: var(--text); }
+.vote-btn .vote-icon { font-size: 16px; line-height: 1; }
 .vote-btn.like-btn.active {
   background: #059669;
   border-color: #059669;
+  color: #fff;
 }
-.vote-btn.like-btn.active svg { stroke: #fff; fill: #fff; }
 .vote-btn.dislike-btn.active {
   background: #ef4444;
   border-color: #ef4444;
+  color: #fff;
 }
-.vote-btn.dislike-btn.active svg { stroke: #fff; fill: #fff; }
 .liked-summary {
   background: #f0fdf4;
   border: 1px solid #059669;
@@ -1193,6 +1190,8 @@ const i18n = {
     preview_energy: 'Energy',
     ai_analyzing: 'Analyzing your brief...',
     preview_on_syb: 'Preview on SYB',
+    vote_like: 'Like',
+    vote_dislike: 'Skip',
     select_playlists: 'Select playlists you like',
     playlists_selected: 'playlist(s) selected',
   },
@@ -1267,6 +1266,8 @@ const i18n = {
     preview_energy: '\u0e1e\u0e25\u0e31\u0e07\u0e07\u0e32\u0e19',
     ai_analyzing: '\u0e01\u0e33\u0e25\u0e31\u0e07\u0e27\u0e34\u0e40\u0e04\u0e23\u0e32\u0e30\u0e2b\u0e4c...',
     preview_on_syb: '\u0e1f\u0e31\u0e07\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e1a\u0e19 SYB',
+    vote_like: '\u0e0a\u0e2d\u0e1a',
+    vote_dislike: '\u0e02\u0e49\u0e32\u0e21',
     select_playlists: '\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e0a\u0e2d\u0e1a',
     playlists_selected: '\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e40\u0e25\u0e37\u0e2d\u0e01',
   }
@@ -1484,11 +1485,11 @@ function renderPlaylistCards(recommendations, designerNotes) {
                   ${t.preview_on_syb}
                 </a>
                 <div class="vote-btns">
-                  <button type="button" class="vote-btn like-btn${isLiked ? ' active' : ''}" onclick="toggleVote(this,'like')" title="Like">
-                    <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                  <button type="button" class="vote-btn like-btn${isLiked ? ' active' : ''}" onclick="toggleVote(this,'like')" title="I like this playlist">
+                    <span class="vote-icon">\u{1F44D}</span> ${t.vote_like || 'Like'}
                   </button>
-                  <button type="button" class="vote-btn dislike-btn${isDisliked ? ' active' : ''}" onclick="toggleVote(this,'dislike')" title="Dislike">
-                    <svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10zM17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>
+                  <button type="button" class="vote-btn dislike-btn${isDisliked ? ' active' : ''}" onclick="toggleVote(this,'dislike')" title="Not for me">
+                    <span class="vote-icon">\u{1F44E}</span> ${t.vote_dislike || 'Skip'}
                   </button>
                 </div>
               </div>

@@ -270,7 +270,7 @@ function enrichRecommendations(aiResult) {
         name: playlist.name,
         description: playlist.description,
         categories: playlist.categories,
-        sybUrl: `https://app.soundtrack.io/search/${encodeURIComponent(playlist.name)}`,
+        sybUrl: `https://app.soundtrack.io/search?q=${encodeURIComponent(playlist.name)}`,
       };
     }).filter(Boolean),
   };
