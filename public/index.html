@@ -130,7 +130,7 @@ body::after {
 
 /* ============ App Shell ============ */
 .app-shell {
-  max-width: 760px;
+  max-width: 840px;
   width: 100%;
   margin: 0 auto;
   display: flex;
@@ -231,33 +231,33 @@ body::after {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
-  padding: 14px 20px;
+  padding: 16px 24px;
   flex-shrink: 0;
   transition: all 0.3s var(--ease-out);
 }
-.context-bar.collapsed { padding: 8px 20px; }
+.context-bar.collapsed { padding: 8px 24px; }
 .context-fields {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 .context-bar.collapsed .context-fields { display: none; }
 .context-field label {
   display: block;
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
 .context-field input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
+  border-radius: var(--radius);
+  font-size: 14px;
   font-family: 'DM Sans', sans-serif;
   background: rgba(255,255,255,0.03);
   color: var(--text);
@@ -293,10 +293,10 @@ body::after {
 .chat-area {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 20px;
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   position: relative;
@@ -349,7 +349,7 @@ body::after {
 
 /* ============ Messages ============ */
 .msg {
-  max-width: 85%;
+  max-width: 80%;
   animation: msgIn var(--dur-slow) var(--ease-out);
 }
 @keyframes msgIn {
@@ -359,10 +359,10 @@ body::after {
 .msg-ai { align-self: flex-start; }
 .msg-user { align-self: flex-end; }
 .msg-bubble {
-  padding: 14px 18px;
+  padding: 16px 20px;
   border-radius: 18px;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 15px;
+  line-height: 1.6;
   word-wrap: break-word;
 }
 .msg-ai .msg-bubble {
@@ -373,22 +373,39 @@ body::after {
   color: var(--text);
   border-bottom-left-radius: 4px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04);
+  margin-left: 36px;
+  position: relative;
+}
+/* AI avatar indicator */
+.msg-ai .msg-bubble::after {
+  content: '';
+  position: absolute;
+  left: -36px;
+  bottom: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent-soft), var(--accent-glow));
+  border: 1px solid var(--accent);
+  opacity: 0.7;
+  box-shadow: 0 0 12px var(--accent-ultra-light);
 }
 .msg-user .msg-bubble {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: var(--text-on-accent);
   border-bottom-right-radius: 4px;
-  box-shadow: 0 2px 16px var(--accent-soft), 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 20px var(--accent-soft), 0 1px 3px rgba(0,0,0,0.2);
 }
-.msg-ai .msg-bubble p { margin: 0 0 8px; }
+.msg-ai .msg-bubble p { margin: 0 0 10px; }
 .msg-ai .msg-bubble p:last-child { margin-bottom: 0; }
 
 /* ============ Quick Reply Chips ============ */
 .quick-replies {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 12px;
+  margin-left: 36px;
 }
 .chip {
   padding: 10px 20px;
@@ -448,16 +465,21 @@ body::after {
   width: 100%;
   max-width: 100%;
   align-self: flex-start;
+  animation: recsIn 0.5s var(--ease-out);
 }
-.daypart-section { margin-bottom: 16px; }
+@keyframes recsIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.daypart-section { margin-bottom: 20px; }
 .daypart-section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text);
 }
 .daypart-section-header strong {
@@ -485,14 +507,15 @@ body::after {
 .daypart-icon.moon svg    { stroke: #818cf8; }
 .daypart-icon.stars svg   { stroke: #a78bfa; }
 
-.playlist-cards { display: grid; gap: 8px; }
+.playlist-cards { display: grid; gap: 12px; }
 .playlist-card {
   background: rgba(255,255,255,0.03);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  animation: cardIn var(--dur-slow) var(--ease-out) both;
   transition: all var(--dur-normal) var(--ease-out);
   position: relative;
   overflow: hidden;
@@ -507,11 +530,20 @@ body::after {
   opacity: 0;
   transition: opacity var(--dur-normal) ease;
 }
+.playlist-card:nth-child(1) { animation-delay: 0ms; }
+.playlist-card:nth-child(2) { animation-delay: 80ms; }
+.playlist-card:nth-child(3) { animation-delay: 160ms; }
+.playlist-card:nth-child(4) { animation-delay: 240ms; }
+.playlist-card:nth-child(5) { animation-delay: 320ms; }
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 .playlist-card:hover {
   background: rgba(255,255,255,0.06);
   border-color: var(--glass-border-hover);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 0 0 1px var(--glass-border-hover);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px var(--glass-border-hover);
 }
 .playlist-card:hover::before { opacity: 1; }
 .playlist-card.liked {
@@ -531,22 +563,22 @@ body::after {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 .playlist-name {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 600;
   color: var(--text);
-  font-size: 14px;
-  letter-spacing: -0.2px;
+  font-size: 16px;
+  letter-spacing: -0.3px;
 }
 .match-badge {
   background: var(--accent-soft);
   color: var(--accent);
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 5px 12px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--accent-soft);
   letter-spacing: 0.3px;
@@ -560,15 +592,17 @@ body::after {
 }
 .playlist-desc {
   color: var(--text-secondary);
-  font-size: 12px;
-  margin: 0 0 3px;
+  font-size: 13px;
+  margin: 0 0 4px;
+  line-height: 1.5;
 }
 .playlist-reason {
   color: var(--accent);
-  font-size: 11px;
+  font-size: 12px;
   font-style: italic;
-  margin: 0 0 10px;
+  margin: 0 0 14px;
   opacity: 0.85;
+  line-height: 1.4;
   transition: color 0.3s;
 }
 .playlist-actions {
@@ -579,20 +613,29 @@ body::after {
 .preview-link {
   color: var(--accent);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--accent-soft);
+  border-radius: var(--radius-pill);
+  background: var(--accent-ultra-light);
   transition: all var(--dur-fast) ease;
 }
-.preview-link:hover { color: var(--text); text-decoration: none; }
+.preview-link:hover {
+  color: var(--text);
+  text-decoration: none;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
 .preview-link svg { width: 13px; height: 13px; }
 .vote-btns { display: flex; gap: 6px; }
 .vote-btn {
-  height: 34px;
+  height: 36px;
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   background: rgba(255,255,255,0.03);
   cursor: pointer;
   display: inline-flex;
@@ -626,7 +669,11 @@ body::after {
 .send-brief-block {
   width: 100%;
   align-self: flex-start;
-  animation: msgIn 0.3s var(--ease-out);
+  animation: msgIn 0.3s var(--ease-out), briefPulse 3s ease-in-out 1s 1;
+}
+@keyframes briefPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+  50% { box-shadow: 0 0 0 8px rgba(34,197,94,0.12); }
 }
 .send-brief-btn {
   width: 100%;
@@ -684,7 +731,7 @@ body::after {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: 24px 24px 32px;
   width: 100%;
-  max-width: 760px;
+  max-width: 840px;
   max-height: 85vh;
   overflow-y: auto;
   animation: slideUp 0.35s var(--ease-out);
@@ -852,45 +899,54 @@ body::after {
 
 /* ============ Input Bar ============ */
 .input-bar {
-  padding: 12px 16px 16px;
-  background: rgba(15,17,23,0.7);
+  padding: 16px 20px 20px;
+  background: rgba(15,17,23,0.8);
   backdrop-filter: blur(24px) saturate(1.3);
   -webkit-backdrop-filter: blur(24px) saturate(1.3);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border-strong);
   flex-shrink: 0;
 }
 .input-bar-inner {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
   max-width: 100%;
+}
+.input-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+  opacity: 0.5;
+  letter-spacing: 0.2px;
+  transition: opacity 0.3s;
 }
 .input-bar textarea {
   flex: 1;
-  padding: 11px 16px;
-  border: 1px solid var(--glass-border);
-  border-radius: 22px;
-  font-size: 14px;
+  padding: 13px 18px;
+  border: 1px solid var(--glass-border-hover);
+  border-radius: 24px;
+  font-size: 15px;
   font-family: 'DM Sans', sans-serif;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.05);
   color: var(--text);
   resize: none;
   max-height: 120px;
-  min-height: 44px;
+  min-height: 48px;
   line-height: 1.45;
   transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
   overflow-y: auto;
 }
 .input-bar textarea:focus {
   outline: none;
-  border-color: rgba(255,255,255,0.15);
-  box-shadow: 0 0 0 3px var(--accent-ultra-light);
-  background: rgba(255,255,255,0.06);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ultra-light), 0 0 16px var(--accent-ultra-light);
+  background: rgba(255,255,255,0.07);
 }
 .input-bar textarea::placeholder { color: var(--text-muted); }
 .input-btn {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -992,6 +1048,138 @@ body::after {
 /* ============ Honeypot ============ */
 .hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; }
 
+/* ============ Welcome Hero ============ */
+.welcome-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 60vh;
+  padding: 40px 24px;
+  animation: welcomeFadeIn 0.8s var(--ease-out);
+}
+@keyframes welcomeFadeIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.welcome-hero.exiting {
+  opacity: 0;
+  transform: translateY(-24px) scale(0.97);
+  transition: all 0.35s var(--ease-out);
+  pointer-events: none;
+}
+.welcome-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  box-shadow: 0 0 40px var(--accent-ultra-light), 0 0 80px rgba(139,92,246,0.06);
+}
+.welcome-icon svg {
+  width: 30px;
+  height: 30px;
+  stroke: var(--accent-light);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.welcome-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -1.2px;
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+.welcome-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  max-width: 420px;
+  margin-bottom: 40px;
+}
+.mode-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+}
+.mode-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--dur-normal) var(--ease-out);
+  text-align: left;
+  color: var(--text);
+  font-family: inherit;
+}
+.mode-card:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px var(--accent-ultra-light), 0 0 0 1px var(--accent-soft);
+}
+.mode-card:active {
+  transform: translateY(-1px) scale(0.98);
+}
+.mode-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--dur-normal) var(--ease-out);
+}
+.mode-card:hover .mode-card-icon {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  transform: scale(1.08);
+}
+.mode-card-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mode-card-title {
+  display: block;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+.mode-card-desc {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
 /* ============ Responsive ============ */
 @media (max-width: 640px) {
   .app-shell { max-width: 100%; }
@@ -999,27 +1187,41 @@ body::after {
   .header-title { font-size: 14px; }
   .header { padding: 12px 16px; }
   .header-logo img { height: 22px; }
-  .chat-area { padding: 14px 14px; gap: 14px; }
-  .msg { max-width: 92%; }
-  .msg-bubble { padding: 12px 14px; }
+  .chat-area { padding: 16px 14px; gap: 16px; }
+  .msg { max-width: 88%; }
+  .msg-bubble { padding: 14px 16px; font-size: 14px; }
+  /* Hide AI avatar on mobile */
+  .msg-ai .msg-bubble { margin-left: 0; }
+  .msg-ai .msg-bubble::after { display: none; }
+  .quick-replies { margin-left: 0; }
   .submission-panel .field-row { grid-template-columns: 1fr; }
-  .playlist-card { padding: 12px 14px; }
-  .playlist-name { font-size: 13px; }
+  .playlist-card { padding: 16px; }
+  .playlist-name { font-size: 14px; }
+  .match-badge { font-size: 12px; padding: 4px 10px; }
   /* Reduce blur on mobile for performance */
   .msg-ai .msg-bubble,
   .playlist-card,
-  .chip {
+  .chip,
+  .mode-card {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
   /* Smaller orbs */
   .chat-area::before { width: 200px; height: 200px; filter: blur(60px); }
   .chat-area::after { width: 160px; height: 160px; filter: blur(50px); }
+  /* Welcome hero mobile */
+  .welcome-hero { min-height: 50vh; padding: 32px 16px; }
+  .welcome-title { font-size: 28px; letter-spacing: -0.8px; }
+  .welcome-subtitle { font-size: 15px; margin-bottom: 32px; }
+  .welcome-icon { width: 52px; height: 52px; border-radius: 16px; margin-bottom: 24px; }
 }
 @media (max-width: 420px) {
   .context-bar { padding: 10px 14px; }
   .input-bar { padding: 10px 12px 14px; }
   .chip { padding: 8px 14px; font-size: 12px; }
+  .mode-card { padding: 14px 16px; }
+  .mode-card-icon { width: 38px; height: 38px; border-radius: 10px; }
+  .mode-card-icon svg { width: 20px; height: 20px; }
   /* Disable grain on small screens */
   body::after { display: none; }
 }
@@ -1035,7 +1237,8 @@ body::after {
   .msg-ai .msg-bubble,
   .typing-indicator,
   .chip,
-  .playlist-card {
+  .playlist-card,
+  .mode-card {
     background: var(--bg-elevated);
     border-color: var(--border-strong);
   }
@@ -1099,6 +1302,9 @@ body::after {
       <button class="input-btn send-btn" id="sendBtn" onclick="sendMessage()" disabled>
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
+    </div>
+    <div class="input-hint" id="inputHint">
+      <span data-i18n="input_hint">Mention specific artists, genres, or describe the atmosphere you envision</span>
     </div>
   </div>
 </div>
@@ -1212,6 +1418,12 @@ const i18n = {
     chip_new: 'Design music for a new venue',
     chip_event: 'Plan music for a special event',
     chip_update: 'Update my current music',
+    greeting_title: 'Design Your Sound',
+    greeting_subtitle: "I'm your BMAsia music designer. I help create the perfect soundtrack for venues and events across Asia.",
+    chip_new_desc: 'Start fresh with a complete sonic identity',
+    chip_event_desc: 'Curate the atmosphere for a one-time occasion',
+    chip_update_desc: 'Refresh or refine your existing playlist',
+    input_hint: 'Mention specific artists, genres, or describe the atmosphere you envision',
   },
   th: {
     title: '\u0e1c\u0e39\u0e49\u0e0a\u0e48\u0e27\u0e22\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e25\u0e07',
@@ -1242,6 +1454,12 @@ const i18n = {
     chip_new: '\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e25\u0e07\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e43\u0e2b\u0e21\u0e48',
     chip_event: '\u0e27\u0e32\u0e07\u0e41\u0e1c\u0e19\u0e40\u0e1e\u0e25\u0e07\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e07\u0e32\u0e19\u0e2d\u0e35\u0e40\u0e27\u0e19\u0e15\u0e4c',
     chip_update: '\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e31\u0e08\u0e08\u0e38\u0e1a\u0e31\u0e19',
+    greeting_title: '\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13',
+    greeting_subtitle: '\u0e1c\u0e21\u0e40\u0e1b\u0e47\u0e19\u0e1c\u0e39\u0e49\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e25\u0e07\u0e02\u0e2d\u0e07 BMAsia \u0e0a\u0e48\u0e27\u0e22\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e23\u0e30\u0e01\u0e2d\u0e1a\u0e17\u0e35\u0e48\u0e2a\u0e21\u0e1a\u0e39\u0e23\u0e13\u0e4c\u0e41\u0e1a\u0e1a\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e41\u0e25\u0e30\u0e07\u0e32\u0e19\u0e2d\u0e35\u0e40\u0e27\u0e19\u0e15\u0e4c\u0e17\u0e31\u0e48\u0e27\u0e40\u0e2d\u0e40\u0e0a\u0e35\u0e22',
+    chip_new_desc: '\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e43\u0e2b\u0e21\u0e48\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14',
+    chip_event_desc: '\u0e04\u0e31\u0e14\u0e2a\u0e23\u0e23\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e07\u0e32\u0e19\u0e1e\u0e34\u0e40\u0e28\u0e29',
+    chip_update_desc: '\u0e1b\u0e23\u0e31\u0e1a\u0e1b\u0e23\u0e38\u0e07\u0e2b\u0e23\u0e37\u0e2d\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e21\u0e35\u0e2d\u0e22\u0e39\u0e48',
+    input_hint: '\u0e23\u0e30\u0e1a\u0e38\u0e28\u0e34\u0e25\u0e1b\u0e34\u0e19 \u0e41\u0e19\u0e27\u0e40\u0e1e\u0e25\u0e07 \u0e2b\u0e23\u0e37\u0e2d\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23',
   }
 };
 
@@ -1332,6 +1550,44 @@ function addAIMessage(text, withChips) {
 
   chatArea.appendChild(div);
   scrollToBottom();
+}
+
+function showWelcomeState() {
+  const t = i18n[currentLang];
+  const hero = document.createElement('div');
+  hero.className = 'welcome-hero';
+  hero.id = 'welcomeHero';
+  hero.innerHTML = `
+    <div class="welcome-icon">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    </div>
+    <h1 class="welcome-title" data-i18n="greeting_title">${t.greeting_title}</h1>
+    <p class="welcome-subtitle" data-i18n="greeting_subtitle">${t.greeting_subtitle}</p>
+    <div class="mode-cards">
+      <button class="mode-card" onclick="selectMode('new', this)">
+        <span class="mode-card-icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 10h.01"/></svg></span>
+        <span>
+          <span class="mode-card-title" data-i18n="chip_new">${t.chip_new}</span>
+          <span class="mode-card-desc" data-i18n="chip_new_desc">${t.chip_new_desc}</span>
+        </span>
+      </button>
+      <button class="mode-card" onclick="selectMode('event', this)">
+        <span class="mode-card-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/></svg></span>
+        <span>
+          <span class="mode-card-title" data-i18n="chip_event">${t.chip_event}</span>
+          <span class="mode-card-desc" data-i18n="chip_event_desc">${t.chip_event_desc}</span>
+        </span>
+      </button>
+      <button class="mode-card" onclick="selectMode('update', this)">
+        <span class="mode-card-icon"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
+        <span>
+          <span class="mode-card-title" data-i18n="chip_update">${t.chip_update}</span>
+          <span class="mode-card-desc" data-i18n="chip_update_desc">${t.chip_update_desc}</span>
+        </span>
+      </button>
+    </div>
+  `;
+  chatArea.appendChild(hero);
 }
 
 function createStreamingMessage() {
@@ -1519,13 +1775,24 @@ function expandContextBar() {
 // =========================================================================
 function selectMode(mode, chipEl) {
   currentMode = mode;
-  // Remove chips after selection
+
+  // Handle welcome hero fade-out
+  const hero = document.getElementById('welcomeHero');
+  if (hero) {
+    hero.classList.add('exiting');
+    setTimeout(() => hero.remove(), 350);
+  }
+
+  // Remove chips after selection (for non-hero chips later in conversation)
   const chips = chipEl?.closest('.quick-replies');
   if (chips) chips.remove();
 
   const t = i18n[currentLang];
   const labels = { new: t.chip_new, event: t.chip_event, update: t.chip_update };
-  sendMessage(labels[mode]);
+
+  // Small delay so the hero exit animation is visible
+  const delay = hero ? 150 : 0;
+  setTimeout(() => sendMessage(labels[mode]), delay);
 }
 
 // =========================================================================
@@ -1542,8 +1809,10 @@ async function sendMessage(text) {
   input.style.height = 'auto';
   document.getElementById('sendBtn').disabled = true;
 
-  // Collapse context bar after first user message
+  // Collapse context bar and hide hint after first user message
   collapseContextBar();
+  const hint = document.getElementById('inputHint');
+  if (hint) hint.style.display = 'none';
 
   // Add to history
   conversationHistory.push({ role: 'user', content: msg });
@@ -1842,9 +2111,8 @@ function showToast(msg, type) {
 document.addEventListener('DOMContentLoaded', () => {
   initVoice();
 
-  // Send opening greeting
-  const t = i18n[currentLang];
-  addAIMessage(t.greeting, true);
+  // Show immersive welcome state
+  showWelcomeState();
 });
 </script>
 </body>
