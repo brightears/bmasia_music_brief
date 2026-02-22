@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Music Atmosphere Brief | BMAsia Group</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Music Design Assistant | BMAsia Group</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,7 +11,6 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Base – always BMAsia */
   --navy: #1a1a2e;
   --navy-light: #16213e;
   --dark: #0f0f0f;
@@ -25,8 +24,6 @@
   --radius: 12px;
   --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-lg: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-
-  /* Accent – default SYB purple */
   --accent: #7B3FF2;
   --accent-hover: #6930d4;
   --accent-light: #c4b5fd;
@@ -48,22 +45,34 @@ body {
   color: var(--text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.container {
-  max-width: 680px;
+/* ============ App Shell ============ */
+.app-shell {
+  max-width: 720px;
+  width: 100%;
   margin: 0 auto;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--card);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ============ Header ============ */
 .header {
   background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
-  padding: 36px 24px 32px;
-  text-align: center;
-  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 .header::before {
   content: '';
@@ -77,50 +86,44 @@ body {
   pointer-events: none;
   transition: background 0.4s ease;
 }
-.header-logo {
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   position: relative;
   z-index: 1;
-  margin-bottom: 16px;
 }
 .header-logo img {
-  height: 36px;
+  height: 28px;
   width: auto;
   opacity: 0.95;
 }
-.header h1 {
+.header-title {
   color: #fff;
-  font-size: 22px;
+  font-size: 15px;
   font-weight: 700;
-  margin-bottom: 4px;
-  position: relative;
-  z-index: 1;
   letter-spacing: -0.3px;
 }
-.header p {
-  color: rgba(255,255,255,0.6);
-  font-size: 14px;
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   position: relative;
   z-index: 1;
 }
-
-/* Language toggle */
 .lang-toggle {
-  position: absolute;
-  top: 16px;
-  right: 16px;
   display: flex;
   background: rgba(255,255,255,0.08);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
-  z-index: 2;
   backdrop-filter: blur(8px);
 }
 .lang-btn {
-  padding: 6px 14px;
+  padding: 4px 10px;
   border: none;
   background: transparent;
   color: rgba(255,255,255,0.5);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -131,346 +134,187 @@ body {
   color: #fff;
 }
 
-/* ============ Form body ============ */
-.form-body {
+/* ============ Context Bar ============ */
+.context-bar {
   background: var(--card);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius);
-  padding: 28px 24px;
-}
-
-/* ============ Sections ============ */
-.section {
-  margin-bottom: 32px;
-}
-.section-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--navy);
-  margin-bottom: 16px;
-  padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
+  padding: 12px 20px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+.context-bar.collapsed {
+  padding: 8px 20px;
+}
+.context-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
 }
-.section-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: var(--accent-ultra-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.3s ease;
+.context-bar.collapsed .context-fields {
+  display: none;
 }
-.section-icon svg {
-  width: 16px;
-  height: 16px;
-  stroke: var(--accent);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: stroke 0.3s ease;
-}
-
-/* ============ Form controls ============ */
-label {
+.context-field label {
   display: block;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-.sublabel {
-  font-weight: 400;
   color: var(--text-muted);
-  font-size: 12px;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-
-input[type="text"],
-input[type="email"],
-input[type="tel"],
-input[type="number"],
-select,
-textarea {
+.context-field input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 6px 10px;
   border: 1.5px solid var(--border);
-  border-radius: 8px;
-  font-size: 15px;
+  border-radius: 6px;
+  font-size: 13px;
   font-family: inherit;
   background: #fff;
   color: var(--text);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  -webkit-appearance: none;
+  transition: border-color 0.2s;
 }
-input:focus, select:focus, textarea:focus {
+.context-field input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
-textarea { resize: vertical; min-height: 80px; }
-
-.field { margin-bottom: 16px; }
-.field-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-/* ============ Product toggle ============ */
-.product-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.product-card {
-  padding: 16px;
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  text-align: center;
+.context-summary {
+  display: none;
+  font-size: 13px;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.25s ease;
-  background: #fff;
-  position: relative;
+  align-items: center;
+  gap: 6px;
 }
-.product-card:hover {
-  border-color: var(--accent-light);
+.context-summary:hover { color: var(--text); }
+.context-bar.collapsed .context-summary {
+  display: flex;
+}
+.context-summary svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+/* ============ Chat Area ============ */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============ Messages ============ */
+.msg {
+  max-width: 88%;
+  animation: msgIn 0.25s ease;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.msg-ai {
+  align-self: flex-start;
+}
+.msg-user {
+  align-self: flex-end;
+}
+.msg-bubble {
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  word-wrap: break-word;
+}
+.msg-ai .msg-bubble {
+  background: var(--bg);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+.msg-user .msg-bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg-ai .msg-bubble p { margin: 0 0 8px; }
+.msg-ai .msg-bubble p:last-child { margin-bottom: 0; }
+
+/* ============ Quick Reply Chips ============ */
+.quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.chip {
+  padding: 8px 16px;
+  border: 1.5px solid var(--accent);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.chip:hover {
+  background: var(--accent);
+  color: #fff;
   transform: translateY(-1px);
   box-shadow: var(--shadow);
 }
-.product-card.selected {
-  border-color: var(--accent);
-  background: var(--accent-ultra-light);
+.chip:active { transform: scale(0.97); }
+
+/* ============ Typing Indicator ============ */
+.typing-indicator {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
 }
-.product-card .check-indicator {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 22px;
-  height: 22px;
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--text-muted);
   border-radius: 50%;
-  background: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transform: scale(0.5);
-  transition: all 0.25s ease;
+  animation: typingBounce 1.4s ease-in-out infinite;
 }
-.product-card.selected .check-indicator {
-  opacity: 1;
-  transform: scale(1);
-}
-.product-card .check-indicator svg {
-  width: 12px;
-  height: 12px;
-  stroke: #fff;
-  fill: none;
-  stroke-width: 2.5;
-}
-.product-card .product-name {
-  font-weight: 700;
-  font-size: 14px;
-  margin-bottom: 4px;
-  color: var(--text);
-}
-.product-card .product-desc {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-.product-card input { display: none; }
-
-/* ============ Vibe cards ============ */
-.vibe-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-.vibe-card {
-  padding: 14px 6px 10px;
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: #fff;
-  user-select: none;
-}
-.vibe-card:hover {
-  border-color: var(--accent-light);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-.vibe-card.selected {
-  border-color: var(--accent);
-  background: var(--accent-ultra-light);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-.vibe-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 8px;
-}
-.vibe-icon svg {
-  width: 24px;
-  height: 24px;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
-.vibe-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text);
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
 }
 
-/* Vibe icon gradients */
-.vi-relaxed    { background: linear-gradient(135deg, #bfdbfe, #99f6e4); }
-.vi-relaxed svg    { stroke: #1d4ed8; }
-.vi-energetic  { background: linear-gradient(135deg, #fed7aa, #fde047); }
-.vi-energetic svg  { stroke: #b45309; }
-.vi-sophisticated { background: linear-gradient(135deg, #c4b5fd, #fbbf24); }
-.vi-sophisticated svg { stroke: #6d28d9; }
-.vi-warm       { background: linear-gradient(135deg, #fcd34d, #fda4af); }
-.vi-warm svg       { stroke: #b45309; }
-.vi-trendy     { background: linear-gradient(135deg, #f9a8d4, #c084fc); }
-.vi-trendy svg     { stroke: #a21caf; }
-.vi-upbeat     { background: linear-gradient(135deg, #fca5a5, #fb923c); }
-.vi-upbeat svg     { stroke: #c2410c; }
-.vi-zen        { background: linear-gradient(135deg, #bbf7d0, #a7f3d0); }
-.vi-zen svg        { stroke: #166534; }
-.vi-romantic   { background: linear-gradient(135deg, #fecdd3, #f9a8d4); }
-.vi-romantic svg   { stroke: #be123c; }
-.vi-luxurious  { background: linear-gradient(135deg, #1f2937, #92400e); }
-.vi-luxurious svg  { stroke: #fbbf24; }
-.vi-tropical   { background: linear-gradient(135deg, #5eead4, #86efac); }
-.vi-tropical svg   { stroke: #065f46; }
-.vi-creative   { background: linear-gradient(135deg, #c084fc, #60a5fa, #34d399); }
-.vi-creative svg   { stroke: #6d28d9; }
-.vi-professional { background: linear-gradient(135deg, #94a3b8, #60a5fa); }
-.vi-professional svg { stroke: #1e40af; }
-
-/* ============ Energy slider ============ */
-.slider-wrap {
-  position: relative;
-  padding: 8px 0;
-}
-.slider-wrap input[type="range"] {
+/* ============ Playlist Cards (in chat) ============ */
+.recommendations-block {
   width: 100%;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, var(--accent-light) 0%, var(--accent) 100%);
-  outline: none;
-  border: none;
-  padding: 0;
-  transition: background 0.3s ease;
+  max-width: 100%;
+  align-self: flex-start;
 }
-.slider-wrap input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15), 0 0 0 3px var(--accent-glow);
-  cursor: pointer;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-}
-.slider-wrap input[type="range"]::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15), 0 0 0 3px var(--accent-glow);
-  cursor: pointer;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-}
-.slider-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 6px;
-}
-.energy-value {
-  text-align: center;
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--accent);
-  margin-bottom: 8px;
-  transition: color 0.3s ease;
-}
-
-/* ============ Brief preview ============ */
-.brief-preview {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin: 24px 0;
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 0.5s ease, opacity 0.4s ease, margin 0.4s ease;
-}
-.brief-preview.visible {
-  max-height: 2000px;
-  opacity: 1;
-}
-.brief-preview-header {
-  background: var(--accent-ultra-light);
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.3s ease;
-}
-.brief-preview-header h3 {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--navy);
+.daypart-section { margin-bottom: 14px; }
+.daypart-section-header {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.brief-preview-header svg {
-  width: 18px;
-  height: 18px;
-  stroke: var(--accent);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: stroke 0.3s ease;
-}
-.brief-preview-body {
-  padding: 20px;
-}
-.brief-preview .daypart {
-  margin-bottom: 12px;
-  padding: 12px;
-  background: var(--bg);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-.brief-preview .daypart-label {
-  font-weight: 700;
-  font-size: 13px;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text);
 }
 .daypart-icon {
   width: 20px;
@@ -492,203 +336,17 @@ textarea { resize: vertical; min-height: 80px; }
 .daypart-icon.sunset svg { stroke: #f97316; }
 .daypart-icon.moon svg { stroke: #6366f1; }
 .daypart-icon.stars svg { stroke: #8b5cf6; }
-.brief-preview .daypart-genres {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-.brief-preview .daypart-energy {
-  font-size: 12px;
-  color: var(--accent);
-  font-weight: 600;
-  transition: color 0.3s ease;
-}
-.genre-tag {
-  display: inline-block;
-  padding: 3px 10px;
-  background: var(--accent-ultra-light);
-  border-radius: 5px;
-  font-size: 12px;
-  margin: 2px;
-  color: var(--accent);
-  font-weight: 500;
-  transition: background 0.3s ease, color 0.3s ease;
-}
 
-/* ============ Buttons ============ */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px 28px;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  width: 100%;
-  font-family: inherit;
-}
-.btn:active { transform: scale(0.98); }
-.btn-secondary {
-  background: var(--navy);
-  color: #fff;
-}
-.btn-secondary:hover {
-  background: var(--navy-light);
-  box-shadow: var(--shadow-lg);
-}
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-  transition: background 0.3s ease, box-shadow 0.2s ease;
-}
-.btn-primary:hover {
-  background: var(--accent-hover);
-  box-shadow: var(--shadow-lg);
-}
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn:disabled:active { transform: none; }
-.btn-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-/* ============ Beat Breeze section ============ */
-.bb-section { display: none; }
-.bb-section.visible { display: block; }
-
-/* ============ Toast ============ */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%) translateY(100px);
-  padding: 14px 24px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  z-index: 999;
-  transition: transform 0.3s ease;
-  max-width: 90%;
-  font-family: 'Inter', sans-serif;
-  backdrop-filter: blur(8px);
-}
-.toast.show { transform: translateX(-50%) translateY(0); }
-.toast.success { background: var(--success); color: #fff; }
-.toast.error { background: var(--error); color: #fff; }
-
-/* ============ Validation ============ */
-.field.invalid input,
-.field.invalid select,
-.field.invalid textarea {
-  border-color: var(--error);
-}
-.field.invalid label { color: var(--error); }
-
-/* ============ Honeypot ============ */
-.hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; }
-
-/* ============ Spinner ============ */
-.spinner {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ============ Responsive ============ */
-@media (max-width: 640px) {
-  .vibe-grid { grid-template-columns: repeat(3, 1fr); }
-  .header { padding: 28px 20px 24px; }
-  .header-logo img { height: 30px; }
-  .header h1 { font-size: 20px; }
-  .form-body { padding: 22px 18px; }
-}
-@media (max-width: 500px) {
-  .field-row { grid-template-columns: 1fr; }
-  .btn-row { grid-template-columns: 1fr; }
-}
-@media (max-width: 420px) {
-  .container { padding: 10px; }
-  .header { padding: 24px 16px 20px; }
-  .header-logo img { height: 26px; }
-  .header h1 { font-size: 18px; }
-  .form-body { padding: 18px 14px; }
-  .vibe-icon { width: 40px; height: 40px; border-radius: 10px; }
-  .vibe-icon svg { width: 20px; height: 20px; }
-  .vibe-card { padding: 10px 4px 8px; }
-}
-
-/* ============ AI Playlist Recommendations ============ */
-.ai-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 40px 20px;
-  gap: 16px;
-}
-.ai-loading p {
-  color: var(--muted);
-  font-size: 14px;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-.pulse-ring {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--primary-light);
-  border-radius: 50%;
-  animation: pulseRing 1.5s ease-out infinite;
-}
-@keyframes pulseRing {
-  0% { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(1.4); opacity: 0; }
-}
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-.designer-notes {
-  background: var(--primary-light);
-  border-left: 3px solid var(--primary);
-  padding: 10px 14px;
-  border-radius: 0 6px 6px 0;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: var(--primary);
-}
-.daypart-section { margin-bottom: 20px; }
-.daypart-section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--border);
-  font-size: 15px;
-  color: var(--text);
-}
-.playlist-cards { display: grid; gap: 10px; }
+.playlist-cards { display: grid; gap: 8px; }
 .playlist-card {
   background: #fff;
   border: 2px solid var(--border);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   transition: all 0.2s ease;
 }
 .playlist-card:hover {
-  border-color: var(--primary-light);
+  border-color: var(--accent-light);
   box-shadow: 0 2px 8px rgba(26, 26, 46, 0.08);
 }
 .playlist-card.liked {
@@ -703,33 +361,35 @@ textarea { resize: vertical; min-height: 80px; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 .playlist-name {
   font-weight: 600;
   color: var(--text);
-  font-size: 15px;
+  font-size: 14px;
 }
 .match-badge {
-  background: var(--primary);
+  background: var(--accent);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 10px;
   white-space: nowrap;
+  transition: background 0.3s;
 }
 .playlist-card.liked .match-badge { background: #059669; }
 .playlist-desc {
-  color: var(--muted);
-  font-size: 13px;
-  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0 0 3px;
 }
 .playlist-reason {
-  color: var(--primary);
-  font-size: 12px;
+  color: var(--accent);
+  font-size: 11px;
   font-style: italic;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
+  transition: color 0.3s;
 }
 .playlist-actions {
   display: flex;
@@ -738,34 +398,35 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .preview-link {
   color: var(--accent);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  transition: color 0.3s;
 }
 .preview-link:hover { text-decoration: underline; }
-.preview-link svg { width: 14px; height: 14px; }
-.vote-btns { display: flex; gap: 8px; }
+.preview-link svg { width: 13px; height: 13px; }
+.vote-btns { display: flex; gap: 6px; }
 .vote-btn {
-  height: 36px;
+  height: 32px;
   border: 1.5px solid var(--border);
   border-radius: 8px;
   background: #fff;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   transition: all 0.15s ease;
-  padding: 0 12px;
-  font-size: 13px;
+  padding: 0 10px;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--text-muted);
   font-family: inherit;
 }
-.vote-btn:hover { border-color: var(--primary-light); color: var(--text); }
-.vote-btn .vote-icon { font-size: 16px; line-height: 1; }
+.vote-btn:hover { border-color: var(--accent-light); color: var(--text); }
+.vote-btn .vote-icon { font-size: 14px; line-height: 1; }
 .vote-btn.like-btn.active {
   background: #059669;
   border-color: #059669;
@@ -776,502 +437,551 @@ textarea { resize: vertical; min-height: 80px; }
   border-color: #ef4444;
   color: #fff;
 }
-.liked-summary {
-  background: #f0fdf4;
-  border: 1px solid #059669;
-  border-radius: 8px;
-  padding: 10px 16px;
-  margin-top: 16px;
+
+/* ============ Send to Design Team button ============ */
+.send-brief-block {
+  width: 100%;
+  align-self: flex-start;
+  animation: msgIn 0.3s ease;
+}
+.send-brief-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--success);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+.send-brief-btn:hover {
+  background: #059669;
+  box-shadow: var(--shadow-lg);
+}
+.send-brief-btn:active { transform: scale(0.98); }
+.send-brief-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+
+/* ============ Submission Panel ============ */
+.submission-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 100;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+.submission-overlay.visible { display: flex; }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.submission-panel {
+  background: var(--card);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 24px 32px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.submission-panel h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.submission-panel .close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--bg);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+.submission-panel .close-btn:hover { background: var(--border); color: var(--text); }
+.submission-panel .field {
+  margin-bottom: 14px;
+}
+.submission-panel label {
+  display: block;
+  font-size: 13px;
   font-weight: 600;
-  color: #059669;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.submission-panel input,
+.submission-panel select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
   font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--text);
+  transition: border-color 0.2s;
 }
-.liked-summary.empty {
-  background: #fef3c7;
-  border-color: #d97706;
-  color: #d97706;
+.submission-panel input:focus,
+.submission-panel select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
+.submission-panel .field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.product-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.product-card {
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fff;
+  position: relative;
+}
+.product-card:hover {
+  border-color: var(--accent-light);
+  box-shadow: var(--shadow);
+}
+.product-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-ultra-light);
+}
+.product-card .check-indicator {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.2s ease;
+}
+.product-card.selected .check-indicator {
+  opacity: 1;
+  transform: scale(1);
+}
+.product-card .check-indicator svg {
+  width: 11px;
+  height: 11px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 2.5;
+}
+.product-card .product-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+}
+.product-card .product-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.product-card input { display: none; }
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+.submit-btn:hover {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-lg);
+}
+.submit-btn:active { transform: scale(0.98); }
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============ Input Bar ============ */
+.input-bar {
+  padding: 12px 16px 16px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.input-bar-inner {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
+}
+.input-bar textarea {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  resize: none;
+  max-height: 120px;
+  min-height: 40px;
+  line-height: 1.4;
+  transition: border-color 0.2s;
+  overflow-y: auto;
+}
+.input-bar textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.input-bar textarea::placeholder {
+  color: var(--text-muted);
+}
+.input-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.send-btn {
+  background: var(--accent);
+  color: #fff;
+}
+.send-btn:hover { background: var(--accent-hover); }
+.send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.send-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+.mic-btn {
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1.5px solid var(--border);
+}
+.mic-btn:hover { color: var(--accent); border-color: var(--accent-light); }
+.mic-btn.recording {
+  background: #fee2e2;
+  color: #ef4444;
+  border-color: #ef4444;
+  animation: micPulse 1.5s ease-in-out infinite;
+}
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+}
+.mic-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+
+/* ============ Toast ============ */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 999;
+  transition: transform 0.3s ease;
+  max-width: 90%;
+  font-family: 'Inter', sans-serif;
+  backdrop-filter: blur(8px);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--success); color: #fff; }
+.toast.error { background: var(--error); color: #fff; }
+
+/* ============ Spinner ============ */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============ Honeypot ============ */
+.hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; }
+
+/* ============ Responsive ============ */
 @media (max-width: 640px) {
-  .playlist-card { padding: 12px; }
-  .playlist-name { font-size: 14px; }
+  .context-fields { grid-template-columns: 1fr; gap: 8px; }
+  .header-title { font-size: 13px; }
+  .header { padding: 12px 16px; }
+  .header-logo img { height: 24px; }
+  .chat-area { padding: 12px 14px; }
+  .msg { max-width: 92%; }
+  .submission-panel .field-row { grid-template-columns: 1fr; }
+  .playlist-card { padding: 10px 12px; }
+  .playlist-name { font-size: 13px; }
+}
+@media (max-width: 420px) {
+  .context-bar { padding: 10px 14px; }
+  .input-bar { padding: 10px 12px 14px; }
 }
 </style>
 </head>
 <body>
 
-<div class="container">
+<div class="app-shell">
+  <!-- Header -->
   <div class="header">
-    <div class="lang-toggle">
-      <button class="lang-btn active" onclick="setLang('en')">EN</button>
-      <button class="lang-btn" onclick="setLang('th')">TH</button>
+    <div class="header-left">
+      <div class="header-logo">
+        <img src="/images/BMAsia_Logo.png" alt="BMAsia Group" width="112" height="28">
+      </div>
+      <span class="header-title" data-i18n="title">Music Design Assistant</span>
     </div>
-    <div class="header-logo">
-      <img src="/images/BMAsia_Logo.png" alt="BMAsia Group" width="144" height="36">
+    <div class="header-right">
+      <div class="lang-toggle">
+        <button class="lang-btn active" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" onclick="setLang('th')">TH</button>
+      </div>
     </div>
-    <h1 data-i18n="title">Music Atmosphere Brief</h1>
-    <p data-i18n="subtitle">Tell us the vibe. We'll design the sound.</p>
   </div>
 
-  <form class="form-body" id="briefForm" novalidate>
-    <!-- Honeypot -->
-    <div class="hp-field">
-      <label for="website">Website</label>
-      <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
-    </div>
-
-    <!-- Product Selection -->
-    <div class="section">
-      <div class="section-title">
-        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
-        <span data-i18n="sec_product">Product</span>
+  <!-- Context Bar -->
+  <div class="context-bar" id="contextBar">
+    <div class="context-fields">
+      <div class="context-field">
+        <label data-i18n="ctx_venue">Venue Name</label>
+        <input type="text" id="ctxVenue" placeholder="e.g. Sky Bar">
       </div>
-      <div class="product-toggle">
-        <label class="product-card selected" data-product="syb">
-          <input type="radio" name="product" value="syb" checked>
-          <span class="check-indicator"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-          <div class="product-name">Soundtrack Your Brand</div>
-          <div class="product-desc" data-i18n="syb_desc">Licensed commercial music</div>
-        </label>
-        <label class="product-card" data-product="beatbreeze">
-          <input type="radio" name="product" value="beatbreeze">
-          <span class="check-indicator"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-          <div class="product-name">Beat Breeze</div>
-          <div class="product-desc" data-i18n="bb_desc">Royalty-free + AI bespoke music</div>
-        </label>
+      <div class="context-field">
+        <label data-i18n="ctx_location">Location</label>
+        <input type="text" id="ctxLocation" placeholder="e.g. Bangkok">
+      </div>
+      <div class="context-field">
+        <label data-i18n="ctx_hours">Operating Hours</label>
+        <input type="text" id="ctxHours" placeholder="e.g. 17:00 - 02:00">
       </div>
     </div>
+    <div class="context-summary" id="contextSummary" onclick="expandContextBar()">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/></svg>
+      <span id="contextSummaryText"></span>
+    </div>
+  </div>
 
-    <!-- Venue Info -->
-    <div class="section">
-      <div class="section-title">
-        <span class="section-icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/></svg></span>
-        <span data-i18n="sec_venue">Venue Information</span>
+  <!-- Chat Area -->
+  <div class="chat-area" id="chatArea"></div>
+
+  <!-- Input Bar -->
+  <div class="input-bar">
+    <div class="input-bar-inner">
+      <button class="input-btn mic-btn" id="micBtn" title="Voice input" style="display:none;" onclick="toggleMic()">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <textarea id="chatInput" rows="1" placeholder="Type your message..." data-i18n-placeholder="input_ph" onkeydown="handleInputKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="input-btn send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Submission Panel Overlay -->
+<div class="submission-overlay" id="submissionOverlay">
+  <div class="submission-panel">
+    <h3>
+      <span data-i18n="submit_title">Complete Your Brief</span>
+      <button class="close-btn" onclick="closeSubmission()">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </h3>
+
+    <form id="submitForm" novalidate>
+      <div class="hp-field">
+        <label for="website">Website</label>
+        <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label data-i18n="sf_venue">Venue Name *</label>
+        <input type="text" name="venueName" id="sfVenue" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="sf_location">Location</label>
+          <input type="text" name="location" id="sfLocation">
+        </div>
+        <div class="field">
+          <label data-i18n="sf_hours">Operating Hours</label>
+          <input type="text" name="hours" id="sfHours">
+        </div>
       </div>
       <div class="field">
-        <label data-i18n="venue_name">Venue Name <span style="color:var(--error)">*</span></label>
-        <input type="text" name="venueName" required>
+        <label data-i18n="sf_name">Your Name *</label>
+        <input type="text" name="contactName" required>
       </div>
       <div class="field-row">
         <div class="field">
-          <label data-i18n="venue_type">Venue Type</label>
-          <select name="venueType">
-            <option value="" data-i18n="select_placeholder">Select...</option>
-            <option value="hotel-lobby" data-i18n="vt_hotel">Hotel Lobby</option>
-            <option value="restaurant" data-i18n="vt_restaurant">Restaurant</option>
-            <option value="bar-lounge" data-i18n="vt_bar">Bar / Lounge</option>
-            <option value="spa-wellness" data-i18n="vt_spa">Spa / Wellness</option>
-            <option value="fashion-retail" data-i18n="vt_fashion">Fashion Retail</option>
-            <option value="cafe" data-i18n="vt_cafe">Cafe</option>
-            <option value="gym-fitness" data-i18n="vt_gym">Gym / Fitness</option>
-            <option value="pool-beach" data-i18n="vt_pool">Pool / Beach Club</option>
-            <option value="qsr" data-i18n="vt_qsr">QSR / Fast Casual</option>
-            <option value="coworking" data-i18n="vt_cowork">Co-working Space</option>
-            <option value="other" data-i18n="vt_other">Other</option>
-          </select>
+          <label data-i18n="sf_email">Email *</label>
+          <input type="email" name="contactEmail" required>
         </div>
         <div class="field">
-          <label data-i18n="location">Location</label>
-          <input type="text" name="location" placeholder="City, Country">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label data-i18n="zones">Number of Zones</label>
-          <input type="number" name="zones" min="1" max="50" placeholder="e.g. 3">
-        </div>
-        <div class="field">
-          <label data-i18n="hours">Operating Hours</label>
-          <input type="text" name="hours" placeholder="e.g. 7:00 - 23:00">
-        </div>
-      </div>
-    </div>
-
-    <!-- Contact -->
-    <div class="section">
-      <div class="section-title">
-        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-        <span data-i18n="sec_contact">Contact</span>
-      </div>
-      <div class="field">
-        <label data-i18n="contact_name">Contact Name</label>
-        <input type="text" name="contactName">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label data-i18n="contact_email">Email</label>
-          <input type="email" name="contactEmail">
-        </div>
-        <div class="field">
-          <label data-i18n="contact_phone">Phone</label>
+          <label data-i18n="sf_phone">Phone</label>
           <input type="tel" name="contactPhone">
         </div>
       </div>
-    </div>
-
-    <!-- Atmosphere & Vibes -->
-    <div class="section">
-      <div class="section-title">
-        <span class="section-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-        <span data-i18n="sec_vibes">Atmosphere & Vibes</span>
-      </div>
-      <label data-i18n="pick_vibes">Pick the vibes that match your space <span style="color:var(--error)">*</span></label>
-      <p class="sublabel" data-i18n="pick_vibes_hint">Select up to 3</p>
-      <div class="vibe-grid" id="vibeGrid">
-        <!-- Relaxed -->
-        <div class="vibe-card" data-vibe="relaxed">
-          <div class="vibe-icon vi-relaxed"><svg viewBox="0 0 24 24"><path d="M2 12c2-3 5-3 7 0s5 3 7 0 5-3 7 0"/><path d="M2 17c2-3 5-3 7 0s5 3 7 0 5-3 7 0"/><path d="M2 7c2-3 5-3 7 0s5 3 7 0 5-3 7 0"/></svg></div>
-          <span class="vibe-label" data-i18n="v_relaxed">Relaxed</span>
-        </div>
-        <!-- Energetic -->
-        <div class="vibe-card" data-vibe="energetic">
-          <div class="vibe-icon vi-energetic"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-          <span class="vibe-label" data-i18n="v_energetic">Energetic</span>
-        </div>
-        <!-- Sophisticated -->
-        <div class="vibe-card" data-vibe="sophisticated">
-          <div class="vibe-icon vi-sophisticated"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20"/><path d="M10 9l2 13 2-13"/><path d="M6 3l4 6"/><path d="M18 3l-4 6"/></svg></div>
-          <span class="vibe-label" data-i18n="v_sophisticated">Sophisticated</span>
-        </div>
-        <!-- Warm -->
-        <div class="vibe-card" data-vibe="warm">
-          <div class="vibe-icon vi-warm"><svg viewBox="0 0 24 24"><path d="M12 2c-1 4-4 6-4 10a4 4 0 0 0 8 0c0-4-3-6-4-10z"/><line x1="12" y1="22" x2="12" y2="18"/><line x1="8" y1="22" x2="16" y2="22"/></svg></div>
-          <span class="vibe-label" data-i18n="v_warm">Warm</span>
-        </div>
-        <!-- Trendy -->
-        <div class="vibe-card" data-vibe="trendy">
-          <div class="vibe-icon vi-trendy"><svg viewBox="0 0 24 24"><path d="M12 3l1.5 4.5H18l-3.7 2.7 1.4 4.3L12 11.8l-3.7 2.7 1.4-4.3L6 7.5h4.5z"/><path d="M5 19l1-2"/><path d="M19 19l-1-2"/><circle cx="4" cy="4" r="1"/><circle cx="20" cy="4" r="1"/></svg></div>
-          <span class="vibe-label" data-i18n="v_trendy">Trendy</span>
-        </div>
-        <!-- Upbeat -->
-        <div class="vibe-card" data-vibe="upbeat">
-          <div class="vibe-icon vi-upbeat"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-          <span class="vibe-label" data-i18n="v_upbeat">Upbeat</span>
-        </div>
-        <!-- Zen -->
-        <div class="vibe-card" data-vibe="zen">
-          <div class="vibe-icon vi-zen"><svg viewBox="0 0 24 24"><path d="M12 22c-4 0-8-2-8-6 0-2 1-3.5 2.5-4.5"/><path d="M12 22c4 0 8-2 8-6 0-2-1-3.5-2.5-4.5"/><path d="M12 22V12"/><path d="M12 12C9 12 6 9 6 6s3-4 6-4"/><path d="M12 12c3 0 6-3 6-6s-3-4-6-4"/></svg></div>
-          <span class="vibe-label" data-i18n="v_zen">Zen</span>
-        </div>
-        <!-- Romantic -->
-        <div class="vibe-card" data-vibe="romantic">
-          <div class="vibe-icon vi-romantic"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
-          <span class="vibe-label" data-i18n="v_romantic">Romantic</span>
-        </div>
-        <!-- Luxurious -->
-        <div class="vibe-card" data-vibe="luxurious">
-          <div class="vibe-icon vi-luxurious"><svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3l1 6"/><path d="M13 3l-1 6"/><path d="M2 9h20"/></svg></div>
-          <span class="vibe-label" data-i18n="v_luxurious">Luxurious</span>
-        </div>
-        <!-- Tropical -->
-        <div class="vibe-card" data-vibe="tropical">
-          <div class="vibe-icon vi-tropical"><svg viewBox="0 0 24 24"><path d="M13 8c0-2.76-2.46-5-5.5-5-1.65 0-3.13.73-4.13 1.88"/><path d="M13 8c0-2.76 2.46-5 5.5-5 1.65 0 3.13.73 4.13 1.88"/><path d="M13 8v14"/><path d="M13 8C8 8 4 4 3 1"/><path d="M13 8c5 0 9-4 10-7"/><path d="M9 22h8"/></svg></div>
-          <span class="vibe-label" data-i18n="v_tropical">Tropical</span>
-        </div>
-        <!-- Creative -->
-        <div class="vibe-card" data-vibe="creative">
-          <div class="vibe-icon vi-creative"><svg viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="19" cy="13" r="2"/><circle cx="6" cy="12" r="3"/><path d="M12 22a7 7 0 0 0 7-7c0-3.5-2.5-6.5-7-6.5S5 11.5 5 15a7 7 0 0 0 7 7z"/></svg></div>
-          <span class="vibe-label" data-i18n="v_creative">Creative</span>
-        </div>
-        <!-- Professional -->
-        <div class="vibe-card" data-vibe="professional">
-          <div class="vibe-icon vi-professional"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12.01"/></svg></div>
-          <span class="vibe-label" data-i18n="v_professional">Professional</span>
-        </div>
-      </div>
-
-      <div class="field" style="margin-top:20px;">
-        <label data-i18n="energy_level">Energy Level</label>
-        <div class="energy-value" id="energyVal">5</div>
-        <div class="slider-wrap">
-          <input type="range" name="energy" min="1" max="10" value="5" oninput="document.getElementById('energyVal').textContent=this.value">
-        </div>
-        <div class="slider-labels">
-          <span data-i18n="energy_low">Calm & Quiet</span>
-          <span data-i18n="energy_high">High Energy</span>
-        </div>
-      </div>
-
-      <div class="field">
-        <label data-i18n="reference_venues">Reference Venues</label>
-        <p class="sublabel" data-i18n="reference_hint">Name a hotel, restaurant, or bar whose music you admire</p>
-        <input type="text" name="referenceVenues" placeholder="e.g. Soho House, Aman, Four Seasons Lobby">
-      </div>
-
-      <div class="field">
-        <label data-i18n="vibe_desc">Describe Your Ideal Atmosphere</label>
-        <textarea name="vibeDescription" rows="3" data-i18n-placeholder="vibe_desc_ph"></textarea>
-      </div>
-    </div>
-
-    <!-- Guest Demographics -->
-    <div class="section">
-      <div class="section-title">
-        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-        <span data-i18n="sec_guests">Guest Demographics</span>
-      </div>
-      <div class="field">
-        <label data-i18n="guest_profile">Guest Profile</label>
-        <input type="text" name="guestProfile" data-i18n-placeholder="guest_ph">
-      </div>
       <div class="field-row">
         <div class="field">
-          <label data-i18n="age_range">Primary Age Range</label>
-          <select name="ageRange">
-            <option value="">Select...</option>
-            <option value="18-25">18-25</option>
-            <option value="25-35">25-35</option>
-            <option value="35-50">35-50</option>
-            <option value="50+">50+</option>
-            <option value="mixed" data-i18n="age_mixed">Mixed</option>
-          </select>
+          <label data-i18n="sf_zones">Number of Zones</label>
+          <input type="number" name="zones" min="1" max="50" placeholder="e.g. 3">
         </div>
         <div class="field">
-          <label data-i18n="nationality">Primary Nationality</label>
-          <input type="text" name="nationality" placeholder="e.g. Thai, International mix">
+          <label data-i18n="sf_product">Product</label>
+          <div class="product-toggle">
+            <label class="product-card selected" data-product="syb" onclick="selectProduct(this)">
+              <input type="radio" name="product" value="syb" checked>
+              <span class="check-indicator"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <div class="product-name">SYB</div>
+              <div class="product-desc" data-i18n="syb_desc">Licensed music</div>
+            </label>
+            <label class="product-card" data-product="beatbreeze" onclick="selectProduct(this)">
+              <input type="radio" name="product" value="beatbreeze">
+              <span class="check-indicator"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <div class="product-name">Beat Breeze</div>
+              <div class="product-desc" data-i18n="bb_desc">Royalty-free</div>
+            </label>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Music Preferences -->
-    <div class="section">
-      <div class="section-title">
-        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
-        <span data-i18n="sec_prefs">Music Preferences</span>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label data-i18n="vocals">Vocals</label>
-          <select name="vocals">
-            <option value="" data-i18n="select_placeholder">Select...</option>
-            <option value="instrumental-only" data-i18n="vo_inst">Instrumental Only</option>
-            <option value="mostly-instrumental" data-i18n="vo_mostly_inst">Mostly Instrumental</option>
-            <option value="mix" data-i18n="vo_mix">Mix of Both</option>
-            <option value="mostly-vocals" data-i18n="vo_mostly_voc">Mostly Vocals</option>
-            <option value="no-preference" data-i18n="vo_no_pref">No Preference</option>
-          </select>
-        </div>
-        <div class="field">
-          <label data-i18n="music_languages">Music Languages</label>
-          <input type="text" name="musicLanguages" placeholder="e.g. English, Thai, No Thai lyrics">
-        </div>
-      </div>
-      <div class="field">
-        <label data-i18n="avoid_list">Avoid / Do Not Play</label>
-        <textarea name="avoidList" rows="2" data-i18n-placeholder="avoid_ph"></textarea>
-      </div>
-      <div class="field">
-        <label data-i18n="mood_changes">Mood Changes Through the Day</label>
-        <textarea name="moodChanges" rows="2" data-i18n-placeholder="mood_ph"></textarea>
-      </div>
-    </div>
-
-    <!-- Beat Breeze Section -->
-    <div class="section bb-section" id="bbSection">
-      <div class="section-title">
-        <span class="section-icon"><svg viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect x="2" y="2" width="20" height="8" rx="2"/><path d="M2 14h20"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 18h.01"/><path d="M10 18h.01"/></svg></span>
-        <span data-i18n="sec_bb">Beat Breeze Details</span>
-      </div>
-      <div class="field">
-        <label data-i18n="ai_interest">Interest in AI-Generated Music</label>
-        <select name="aiInterest">
-          <option value="" data-i18n="select_placeholder">Select...</option>
-          <option value="very-interested" data-i18n="ai_very">Very Interested</option>
-          <option value="somewhat" data-i18n="ai_somewhat">Somewhat Interested</option>
-          <option value="just-royalty-free" data-i18n="ai_rf">Just Royalty-Free Music</option>
-        </select>
-      </div>
-      <div class="field">
-        <label data-i18n="instruments">Preferred Instruments</label>
-        <input type="text" name="instruments" placeholder="e.g. Piano, Acoustic Guitar, Synth Pads">
-      </div>
-      <div class="field">
-        <label data-i18n="brand_story">Brand Story / Identity</label>
-        <p class="sublabel" data-i18n="brand_hint">Helps our AI create music that matches your brand personality</p>
-        <textarea name="brandStory" rows="3" data-i18n-placeholder="brand_ph"></textarea>
-      </div>
-    </div>
-
-    <!-- Brief Preview -->
-    <div class="brief-preview" id="briefPreview">
-      <div class="brief-preview-header">
-        <h3>
-          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          <span data-i18n="preview_title">Your Music Brief Preview</span>
-        </h3>
-      </div>
-      <div class="brief-preview-body" id="previewContent"></div>
-    </div>
-
-    <!-- Actions -->
-    <div class="btn-row">
-      <button type="button" class="btn btn-secondary" id="generateBtn" data-i18n="btn_generate">Generate Brief</button>
-      <button type="submit" class="btn btn-primary" id="submitBtn" disabled data-i18n="btn_submit">Submit Brief</button>
-    </div>
-  </form>
+      <button type="submit" class="submit-btn" id="submitBriefBtn" data-i18n="btn_submit_brief">Submit Brief</button>
+    </form>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
 // =========================================================================
-// Internationalization
+// i18n
 // =========================================================================
 const i18n = {
   en: {
-    title: 'Music Atmosphere Brief',
-    subtitle: 'Tell us the vibe. We\'ll design the sound.',
-    sec_product: 'Product',
-    syb_desc: 'Licensed commercial music',
-    bb_desc: 'Royalty-free + AI bespoke music',
-    sec_venue: 'Venue Information',
-    venue_name: 'Venue Name <span style="color:var(--error)">*</span>',
-    venue_type: 'Venue Type',
-    location: 'Location',
-    zones: 'Number of Zones',
-    hours: 'Operating Hours',
-    sec_contact: 'Contact',
-    contact_name: 'Contact Name',
-    contact_email: 'Email',
-    contact_phone: 'Phone',
-    sec_vibes: 'Atmosphere & Vibes',
-    pick_vibes: 'Pick the vibes that match your space <span style="color:var(--error)">*</span>',
-    pick_vibes_hint: 'Select up to 3',
-    v_relaxed: 'Relaxed', v_energetic: 'Energetic', v_sophisticated: 'Sophisticated',
-    v_warm: 'Warm', v_trendy: 'Trendy', v_upbeat: 'Upbeat',
-    v_zen: 'Zen', v_romantic: 'Romantic', v_luxurious: 'Luxurious',
-    v_tropical: 'Tropical', v_creative: 'Creative', v_professional: 'Professional',
-    energy_level: 'Energy Level',
-    energy_low: 'Calm & Quiet',
-    energy_high: 'High Energy',
-    reference_venues: 'Reference Venues',
-    reference_hint: 'Name a hotel, restaurant, or bar whose music you admire',
-    vibe_desc: 'Describe Your Ideal Atmosphere',
-    vibe_desc_ph: 'e.g. We want guests to feel like they\'re at a stylish beach club at sunset...',
-    sec_guests: 'Guest Demographics',
-    guest_profile: 'Guest Profile',
-    guest_ph: 'e.g. Business travelers, families, young professionals',
-    age_range: 'Primary Age Range',
-    age_mixed: 'Mixed',
-    nationality: 'Primary Nationality',
-    sec_prefs: 'Music Preferences',
-    vocals: 'Vocals',
-    vo_inst: 'Instrumental Only', vo_mostly_inst: 'Mostly Instrumental',
-    vo_mix: 'Mix of Both', vo_mostly_voc: 'Mostly Vocals', vo_no_pref: 'No Preference',
-    music_languages: 'Music Languages',
-    avoid_list: 'Avoid / Do Not Play',
-    avoid_ph: 'e.g. No heavy metal, no explicit lyrics, no Thai pop...',
-    mood_changes: 'Mood Changes Through the Day',
-    mood_ph: 'e.g. Calm mornings, upbeat lunch, sophisticated evenings...',
-    sec_bb: 'Beat Breeze Details',
-    ai_interest: 'Interest in AI-Generated Music',
-    ai_very: 'Very Interested', ai_somewhat: 'Somewhat Interested', ai_rf: 'Just Royalty-Free Music',
-    instruments: 'Preferred Instruments',
-    brand_story: 'Brand Story / Identity',
-    brand_hint: 'Helps our AI create music that matches your brand personality',
-    brand_ph: 'Tell us about your brand - its values, personality, and what makes it unique...',
-    preview_title: 'Your Music Brief Preview',
-    btn_generate: 'Generate Brief',
-    btn_submit: 'Submit Brief',
-    select_placeholder: 'Select...',
-    vt_hotel: 'Hotel Lobby', vt_restaurant: 'Restaurant', vt_bar: 'Bar / Lounge',
-    vt_spa: 'Spa / Wellness', vt_fashion: 'Fashion Retail', vt_cafe: 'Cafe',
-    vt_gym: 'Gym / Fitness', vt_pool: 'Pool / Beach Club', vt_qsr: 'QSR / Fast Casual',
-    vt_cowork: 'Co-working Space', vt_other: 'Other',
-    toast_success: 'Brief sent successfully! Our team will review it shortly.',
-    toast_error: 'Failed to send. Please try again.',
-    toast_validation: 'Please fill in venue name and select at least one vibe.',
-    preview_top_genres: 'Top Recommended Genres',
-    preview_bpm: 'BPM Ranges',
-    preview_morning: 'Morning',
-    preview_afternoon: 'Afternoon',
-    preview_evening: 'Evening',
-    preview_energy: 'Energy',
-    ai_analyzing: 'Analyzing your brief...',
+    title: 'Music Design Assistant',
+    ctx_venue: 'Venue Name',
+    ctx_location: 'Location',
+    ctx_hours: 'Operating Hours',
+    input_ph: 'Type your message...',
+    submit_title: 'Complete Your Brief',
+    sf_venue: 'Venue Name *',
+    sf_location: 'Location',
+    sf_hours: 'Operating Hours',
+    sf_name: 'Your Name *',
+    sf_email: 'Email *',
+    sf_phone: 'Phone',
+    sf_zones: 'Number of Zones',
+    sf_product: 'Product',
+    syb_desc: 'Licensed music',
+    bb_desc: 'Royalty-free',
+    btn_submit_brief: 'Submit Brief',
+    btn_send_team: 'Send to Design Team',
     preview_on_syb: 'Preview on SYB',
     vote_like: 'Like',
     vote_dislike: 'Skip',
-    select_playlists: 'Select playlists you like',
-    playlists_selected: 'playlist(s) selected',
+    toast_success: 'Brief sent successfully! Our team will review it shortly.',
+    toast_error: 'Failed to send. Please try again.',
+    toast_validation: 'Please fill in the required fields.',
+    greeting: "Hi! I'm your BMAsia music designer. I help create the perfect soundtrack for venues and events across Asia.\n\nWhat brings you here today?",
+    chip_new: 'Design music for a new venue',
+    chip_event: 'Plan music for a special event',
+    chip_update: 'Update my current music',
   },
   th: {
-    title: '\u0e41\u0e1a\u0e1a\u0e1f\u0e2d\u0e23\u0e4c\u0e21\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e40\u0e1e\u0e25\u0e07',
-    subtitle: '\u0e1a\u0e2d\u0e01\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23 \u0e40\u0e23\u0e32\u0e08\u0e30\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e43\u0e2b\u0e49',
-    sec_product: '\u0e1c\u0e25\u0e34\u0e15\u0e20\u0e31\u0e13\u0e11\u0e4c',
-    syb_desc: '\u0e40\u0e1e\u0e25\u0e07\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e18\u0e38\u0e23\u0e01\u0e34\u0e08',
-    bb_desc: '\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e25\u0e2d\u0e14\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c + AI \u0e2a\u0e23\u0e49\u0e32\u0e07\u0e40\u0e1e\u0e25\u0e07\u0e40\u0e09\u0e1e\u0e32\u0e30',
-    sec_venue: '\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48',
-    venue_name: '\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48 <span style="color:var(--error)">*</span>',
-    venue_type: '\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48',
-    location: '\u0e17\u0e35\u0e48\u0e15\u0e31\u0e49\u0e07',
-    zones: '\u0e08\u0e33\u0e19\u0e27\u0e19\u0e42\u0e0b\u0e19',
-    hours: '\u0e40\u0e27\u0e25\u0e32\u0e40\u0e1b\u0e34\u0e14-\u0e1b\u0e34\u0e14',
-    sec_contact: '\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e15\u0e34\u0e14\u0e15\u0e48\u0e2d',
-    contact_name: '\u0e0a\u0e37\u0e48\u0e2d\u0e1c\u0e39\u0e49\u0e15\u0e34\u0e14\u0e15\u0e48\u0e2d',
-    contact_email: '\u0e2d\u0e35\u0e40\u0e21\u0e25',
-    contact_phone: '\u0e42\u0e17\u0e23\u0e28\u0e31\u0e1e\u0e17\u0e4c',
-    sec_vibes: '\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e41\u0e25\u0e30\u0e2d\u0e32\u0e23\u0e21\u0e13\u0e4c',
-    pick_vibes: '\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e17\u0e35\u0e48\u0e40\u0e02\u0e49\u0e32\u0e01\u0e31\u0e1a\u0e1e\u0e37\u0e49\u0e19\u0e17\u0e35\u0e48\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13 <span style="color:var(--error)">*</span>',
-    pick_vibes_hint: '\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e44\u0e14\u0e49\u0e2a\u0e39\u0e07\u0e2a\u0e38\u0e14 3 \u0e2d\u0e22\u0e48\u0e32\u0e07',
-    v_relaxed: '\u0e1c\u0e48\u0e2d\u0e19\u0e04\u0e25\u0e32\u0e22', v_energetic: '\u0e21\u0e35\u0e1e\u0e25\u0e31\u0e07', v_sophisticated: '\u0e2b\u0e23\u0e39\u0e2b\u0e23\u0e32\u0e21\u0e35\u0e23\u0e30\u0e14\u0e31\u0e1a',
-    v_warm: '\u0e2d\u0e1a\u0e2d\u0e38\u0e48\u0e19', v_trendy: '\u0e17\u0e31\u0e19\u0e2a\u0e21\u0e31\u0e22', v_upbeat: '\u0e2a\u0e19\u0e38\u0e01\u0e2a\u0e19\u0e32\u0e19',
-    v_zen: '\u0e2a\u0e07\u0e1a\u0e40\u0e0b\u0e19', v_romantic: '\u0e42\u0e23\u0e41\u0e21\u0e19\u0e15\u0e34\u0e01', v_luxurious: '\u0e2b\u0e23\u0e39\u0e40\u0e25\u0e34\u0e28',
-    v_tropical: '\u0e17\u0e23\u0e2d\u0e1b\u0e34\u0e04\u0e2d\u0e25', v_creative: '\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e2a\u0e23\u0e23\u0e04\u0e4c', v_professional: '\u0e21\u0e37\u0e2d\u0e2d\u0e32\u0e0a\u0e35\u0e1e',
-    energy_level: '\u0e23\u0e30\u0e14\u0e31\u0e1a\u0e1e\u0e25\u0e31\u0e07\u0e07\u0e32\u0e19',
-    energy_low: '\u0e2a\u0e07\u0e1a \u0e40\u0e07\u0e35\u0e22\u0e1a',
-    energy_high: '\u0e1e\u0e25\u0e31\u0e07\u0e07\u0e32\u0e19\u0e2a\u0e39\u0e07',
-    reference_venues: '\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e2d\u0e49\u0e32\u0e07\u0e2d\u0e34\u0e07',
-    reference_hint: '\u0e1a\u0e2d\u0e01\u0e0a\u0e37\u0e48\u0e2d\u0e42\u0e23\u0e07\u0e41\u0e23\u0e21 \u0e23\u0e49\u0e32\u0e19\u0e2d\u0e32\u0e2b\u0e32\u0e23 \u0e2b\u0e23\u0e37\u0e2d\u0e1a\u0e32\u0e23\u0e4c\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e0a\u0e2d\u0e1a\u0e40\u0e1e\u0e25\u0e07\u0e02\u0e2d\u0e07\u0e40\u0e02\u0e32',
-    vibe_desc: '\u0e2d\u0e18\u0e34\u0e1a\u0e32\u0e22\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e43\u0e19\u0e1d\u0e31\u0e19',
-    vibe_desc_ph: '\u0e40\u0e0a\u0e48\u0e19 \u0e2d\u0e22\u0e32\u0e01\u0e43\u0e2b\u0e49\u0e41\u0e02\u0e01\u0e23\u0e39\u0e49\u0e2a\u0e36\u0e01\u0e40\u0e2b\u0e21\u0e37\u0e2d\u0e19\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e1a\u0e35\u0e0a\u0e04\u0e25\u0e31\u0e1a\u0e2b\u0e23\u0e39\u0e22\u0e32\u0e21\u0e40\u0e22\u0e47\u0e19...',
-    sec_guests: '\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32',
-    guest_profile: '\u0e25\u0e31\u0e01\u0e29\u0e13\u0e30\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32',
-    guest_ph: '\u0e40\u0e0a\u0e48\u0e19 \u0e19\u0e31\u0e01\u0e40\u0e14\u0e34\u0e19\u0e17\u0e32\u0e07\u0e18\u0e38\u0e23\u0e01\u0e34\u0e08 \u0e04\u0e23\u0e2d\u0e1a\u0e04\u0e23\u0e31\u0e27 \u0e04\u0e19\u0e23\u0e38\u0e48\u0e19\u0e43\u0e2b\u0e21\u0e48',
-    age_range: '\u0e0a\u0e48\u0e27\u0e07\u0e2d\u0e32\u0e22\u0e38\u0e2b\u0e25\u0e31\u0e01',
-    age_mixed: '\u0e2b\u0e25\u0e32\u0e01\u0e2b\u0e25\u0e32\u0e22',
-    nationality: '\u0e2a\u0e31\u0e0d\u0e0a\u0e32\u0e15\u0e34\u0e2b\u0e25\u0e31\u0e01',
-    sec_prefs: '\u0e04\u0e27\u0e32\u0e21\u0e0a\u0e2d\u0e1a\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e40\u0e1e\u0e25\u0e07',
-    vocals: '\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e23\u0e49\u0e2d\u0e07',
-    vo_inst: '\u0e14\u0e19\u0e15\u0e23\u0e35\u0e1a\u0e23\u0e23\u0e40\u0e25\u0e07\u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19', vo_mostly_inst: '\u0e14\u0e19\u0e15\u0e23\u0e35\u0e1a\u0e23\u0e23\u0e40\u0e25\u0e07\u0e40\u0e1b\u0e47\u0e19\u0e2b\u0e25\u0e31\u0e01',
-    vo_mix: '\u0e1c\u0e2a\u0e21\u0e17\u0e31\u0e49\u0e07\u0e2a\u0e2d\u0e07\u0e41\u0e1a\u0e1a', vo_mostly_voc: '\u0e21\u0e35\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e23\u0e49\u0e2d\u0e07\u0e40\u0e1b\u0e47\u0e19\u0e2b\u0e25\u0e31\u0e01', vo_no_pref: '\u0e44\u0e21\u0e48\u0e21\u0e35\u0e04\u0e27\u0e32\u0e21\u0e0a\u0e2d\u0e1a\u0e40\u0e09\u0e1e\u0e32\u0e30',
-    music_languages: '\u0e20\u0e32\u0e29\u0e32\u0e02\u0e2d\u0e07\u0e40\u0e1e\u0e25\u0e07',
-    avoid_list: '\u0e40\u0e1e\u0e25\u0e07\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23',
-    avoid_ph: '\u0e40\u0e0a\u0e48\u0e19 \u0e44\u0e21\u0e48\u0e40\u0e2d\u0e32\u0e40\u0e2e\u0e1f\u0e27\u0e35\u0e48\u0e40\u0e21\u0e17\u0e31\u0e25 \u0e44\u0e21\u0e48\u0e40\u0e2d\u0e32\u0e40\u0e19\u0e37\u0e49\u0e2d\u0e2b\u0e32\u0e44\u0e21\u0e48\u0e40\u0e2b\u0e21\u0e32\u0e30\u0e2a\u0e21 \u0e44\u0e21\u0e48\u0e40\u0e2d\u0e32\u0e40\u0e1e\u0e25\u0e07\u0e25\u0e39\u0e01\u0e17\u0e38\u0e48\u0e07...',
-    mood_changes: '\u0e2d\u0e32\u0e23\u0e21\u0e13\u0e4c\u0e40\u0e1e\u0e25\u0e07\u0e43\u0e19\u0e41\u0e15\u0e48\u0e25\u0e30\u0e0a\u0e48\u0e27\u0e07\u0e40\u0e27\u0e25\u0e32',
-    mood_ph: '\u0e40\u0e0a\u0e48\u0e19 \u0e40\u0e0a\u0e49\u0e32\u0e2a\u0e07\u0e1a \u0e01\u0e25\u0e32\u0e07\u0e27\u0e31\u0e19\u0e2a\u0e14\u0e43\u0e2a \u0e40\u0e22\u0e47\u0e19\u0e2b\u0e23\u0e39\u0e2b\u0e23\u0e32...',
-    sec_bb: '\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14 Beat Breeze',
-    ai_interest: '\u0e04\u0e27\u0e32\u0e21\u0e2a\u0e19\u0e43\u0e08\u0e43\u0e19\u0e40\u0e1e\u0e25\u0e07 AI',
-    ai_very: '\u0e2a\u0e19\u0e43\u0e08\u0e21\u0e32\u0e01', ai_somewhat: '\u0e2a\u0e19\u0e43\u0e08\u0e1e\u0e2d\u0e2a\u0e21\u0e04\u0e27\u0e23', ai_rf: '\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e25\u0e2d\u0e14\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19',
-    instruments: '\u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e14\u0e19\u0e15\u0e23\u0e35\u0e17\u0e35\u0e48\u0e0a\u0e2d\u0e1a',
-    brand_story: '\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e23\u0e32\u0e27\u0e02\u0e2d\u0e07\u0e41\u0e1a\u0e23\u0e19\u0e14\u0e4c',
-    brand_hint: '\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49 AI \u0e2a\u0e23\u0e49\u0e32\u0e07\u0e40\u0e1e\u0e25\u0e07\u0e17\u0e35\u0e48\u0e40\u0e02\u0e49\u0e32\u0e01\u0e31\u0e1a\u0e1a\u0e38\u0e04\u0e25\u0e34\u0e01\u0e41\u0e1a\u0e23\u0e19\u0e14\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13',
-    brand_ph: '\u0e40\u0e25\u0e48\u0e32\u0e40\u0e01\u0e35\u0e48\u0e22\u0e27\u0e01\u0e31\u0e1a\u0e41\u0e1a\u0e23\u0e19\u0e14\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13 - \u0e04\u0e48\u0e32\u0e19\u0e34\u0e22\u0e21 \u0e1a\u0e38\u0e04\u0e25\u0e34\u0e01 \u0e41\u0e25\u0e30\u0e08\u0e38\u0e14\u0e40\u0e14\u0e48\u0e19...',
-    preview_title: '\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e1a\u0e23\u0e35\u0e1f\u0e40\u0e1e\u0e25\u0e07\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13',
-    btn_generate: '\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e1a\u0e23\u0e35\u0e1f',
-    btn_submit: '\u0e2a\u0e48\u0e07\u0e1a\u0e23\u0e35\u0e1f',
-    select_placeholder: '\u0e40\u0e25\u0e37\u0e2d\u0e01...',
-    vt_hotel: '\u0e25\u0e47\u0e2d\u0e1a\u0e1a\u0e35\u0e49\u0e42\u0e23\u0e07\u0e41\u0e23\u0e21', vt_restaurant: '\u0e23\u0e49\u0e32\u0e19\u0e2d\u0e32\u0e2b\u0e32\u0e23', vt_bar: '\u0e1a\u0e32\u0e23\u0e4c / \u0e40\u0e25\u0e32\u0e19\u0e08\u0e4c',
-    vt_spa: '\u0e2a\u0e1b\u0e32 / \u0e40\u0e27\u0e25\u0e40\u0e19\u0e2a', vt_fashion: '\u0e41\u0e1f\u0e0a\u0e31\u0e48\u0e19\u0e23\u0e35\u0e40\u0e17\u0e25', vt_cafe: '\u0e04\u0e32\u0e40\u0e1f\u0e48',
-    vt_gym: '\u0e1f\u0e34\u0e15\u0e40\u0e19\u0e2a', vt_pool: '\u0e2a\u0e23\u0e30\u0e27\u0e48\u0e32\u0e22\u0e19\u0e49\u0e33 / \u0e1a\u0e35\u0e0a\u0e04\u0e25\u0e31\u0e1a', vt_qsr: '\u0e23\u0e49\u0e32\u0e19\u0e1f\u0e32\u0e2a\u0e15\u0e4c\u0e1f\u0e39\u0e49\u0e14',
-    vt_cowork: '\u0e42\u0e04\u0e40\u0e27\u0e34\u0e23\u0e4c\u0e01\u0e01\u0e34\u0e49\u0e07', vt_other: '\u0e2d\u0e37\u0e48\u0e19\u0e46',
-    toast_success: '\u0e2a\u0e48\u0e07\u0e1a\u0e23\u0e35\u0e1f\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08! \u0e17\u0e35\u0e21\u0e07\u0e32\u0e19\u0e08\u0e30\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e43\u0e19\u0e40\u0e23\u0e47\u0e27\u0e46 \u0e19\u0e35\u0e49',
-    toast_error: '\u0e2a\u0e48\u0e07\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e25\u0e2d\u0e07\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07',
-    toast_validation: '\u0e01\u0e23\u0e38\u0e13\u0e32\u0e01\u0e23\u0e2d\u0e01\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e41\u0e25\u0e30\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e19\u0e49\u0e2d\u0e22 1 \u0e2d\u0e22\u0e48\u0e32\u0e07',
-    preview_top_genres: '\u0e41\u0e19\u0e27\u0e40\u0e1e\u0e25\u0e07\u0e41\u0e19\u0e30\u0e19\u0e33',
-    preview_bpm: '\u0e0a\u0e48\u0e27\u0e07 BPM',
-    preview_morning: '\u0e0a\u0e48\u0e27\u0e07\u0e40\u0e0a\u0e49\u0e32',
-    preview_afternoon: '\u0e0a\u0e48\u0e27\u0e07\u0e1a\u0e48\u0e32\u0e22',
-    preview_evening: '\u0e0a\u0e48\u0e27\u0e07\u0e40\u0e22\u0e47\u0e19',
-    preview_energy: '\u0e1e\u0e25\u0e31\u0e07\u0e07\u0e32\u0e19',
-    ai_analyzing: '\u0e01\u0e33\u0e25\u0e31\u0e07\u0e27\u0e34\u0e40\u0e04\u0e23\u0e32\u0e30\u0e2b\u0e4c...',
+    title: '\u0e1c\u0e39\u0e49\u0e0a\u0e48\u0e27\u0e22\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e25\u0e07',
+    ctx_venue: '\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48',
+    ctx_location: '\u0e17\u0e35\u0e48\u0e15\u0e31\u0e49\u0e07',
+    ctx_hours: '\u0e40\u0e27\u0e25\u0e32\u0e40\u0e1b\u0e34\u0e14-\u0e1b\u0e34\u0e14',
+    input_ph: '\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21...',
+    submit_title: '\u0e01\u0e23\u0e2d\u0e01\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e1a\u0e23\u0e35\u0e1f',
+    sf_venue: '\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48 *',
+    sf_location: '\u0e17\u0e35\u0e48\u0e15\u0e31\u0e49\u0e07',
+    sf_hours: '\u0e40\u0e27\u0e25\u0e32\u0e40\u0e1b\u0e34\u0e14-\u0e1b\u0e34\u0e14',
+    sf_name: '\u0e0a\u0e37\u0e48\u0e2d\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13 *',
+    sf_email: '\u0e2d\u0e35\u0e40\u0e21\u0e25 *',
+    sf_phone: '\u0e42\u0e17\u0e23\u0e28\u0e31\u0e1e\u0e17\u0e4c',
+    sf_zones: '\u0e08\u0e33\u0e19\u0e27\u0e19\u0e42\u0e0b\u0e19',
+    sf_product: '\u0e1c\u0e25\u0e34\u0e15\u0e20\u0e31\u0e13\u0e11\u0e4c',
+    syb_desc: '\u0e40\u0e1e\u0e25\u0e07\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c',
+    bb_desc: '\u0e1b\u0e25\u0e2d\u0e14\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c',
+    btn_submit_brief: '\u0e2a\u0e48\u0e07\u0e1a\u0e23\u0e35\u0e1f',
+    btn_send_team: '\u0e2a\u0e48\u0e07\u0e43\u0e2b\u0e49\u0e17\u0e35\u0e21\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a',
     preview_on_syb: '\u0e1f\u0e31\u0e07\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e1a\u0e19 SYB',
     vote_like: '\u0e0a\u0e2d\u0e1a',
     vote_dislike: '\u0e02\u0e49\u0e32\u0e21',
-    select_playlists: '\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e0a\u0e2d\u0e1a',
-    playlists_selected: '\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e40\u0e25\u0e37\u0e2d\u0e01',
+    toast_success: '\u0e2a\u0e48\u0e07\u0e1a\u0e23\u0e35\u0e1f\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08!',
+    toast_error: '\u0e2a\u0e48\u0e07\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e25\u0e2d\u0e07\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07',
+    toast_validation: '\u0e01\u0e23\u0e38\u0e13\u0e32\u0e01\u0e23\u0e2d\u0e01\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e17\u0e35\u0e48\u0e08\u0e33\u0e40\u0e1b\u0e47\u0e19',
+    greeting: '\u0e2a\u0e27\u0e31\u0e2a\u0e14\u0e35\u0e04\u0e23\u0e31\u0e1a! \u0e1c\u0e21\u0e40\u0e1b\u0e47\u0e19\u0e1c\u0e39\u0e49\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e25\u0e07\u0e02\u0e2d\u0e07 BMAsia \u0e0a\u0e48\u0e27\u0e22\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e23\u0e30\u0e01\u0e2d\u0e1a\u0e17\u0e35\u0e48\u0e2a\u0e21\u0e1a\u0e39\u0e23\u0e13\u0e4c\u0e41\u0e1a\u0e1a\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e41\u0e25\u0e30\u0e07\u0e32\u0e19\u0e2d\u0e35\u0e40\u0e27\u0e19\u0e15\u0e4c\u0e17\u0e31\u0e48\u0e27\u0e40\u0e2d\u0e40\u0e0a\u0e35\u0e22\n\n\u0e27\u0e31\u0e19\u0e19\u0e35\u0e49\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e2d\u0e30\u0e44\u0e23\u0e04\u0e23\u0e31\u0e1a?',
+    chip_new: '\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e25\u0e07\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e43\u0e2b\u0e21\u0e48',
+    chip_event: '\u0e27\u0e32\u0e07\u0e41\u0e1c\u0e19\u0e40\u0e1e\u0e25\u0e07\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e07\u0e32\u0e19\u0e2d\u0e35\u0e40\u0e27\u0e19\u0e15\u0e4c',
+    chip_update: '\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e31\u0e08\u0e08\u0e38\u0e1a\u0e31\u0e19',
   }
 };
 
@@ -1279,7 +989,9 @@ let currentLang = 'en';
 
 function setLang(lang) {
   currentLang = lang;
-  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase()));
+  document.querySelectorAll('.lang-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase())
+  );
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
@@ -1288,84 +1000,24 @@ function setLang(lang) {
     const key = el.getAttribute('data-i18n-placeholder');
     if (i18n[lang][key]) el.placeholder = i18n[lang][key];
   });
-  if (document.getElementById('briefPreview').classList.contains('visible') && currentRecommendations.length > 0) {
-    renderPlaylistCards(currentRecommendations, currentDesignerNotes, currentDayparts);
-    updateLikedSummary();
-  }
 }
 
 // =========================================================================
-// Vibe Selection
+// State
 // =========================================================================
-const selectedVibes = new Set();
-const vibeGrid = document.getElementById('vibeGrid');
-
-vibeGrid.addEventListener('click', (e) => {
-  const card = e.target.closest('.vibe-card');
-  if (!card) return;
-  const vibe = card.dataset.vibe;
-
-  if (selectedVibes.has(vibe)) {
-    selectedVibes.delete(vibe);
-    card.classList.remove('selected');
-  } else if (selectedVibes.size < 3) {
-    selectedVibes.add(vibe);
-    card.classList.add('selected');
-  }
-});
+let conversationHistory = [];
+let currentMode = null; // 'new', 'event', 'update'
+let currentRecommendations = [];
+let currentDayparts = null;
+let extractedBrief = null;
+let designerNotes = '';
+const likedIds = new Set();
+const dislikedIds = new Set();
+let isStreaming = false;
 
 // =========================================================================
-// Product Toggle + Theme Switch
+// Daypart SVG icons
 // =========================================================================
-const bbSection = document.getElementById('bbSection');
-document.querySelectorAll('.product-card').forEach(card => {
-  card.addEventListener('click', () => {
-    document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    bbSection.classList.toggle('visible', card.dataset.product === 'beatbreeze');
-    // Theme switch
-    if (card.dataset.product === 'beatbreeze') {
-      document.body.setAttribute('data-theme', 'beatbreeze');
-    } else {
-      document.body.removeAttribute('data-theme');
-    }
-  });
-});
-
-// =========================================================================
-// Vibe-to-genre mapping (client-side mirror)
-// =========================================================================
-const VIBE_GENRES = {
-  relaxed:       { genres: ['Acoustic', 'Soft Pop', 'Bossa Nova', 'Lo-fi', 'Easy Listening'], bpm: '70-100' },
-  energetic:     { genres: ['Pop', 'Dance-Pop', 'House', 'Funk', 'Indie Pop'], bpm: '110-130' },
-  sophisticated: { genres: ['Jazz', 'Neo-Soul', 'Classical Crossover', 'Deep House', 'Bossa Nova'], bpm: '80-115' },
-  warm:          { genres: ['Acoustic', 'Folk', 'Soft Jazz', 'Indie Folk', 'Singer-Songwriter'], bpm: '75-100' },
-  trendy:        { genres: ['Indie Electronic', 'Nu-Disco', 'Alt-Pop', 'Downtempo', 'Afrobeats'], bpm: '95-125' },
-  upbeat:        { genres: ['Pop', 'Funk', 'Disco', 'Tropical House', 'Latin Pop'], bpm: '110-130' },
-  zen:           { genres: ['Ambient', 'New Age', 'Meditation', 'Nature Sounds', 'Minimalist'], bpm: '60-85' },
-  romantic:      { genres: ['Jazz Ballads', 'Neo-Soul', 'Soft R&B', 'Classical Piano', 'Bossa Nova'], bpm: '70-100' },
-  luxurious:     { genres: ['Deep House', 'Jazz Lounge', 'Neo-Soul', 'Orchestral', 'Downtempo'], bpm: '85-115' },
-  tropical:      { genres: ['Tropical House', 'Reggae', 'Bossa Nova', 'Island Pop', 'Afro-House'], bpm: '90-120' },
-  creative:      { genres: ['Indie', 'Art Pop', 'Electronic', 'World Fusion', 'Experimental Pop'], bpm: '85-120' },
-  professional:  { genres: ['Soft Jazz', 'Classical Light', 'Ambient', 'Easy Listening', 'Acoustic'], bpm: '70-100' },
-};
-
-const VENUE_BOOSTERS = {
-  'hotel-lobby':    ['Jazz', 'Bossa Nova', 'Ambient', 'Classical Light'],
-  'restaurant':     ['Jazz', 'Bossa Nova', 'Acoustic', 'Neo-Soul'],
-  'bar-lounge':     ['Deep House', 'Nu-Disco', 'Jazz Lounge', 'Downtempo'],
-  'spa-wellness':   ['Ambient', 'New Age', 'Nature Sounds', 'Minimalist'],
-  'fashion-retail': ['Indie Electronic', 'Alt-Pop', 'Deep House', 'Nu-Disco'],
-  'cafe':           ['Acoustic', 'Indie Folk', 'Lo-fi', 'Soft Pop'],
-  'gym-fitness':    ['EDM', 'Hip-Hop', 'Pop', 'Dance'],
-  'pool-beach':     ['Tropical House', 'Afro-House', 'Reggae', 'Island Pop'],
-  'qsr':            ['Pop', 'Upbeat Acoustic', 'Indie Pop', 'Funk'],
-  'coworking':      ['Lo-fi', 'Ambient', 'Soft Electronic', 'Acoustic'],
-};
-
-function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-
-// Daypart SVG icons — keyed by icon type, not daypart key
 const DAYPART_ICONS = {
   sunrise: '<span class="daypart-icon sunrise"><svg viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg></span>',
   sun: '<span class="daypart-icon sun"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>',
@@ -1374,87 +1026,84 @@ const DAYPART_ICONS = {
   stars: '<span class="daypart-icon stars"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg></span>',
 };
 
-let currentRecommendations = [];
-let currentDesignerNotes = '';
-let currentDayparts = null;
-const likedIds = new Set();
-const dislikedIds = new Set();
+// =========================================================================
+// Chat rendering
+// =========================================================================
+const chatArea = document.getElementById('chatArea');
 
-async function generateBrief() {
-  const form = document.getElementById('briefForm');
-  const venueName = form.venueName.value.trim();
-  const vibes = [...selectedVibes];
-
-  if (!venueName || vibes.length === 0) {
-    showToast(i18n[currentLang].toast_validation, 'error');
-    if (!venueName) form.venueName.closest('.field').classList.add('invalid');
-    return;
-  }
-  form.venueName.closest('.field').classList.remove('invalid');
-
-  const previewContent = document.getElementById('previewContent');
-  const briefPreview = document.getElementById('briefPreview');
-  const generateBtn = document.getElementById('generateBtn');
-
-  // Show loading state
-  generateBtn.disabled = true;
-  previewContent.innerHTML = `
-    <div class="ai-loading">
-      <div class="pulse-ring"></div>
-      <p>${i18n[currentLang].ai_analyzing}</p>
-    </div>
-  `;
-  briefPreview.classList.add('visible');
-  briefPreview.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-  // Collect all form data
-  const formData = new FormData(form);
-  const data = Object.fromEntries(formData.entries());
-  data.vibes = vibes;
-
-  try {
-    const controller = new AbortController();
-    const fetchTimeout = setTimeout(() => controller.abort(), 45000);
-
-    const res = await fetch('/api/recommend', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-      signal: controller.signal,
-    });
-    clearTimeout(fetchTimeout);
-
-    const result = await res.json();
-
-    if (!res.ok || !result.success) {
-      throw new Error(result.error || 'Failed to get recommendations');
-    }
-
-    currentRecommendations = result.recommendations;
-    currentDesignerNotes = result.designerNotes || '';
-    currentDayparts = result.dayparts || null;
-    likedIds.clear();
-    dislikedIds.clear();
-
-    renderPlaylistCards(result.recommendations, result.designerNotes, result.dayparts);
-    document.getElementById('submitBtn').disabled = false;
-  } catch (err) {
-    previewContent.innerHTML = `
-      <div style="text-align:center;padding:20px;">
-        <p style="color:var(--error);margin:0 0 12px;">${err.name === 'AbortError' ? 'Request timed out' : escHtml(err.message)}</p>
-        <button type="button" class="btn btn-secondary" onclick="generateBrief()" style="display:inline-block;width:auto;">Try Again</button>
-      </div>
-    `;
-  } finally {
-    generateBtn.disabled = false;
-  }
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function renderPlaylistCards(recommendations, designerNotes, dayparts) {
-  const t = i18n[currentLang];
-  const previewContent = document.getElementById('previewContent');
+function scrollToBottom() {
+  requestAnimationFrame(() => {
+    chatArea.scrollTop = chatArea.scrollHeight;
+  });
+}
 
-  // Build ordered keys and labels from dynamic dayparts or fall back to defaults
+function addUserMessage(text) {
+  const div = document.createElement('div');
+  div.className = 'msg msg-user';
+  div.innerHTML = `<div class="msg-bubble">${escHtml(text)}</div>`;
+  chatArea.appendChild(div);
+  scrollToBottom();
+}
+
+function addAIMessage(text, withChips) {
+  const div = document.createElement('div');
+  div.className = 'msg msg-ai';
+
+  const paragraphs = text.split('\n\n').filter(p => p.trim());
+  const html = paragraphs.map(p => `<p>${escHtml(p)}</p>`).join('');
+  div.innerHTML = `<div class="msg-bubble">${html}</div>`;
+
+  if (withChips) {
+    const t = i18n[currentLang];
+    const chips = document.createElement('div');
+    chips.className = 'quick-replies';
+    chips.innerHTML = `
+      <button class="chip" onclick="selectMode('new', this)">${t.chip_new}</button>
+      <button class="chip" onclick="selectMode('event', this)">${t.chip_event}</button>
+      <button class="chip" onclick="selectMode('update', this)">${t.chip_update}</button>
+    `;
+    div.appendChild(chips);
+  }
+
+  chatArea.appendChild(div);
+  scrollToBottom();
+}
+
+function createStreamingMessage() {
+  const div = document.createElement('div');
+  div.className = 'msg msg-ai';
+  div.innerHTML = `<div class="msg-bubble"><p></p></div>`;
+  chatArea.appendChild(div);
+  return div.querySelector('p');
+}
+
+function showTypingIndicator() {
+  const div = document.createElement('div');
+  div.className = 'typing-indicator';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+  chatArea.appendChild(div);
+  scrollToBottom();
+}
+
+function hideTypingIndicator() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+// =========================================================================
+// Playlist card rendering (inline in chat)
+// =========================================================================
+function renderRecommendationsInChat(recommendations, dayparts, notes) {
+  const t = i18n[currentLang];
+  const block = document.createElement('div');
+  block.className = 'recommendations-block';
+
   let orderedKeys, daypartLabels, dpMeta;
   if (dayparts && Array.isArray(dayparts) && dayparts.length > 0) {
     dpMeta = dayparts;
@@ -1464,7 +1113,7 @@ function renderPlaylistCards(recommendations, designerNotes, dayparts) {
   } else {
     dpMeta = null;
     orderedKeys = ['morning', 'afternoon', 'evening'];
-    daypartLabels = { morning: t.preview_morning, afternoon: t.preview_afternoon, evening: t.preview_evening };
+    daypartLabels = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' };
   }
 
   const groups = {};
@@ -1483,11 +1132,6 @@ function renderPlaylistCards(recommendations, designerNotes, dayparts) {
   }
 
   let html = '';
-
-  if (designerNotes) {
-    html += `<div class="designer-notes">${escHtml(designerNotes)}</div>`;
-  }
-
   for (const dp of orderedKeys) {
     const recs = groups[dp];
     if (recs.length === 0) continue;
@@ -1497,11 +1141,8 @@ function renderPlaylistCards(recommendations, designerNotes, dayparts) {
           ${getIcon(dp)} <strong>${daypartLabels[dp] || dp}</strong>
         </div>
         <div class="playlist-cards">
-          ${recs.map(rec => {
-            const isLiked = likedIds.has(rec.playlistId);
-            const isDisliked = dislikedIds.has(rec.playlistId);
-            return `
-            <div class="playlist-card${isLiked ? ' liked' : ''}${isDisliked ? ' disliked' : ''}" data-id="${rec.playlistId}">
+          ${recs.map(rec => `
+            <div class="playlist-card" data-id="${rec.playlistId}">
               <div class="playlist-card-header">
                 <span class="playlist-name">${escHtml(rec.name)}</span>
                 <span class="match-badge">${rec.matchScore}%</span>
@@ -1514,28 +1155,41 @@ function renderPlaylistCards(recommendations, designerNotes, dayparts) {
                   ${t.preview_on_syb}
                 </a>
                 <div class="vote-btns">
-                  <button type="button" class="vote-btn like-btn${isLiked ? ' active' : ''}" onclick="toggleVote(this,'like')" title="I like this playlist">
-                    <span class="vote-icon">\u{1F44D}</span> ${t.vote_like || 'Like'}
+                  <button type="button" class="vote-btn like-btn" onclick="toggleVote(this,'like')">
+                    <span class="vote-icon">\u{1F44D}</span> ${t.vote_like}
                   </button>
-                  <button type="button" class="vote-btn dislike-btn${isDisliked ? ' active' : ''}" onclick="toggleVote(this,'dislike')" title="Not for me">
-                    <span class="vote-icon">\u{1F44E}</span> ${t.vote_dislike || 'Skip'}
+                  <button type="button" class="vote-btn dislike-btn" onclick="toggleVote(this,'dislike')">
+                    <span class="vote-icon">\u{1F44E}</span> ${t.vote_dislike}
                   </button>
                 </div>
               </div>
-            </div>`;
-          }).join('')}
+            </div>
+          `).join('')}
         </div>
       </div>
     `;
   }
 
-  html += `<div class="liked-summary empty" id="likedSummary">${t.select_playlists}</div>`;
-  previewContent.innerHTML = html;
+  block.innerHTML = html;
+  chatArea.appendChild(block);
+  scrollToBottom();
 }
 
-function escHtml(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function showSendBriefButton() {
+  // Don't add duplicate
+  if (document.querySelector('.send-brief-block')) return;
+
+  const t = i18n[currentLang];
+  const block = document.createElement('div');
+  block.className = 'send-brief-block';
+  block.innerHTML = `
+    <button class="send-brief-btn" onclick="openSubmission()">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      ${t.btn_send_team}
+    </button>
+  `;
+  chatArea.appendChild(block);
+  scrollToBottom();
 }
 
 function toggleVote(btn, type) {
@@ -1571,85 +1225,345 @@ function toggleVote(btn, type) {
       btn.classList.add('active');
     }
   }
-  updateLikedSummary();
 }
 
-function updateLikedSummary() {
-  const el = document.getElementById('likedSummary');
-  const t = i18n[currentLang];
-  if (likedIds.size > 0) {
-    el.className = 'liked-summary';
-    el.textContent = `${likedIds.size} ${t.playlists_selected}`;
+// =========================================================================
+// Context Bar
+// =========================================================================
+function getContextBar() {
+  return {
+    venueName: document.getElementById('ctxVenue').value.trim(),
+    location: document.getElementById('ctxLocation').value.trim(),
+    hours: document.getElementById('ctxHours').value.trim(),
+  };
+}
+
+function collapseContextBar() {
+  const bar = document.getElementById('contextBar');
+  const ctx = getContextBar();
+  const parts = [ctx.venueName, ctx.location, ctx.hours].filter(Boolean);
+  if (parts.length > 0) {
+    document.getElementById('contextSummaryText').textContent = parts.join(' | ');
   } else {
-    el.className = 'liked-summary empty';
-    el.textContent = t.select_playlists;
+    document.getElementById('contextSummaryText').textContent = 'Venue details (click to edit)';
+  }
+  bar.classList.add('collapsed');
+}
+
+function expandContextBar() {
+  document.getElementById('contextBar').classList.remove('collapsed');
+}
+
+// =========================================================================
+// Mode selection
+// =========================================================================
+function selectMode(mode, chipEl) {
+  currentMode = mode;
+  // Remove chips after selection
+  const chips = chipEl?.closest('.quick-replies');
+  if (chips) chips.remove();
+
+  const t = i18n[currentLang];
+  const labels = { new: t.chip_new, event: t.chip_event, update: t.chip_update };
+  sendMessage(labels[mode]);
+}
+
+// =========================================================================
+// Send message + SSE streaming
+// =========================================================================
+async function sendMessage(text) {
+  const input = document.getElementById('chatInput');
+  const msg = text || input.value.trim();
+  if (!msg || isStreaming) return;
+
+  // Add user message to UI
+  addUserMessage(msg);
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+
+  // Collapse context bar after first user message
+  collapseContextBar();
+
+  // Add to history
+  conversationHistory.push({ role: 'user', content: msg });
+
+  isStreaming = true;
+  showTypingIndicator();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: msg,
+        history: conversationHistory.slice(0, -1), // exclude the current msg (server adds it)
+        mode: currentMode,
+        contextBar: getContextBar(),
+        language: currentLang,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error('Chat request failed');
+    }
+
+    hideTypingIndicator();
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let streamingEl = null;
+    let fullText = '';
+    let recommendationsReceived = false;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6);
+        if (!jsonStr.trim()) continue;
+
+        let event;
+        try { event = JSON.parse(jsonStr); } catch { continue; }
+
+        switch (event.type) {
+          case 'text':
+            // Full text message (non-streamed)
+            fullText = event.content;
+            if (!streamingEl) streamingEl = createStreamingMessage();
+            streamingEl.innerHTML = formatMarkdown(event.content);
+            scrollToBottom();
+            break;
+
+          case 'text_delta':
+            // Streaming text chunk
+            if (!streamingEl) streamingEl = createStreamingMessage();
+            fullText += event.content;
+            streamingEl.innerHTML = formatMarkdown(fullText);
+            scrollToBottom();
+            break;
+
+          case 'recommendations':
+            recommendationsReceived = true;
+            currentRecommendations = event.recommendations || [];
+            currentDayparts = event.dayparts || null;
+            extractedBrief = event.extractedBrief || null;
+            designerNotes = event.designerNotes || '';
+            likedIds.clear();
+            dislikedIds.clear();
+            renderRecommendationsInChat(currentRecommendations, currentDayparts, designerNotes);
+            break;
+
+          case 'error':
+            if (!streamingEl) streamingEl = createStreamingMessage();
+            streamingEl.textContent = event.content || 'Something went wrong.';
+            streamingEl.style.color = 'var(--error)';
+            break;
+
+          case 'done':
+            break;
+        }
+      }
+    }
+
+    // Save assistant response to history
+    if (fullText) {
+      conversationHistory.push({ role: 'assistant', content: fullText });
+    }
+
+    // Show "Send to Design Team" button after recommendations
+    if (recommendationsReceived) {
+      showSendBriefButton();
+    }
+
+  } catch (err) {
+    hideTypingIndicator();
+    addAIMessage("Sorry, something went wrong. Please try again.");
+  } finally {
+    isStreaming = false;
+    updateSendBtn();
+  }
+}
+
+function formatMarkdown(text) {
+  // Simple markdown: bold, italic, line breaks
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+// =========================================================================
+// Input handling
+// =========================================================================
+function handleInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  updateSendBtn();
+}
+
+function updateSendBtn() {
+  const input = document.getElementById('chatInput');
+  document.getElementById('sendBtn').disabled = !input.value.trim() || isStreaming;
+}
+
+// =========================================================================
+// Voice input (Web Speech API)
+// =========================================================================
+let recognition = null;
+let isRecording = false;
+
+function initVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+
+  document.getElementById('micBtn').style.display = '';
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = currentLang === 'th' ? 'th-TH' : 'en-US';
+
+  recognition.onresult = (event) => {
+    let transcript = '';
+    for (let i = 0; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    document.getElementById('chatInput').value = transcript;
+    autoResize(document.getElementById('chatInput'));
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    document.getElementById('micBtn').classList.remove('recording');
+  };
+
+  recognition.onerror = () => {
+    isRecording = false;
+    document.getElementById('micBtn').classList.remove('recording');
+  };
+}
+
+function toggleMic() {
+  if (!recognition) return;
+  recognition.lang = currentLang === 'th' ? 'th-TH' : 'en-US';
+
+  if (isRecording) {
+    recognition.stop();
+    isRecording = false;
+    document.getElementById('micBtn').classList.remove('recording');
+  } else {
+    recognition.start();
+    isRecording = true;
+    document.getElementById('micBtn').classList.add('recording');
   }
 }
 
 // =========================================================================
-// Form submission
+// Submission
 // =========================================================================
-const form = document.getElementById('briefForm');
+function openSubmission() {
+  // Pre-fill from context bar
+  const ctx = getContextBar();
+  document.getElementById('sfVenue').value = ctx.venueName;
+  document.getElementById('sfLocation').value = ctx.location;
+  document.getElementById('sfHours').value = ctx.hours;
+  document.getElementById('submissionOverlay').classList.add('visible');
+}
 
-document.getElementById('generateBtn').addEventListener('click', generateBrief);
+function closeSubmission() {
+  document.getElementById('submissionOverlay').classList.remove('visible');
+}
 
-form.addEventListener('submit', async (e) => {
+function selectProduct(card) {
+  document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  if (card.dataset.product === 'beatbreeze') {
+    document.body.setAttribute('data-theme', 'beatbreeze');
+  } else {
+    document.body.removeAttribute('data-theme');
+  }
+}
+
+document.getElementById('submitForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const submitBtn = document.getElementById('submitBtn');
+  const form = e.target;
+  const submitBtn = document.getElementById('submitBriefBtn');
+
+  // Honeypot check
+  if (form.website.value) return;
+
+  // Basic validation
+  const venueName = form.venueName.value.trim();
+  const contactName = form.contactName.value.trim();
+  const contactEmail = form.contactEmail.value.trim();
+  if (!venueName || !contactName || !contactEmail) {
+    showToast(i18n[currentLang].toast_validation, 'error');
+    return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span class="spinner"></span>';
 
   const formData = new FormData(form);
   const data = Object.fromEntries(formData.entries());
-  data.vibes = [...selectedVibes];
 
-  // Include AI playlist recommendations
-  data.likedPlaylists = currentRecommendations
-    .filter(r => likedIds.has(r.playlistId));
+  // Build conversation summary
+  const conversationSummary = conversationHistory
+    .map(m => `${m.role === 'user' ? 'Customer' : 'AI'}: ${m.content}`)
+    .join('\n\n');
+
+  // Merge with chat data
+  data.extractedBrief = extractedBrief;
+  data.conversationSummary = conversationSummary;
   data.allRecommendations = currentRecommendations;
+  data.likedPlaylists = currentRecommendations.filter(r => likedIds.has(r.playlistId));
   data.daypartsMetadata = currentDayparts;
+  data.vibes = extractedBrief?.vibes || [];
+  data.energy = extractedBrief?.energy;
+  data.venueType = extractedBrief?.venueType || data.venueType;
 
-  const controller = new AbortController();
-  const fetchTimeout = setTimeout(() => controller.abort(), 30000);
   try {
     const res = await fetch('/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-      signal: controller.signal,
     });
 
     const result = await res.json();
 
     if (res.ok && result.success) {
       showToast(i18n[currentLang].toast_success, 'success');
-      form.reset();
-      selectedVibes.clear();
-      currentRecommendations = [];
-      currentDesignerNotes = '';
-      currentDayparts = null;
-      likedIds.clear();
-      dislikedIds.clear();
-      document.querySelectorAll('.vibe-card').forEach(c => c.classList.remove('selected'));
-      document.getElementById('briefPreview').classList.remove('visible');
-      document.getElementById('energyVal').textContent = '5';
-      // Reset theme to SYB
-      document.body.removeAttribute('data-theme');
-      document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
-      document.querySelector('[data-product="syb"]').classList.add('selected');
-      bbSection.classList.remove('visible');
-      submitBtn.disabled = true;
+      closeSubmission();
+      addAIMessage("Your brief has been sent to the design team! They'll review your selections and get back to you soon.");
     } else {
       showToast(result.error || i18n[currentLang].toast_error, 'error');
     }
   } catch (err) {
-    showToast(err.name === 'AbortError' ? 'Request timed out. Please try again.' : i18n[currentLang].toast_error, 'error');
+    showToast(i18n[currentLang].toast_error, 'error');
   } finally {
-    clearTimeout(fetchTimeout);
+    submitBtn.disabled = false;
+    submitBtn.textContent = i18n[currentLang].btn_submit_brief;
   }
+});
 
-  submitBtn.innerHTML = i18n[currentLang].btn_submit;
-  submitBtn.disabled = true;
+// Close overlay on background click
+document.getElementById('submissionOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeSubmission();
 });
 
 // =========================================================================
@@ -1661,6 +1575,17 @@ function showToast(msg, type) {
   toast.className = `toast ${type} show`;
   setTimeout(() => toast.classList.remove('show'), 4000);
 }
+
+// =========================================================================
+// Init
+// =========================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  initVoice();
+
+  // Send opening greeting
+  const t = i18n[currentLang];
+  addAIMessage(t.greeting, true);
+});
 </script>
 </body>
 </html>

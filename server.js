@@ -45,8 +45,8 @@ const transporter = nodemailer.createTransport({
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
-app.use(express.json({ limit: '100kb' }));
-app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+app.use(express.json({ limit: '500kb' }));
+app.use(express.urlencoded({ extended: true, limit: '500kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const submitLimiter = rateLimit({
@@ -550,6 +550,10 @@ function buildEmailHtml(data, brief, aiResults) {
     </table>
   `) : ''}
 
+  ${data._conversationSummary ? section('AI Conversation Summary', `
+    <p style="margin:0;color:#374151;line-height:1.7;white-space:pre-wrap;">${esc(data._conversationSummary)}</p>
+  `) : ''}
+
   ${buildPlaylistEmailSections(aiResults)}
 
   ${section('Designer Brief &mdash; Genre Recommendations', `
@@ -608,8 +612,307 @@ function esc(str) {
 }
 
 // ---------------------------------------------------------------------------
+// Chat System Prompt
+// ---------------------------------------------------------------------------
+function buildChatSystemPrompt(contextBar, language) {
+  const lang = language === 'th' ? 'Thai' : 'English';
+  const venueContext = contextBar?.venueName
+    ? `\nThe customer has already provided:\n- Venue name: ${contextBar.venueName}${contextBar.location ? `\n- Location: ${contextBar.location}` : ''}${contextBar.hours ? `\n- Operating hours: ${contextBar.hours}` : ''}\nAcknowledge this information naturally in your first response.`
+    : '';
+
+  return `You are a friendly, professional music designer at BMAsia Group — Asia's leading background music company. You help venue owners and event planners find the perfect soundtrack.
+
+## Your Personality
+- Warm, enthusiastic, and knowledgeable about music for commercial spaces
+- You LEAD the conversation proactively — the customer should never wonder what to say
+- You speak in ${lang}
+- Keep messages concise (2-4 sentences max) and conversational
+- Use the customer's own words back to them when relevant
+
+## Conversation Rules
+- ALWAYS end every message with a clear question or call-to-action
+- NEVER ask more than ONE question per message
+- After 2-3 exchanges, you should have enough info — call the generate_recommendations tool
+- If the customer gives a rich description upfront, skip unnecessary follow-ups and generate immediately
+- If the customer gives minimal input (e.g., "hotel, chill"), ask 1-2 focused follow-ups then generate
+- Do NOT list or explain the information you need — just ask naturally, one thing at a time
+
+## Three Conversation Modes
+
+### Mode: "new" — New Venue Design
+1. Ask what type of venue (if not already known from context)
+2. Ask about the atmosphere / feeling they want
+3. Ask 1-2 smart follow-ups based on gaps (hours, avoid list, vocals, guest mix)
+4. Call generate_recommendations when ready
+
+### Mode: "event" — Special Event Planning
+1. Ask for venue name and email on file (for verification)
+2. Ask about the event: occasion, date, desired atmosphere
+3. Ask about duration and any specific music requirements
+4. Call generate_recommendations
+
+### Mode: "update" — Update Existing Music
+1. Ask for venue name and email on file (for verification)
+2. Ask what they'd like to change and why
+3. Call generate_recommendations with the adjustments
+
+## What Information to Gather (in priority order)
+1. Venue type (hotel, restaurant, bar, spa, cafe, etc.)
+2. Atmosphere description (the richest signal — vibes, mood, feeling)
+3. Operating hours (for daypart segmentation)
+4. Things to avoid (genres, styles, explicit content)
+5. Vocal/language preferences (if relevant)
+6. Guest demographics (if relevant)
+7. Reference venues (if they mention any)
+
+Extract structured vibes from the customer's natural language:
+- "chill" / "relaxed" / "calm" → relaxed
+- "upbeat" / "fun" / "lively" → upbeat or energetic
+- "classy" / "elegant" / "refined" → sophisticated
+- "cozy" / "inviting" → warm
+- "modern" / "hip" / "cool" → trendy
+- "peaceful" / "serene" → zen
+- "intimate" / "date night" → romantic
+- "upscale" / "premium" → luxurious
+- "beachy" / "island" → tropical
+- "artsy" / "unique" → creative
+- "corporate" / "office" → professional
+
+Infer energy level 1-10 from their language:
+- "quiet", "subtle", "background" → 2-3
+- "relaxed", "easy", "gentle" → 3-4
+- "moderate", "balanced" → 5-6
+- "lively", "fun", "upbeat" → 6-7
+- "energetic", "pumping", "party" → 8-9
+${venueContext}
+
+## After Generating Recommendations
+After calling the tool, present the results conversationally:
+- Briefly introduce what you've designed
+- Tell them to click "Preview on SYB" to listen to each playlist
+- Ask them to like/skip playlists and give feedback
+- If they want changes, adjust and regenerate
+
+## Available Venue Types
+hotel-lobby, restaurant, bar-lounge, spa-wellness, fashion-retail, cafe, gym-fitness, pool-beach, qsr, coworking`;
+}
+
+// Tool definition for Claude to call when ready to generate recommendations
+const RECOMMEND_TOOL = {
+  name: 'generate_recommendations',
+  description: 'Generate playlist recommendations for the customer based on gathered information. Call this when you have enough context about the venue and desired atmosphere (at minimum: venue type and atmosphere/vibe description). Do NOT call this until you have asked at least one question about the atmosphere.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      venueType: {
+        type: 'string',
+        description: 'Venue type key',
+        enum: ['hotel-lobby', 'restaurant', 'bar-lounge', 'spa-wellness', 'fashion-retail', 'cafe', 'gym-fitness', 'pool-beach', 'qsr', 'coworking', 'other'],
+      },
+      vibes: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['relaxed', 'energetic', 'sophisticated', 'warm', 'trendy', 'upbeat', 'zen', 'romantic', 'luxurious', 'tropical', 'creative', 'professional'],
+        },
+        description: 'Extracted vibes from conversation (1-3)',
+      },
+      energy: {
+        type: 'number',
+        description: 'Energy level 1-10 inferred from conversation',
+        minimum: 1,
+        maximum: 10,
+      },
+      hours: {
+        type: 'string',
+        description: 'Operating hours (e.g., "17:00 - 02:00", "9am - 11pm"). Use context bar value if provided.',
+      },
+      referenceVenues: { type: 'string', description: 'Reference venues mentioned by customer' },
+      avoidList: { type: 'string', description: 'Music styles/genres to avoid' },
+      vocals: {
+        type: 'string',
+        description: 'Vocal preference',
+        enum: ['instrumental-only', 'mostly-instrumental', 'mix', 'mostly-vocals', 'no-preference', ''],
+      },
+      musicLanguages: { type: 'string', description: 'Preferred music languages' },
+      guestProfile: { type: 'string', description: 'Guest demographics description' },
+      ageRange: { type: 'string', description: 'Primary age range' },
+      nationality: { type: 'string', description: 'Primary nationality of guests' },
+      moodChanges: { type: 'string', description: 'How mood should change through the day' },
+      eventDescription: { type: 'string', description: 'For events: description of the event, occasion, date' },
+    },
+    required: ['venueType', 'vibes', 'energy'],
+  },
+};
+
+// Execute the recommendation tool server-side
+function executeRecommendationTool(toolInput, contextBar) {
+  const data = {
+    venueName: contextBar?.venueName || 'Venue',
+    venueType: toolInput.venueType || '',
+    location: contextBar?.location || '',
+    hours: toolInput.hours || contextBar?.hours || '',
+    vibes: toolInput.vibes || ['relaxed'],
+    energy: toolInput.energy || 5,
+    referenceVenues: toolInput.referenceVenues || '',
+    avoidList: toolInput.avoidList || '',
+    vocals: toolInput.vocals || '',
+    musicLanguages: toolInput.musicLanguages || '',
+    guestProfile: toolInput.guestProfile || '',
+    ageRange: toolInput.ageRange || '',
+    nationality: toolInput.nationality || '',
+    moodChanges: toolInput.moodChanges || '',
+  };
+
+  const energy = parseInt(data.energy, 10) || 5;
+  const dayparts = generateDayparts(data.hours, energy);
+  const result = deterministicMatch(data, dayparts);
+  const enriched = enrichRecommendations(result);
+
+  return { dayparts, ...enriched, extractedBrief: data };
+}
+
+// ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
+
+// Chat endpoint with SSE streaming
+const chatLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many chat messages. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.post('/api/chat', chatLimiter, async (req, res) => {
+  const { message, history, mode, contextBar, language } = req.body;
+
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ error: 'Message is required.' });
+  }
+
+  // Set up SSE
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  const sendSSE = (type, data) => {
+    res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
+  };
+
+  try {
+    if (!anthropic) {
+      sendSSE('text', { content: "I'm sorry, the AI service is temporarily unavailable. Please try again later." });
+      sendSSE('done', {});
+      return res.end();
+    }
+
+    // Build messages array from history
+    const messages = [];
+    if (Array.isArray(history)) {
+      for (const msg of history) {
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          messages.push({ role: msg.role, content: msg.content });
+        }
+      }
+    }
+    messages.push({ role: 'user', content: message });
+
+    const systemPrompt = buildChatSystemPrompt(contextBar, language);
+
+    // First API call — may result in tool use or direct text
+    const response = await anthropic.messages.create({
+      model: AI_MODEL,
+      max_tokens: 1500,
+      system: systemPrompt,
+      tools: [RECOMMEND_TOOL],
+      messages,
+    });
+
+    // Check if Claude wants to use the recommendation tool
+    if (response.stop_reason === 'tool_use') {
+      const toolUseBlock = response.content.find(b => b.type === 'tool_use');
+      const textBlocks = response.content.filter(b => b.type === 'text');
+
+      // Stream any text before the tool call
+      for (const tb of textBlocks) {
+        if (tb.text.trim()) {
+          sendSSE('text', { content: tb.text });
+        }
+      }
+
+      // Execute the tool
+      const toolResult = executeRecommendationTool(toolUseBlock.input, contextBar);
+
+      // Send recommendations to client immediately
+      sendSSE('recommendations', {
+        recommendations: toolResult.recommendations,
+        dayparts: toolResult.dayparts,
+        designerNotes: toolResult.designerNotes,
+        extractedBrief: toolResult.extractedBrief,
+      });
+
+      // Now ask Claude to present the results conversationally
+      // Build the tool result summary for Claude
+      const playlistSummary = toolResult.recommendations.map(r =>
+        `- ${r.name} (${r.daypart}, ${r.matchScore}% match)`
+      ).join('\n');
+      const daypartSummary = toolResult.dayparts.map(d => d.label).join(', ');
+
+      const followUpMessages = [
+        ...messages,
+        { role: 'assistant', content: response.content },
+        {
+          role: 'user',
+          content: [{
+            type: 'tool_result',
+            tool_use_id: toolUseBlock.id,
+            content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are now displayed to the customer with preview links and like/skip buttons. Present these results conversationally — briefly introduce what you designed and invite the customer to listen and give feedback. Do NOT list the playlists again (they can see the cards). Keep it to 2-3 sentences.`,
+          }],
+        },
+      ];
+
+      // Second API call — Claude presents the results
+      const stream = anthropic.messages.stream({
+        model: AI_MODEL,
+        max_tokens: 500,
+        system: systemPrompt,
+        tools: [RECOMMEND_TOOL],
+        messages: followUpMessages,
+      });
+
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          sendSSE('text_delta', { content: event.delta.text });
+        }
+      }
+    } else {
+      // No tool use — stream conversational response
+      // For the first call we already have the full response, so send it as a stream
+      for (const block of response.content) {
+        if (block.type === 'text' && block.text.trim()) {
+          // Simulate streaming by sending word by word
+          const words = block.text.split(/(\s+)/);
+          for (const word of words) {
+            sendSSE('text_delta', { content: word });
+          }
+        }
+      }
+    }
+
+    sendSSE('done', {});
+    res.end();
+  } catch (err) {
+    console.error('Chat error:', err);
+    sendSSE('error', { content: 'Something went wrong. Please try again.' });
+    sendSSE('done', {});
+    res.end();
+  }
+});
 app.post('/api/recommend', recommendLimiter, async (req, res) => {
   try {
     const data = req.body;
@@ -657,9 +960,9 @@ app.post('/submit', submitLimiter, async (req, res) => {
       return res.json({ success: true });
     }
 
-    // Basic validation
-    if (!data.venueName || !data.vibes || (Array.isArray(data.vibes) && data.vibes.length === 0)) {
-      return res.status(400).json({ error: 'Venue name and at least one vibe are required.' });
+    // Basic validation — chat-based submissions use venueName from form
+    if (!data.venueName) {
+      return res.status(400).json({ error: 'Venue name is required.' });
     }
 
     const aiResults = {
@@ -667,13 +970,36 @@ app.post('/submit', submitLimiter, async (req, res) => {
       allRecommendations: data.allRecommendations || [],
     };
     const daypartsMetadata = data.daypartsMetadata;
+    const extractedBrief = data.extractedBrief;
+    const conversationSummary = data.conversationSummary;
     delete data.likedPlaylists;
     delete data.allRecommendations;
     delete data.daypartsMetadata;
+    delete data.extractedBrief;
+    delete data.conversationSummary;
+
+    // Merge extracted brief from chat into data for email builder
+    if (extractedBrief) {
+      data.vibes = data.vibes || extractedBrief.vibes || ['relaxed'];
+      data.venueType = data.venueType || extractedBrief.venueType || '';
+      data.energy = data.energy || extractedBrief.energy || 5;
+      data.hours = data.hours || extractedBrief.hours || '';
+      data.referenceVenues = data.referenceVenues || extractedBrief.referenceVenues || '';
+      data.avoidList = data.avoidList || extractedBrief.avoidList || '';
+      data.vocals = data.vocals || extractedBrief.vocals || '';
+      data.musicLanguages = data.musicLanguages || extractedBrief.musicLanguages || '';
+      data.guestProfile = data.guestProfile || extractedBrief.guestProfile || '';
+      data.ageRange = data.ageRange || extractedBrief.ageRange || '';
+      data.nationality = data.nationality || extractedBrief.nationality || '';
+      data.moodChanges = data.moodChanges || extractedBrief.moodChanges || '';
+    }
+
+    // Ensure vibes is an array for buildDesignerBrief
+    if (!data.vibes) data.vibes = ['relaxed'];
 
     const brief = buildDesignerBrief(data);
 
-    // Override brief dayparts with AI-generated metadata if available
+    // Override brief dayparts with metadata if available
     if (daypartsMetadata && Array.isArray(daypartsMetadata) && daypartsMetadata.length > 0) {
       const energy = parseInt(data.energy, 10) || 5;
       const dpMap = {};
@@ -690,6 +1016,11 @@ app.post('/submit', submitLimiter, async (req, res) => {
       }
       brief.dayparts = dpMap;
       brief.daypartOrder = dpOrder;
+    }
+
+    // Add conversation summary to data for email
+    if (conversationSummary) {
+      data._conversationSummary = conversationSummary;
     }
 
     const html = buildEmailHtml(data, brief, aiResults);
