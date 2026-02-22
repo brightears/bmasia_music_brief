@@ -100,6 +100,98 @@ function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val));
 }
 
+// ---------------------------------------------------------------------------
+// Dynamic Daypart Generation
+// ---------------------------------------------------------------------------
+const DEFAULT_DAYPARTS = [
+  { key: 'morning', label: 'Morning', timeRange: 'opening-lunch', icon: 'sunrise' },
+  { key: 'afternoon', label: 'Afternoon', timeRange: 'lunch-dinner', icon: 'sun' },
+  { key: 'evening', label: 'Evening', timeRange: 'dinner-close', icon: 'moon' },
+];
+
+function parseTime(str) {
+  str = str.trim().toLowerCase();
+  const ampm = str.match(/(am|pm)$/);
+  str = str.replace(/(am|pm)$/, '').trim().replace('.', ':');
+  let hours, minutes = 0;
+  if (str.includes(':')) {
+    [hours, minutes] = str.split(':').map(Number);
+  } else {
+    hours = parseInt(str, 10);
+    if (hours >= 100) { minutes = hours % 100; hours = Math.floor(hours / 100); }
+  }
+  if (ampm) {
+    if (ampm[1] === 'pm' && hours !== 12) hours += 12;
+    if (ampm[1] === 'am' && hours === 12) hours = 0;
+  }
+  return hours * 60 + (minutes || 0);
+}
+
+function timeLabel(mins) {
+  const m = ((mins % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
+function iconForTime(mins) {
+  const h = Math.floor(((mins % 1440) + 1440) % 1440 / 60);
+  if (h >= 5 && h < 11) return 'sunrise';
+  if (h >= 11 && h < 16) return 'sun';
+  if (h >= 16 && h < 19) return 'sunset';
+  if (h >= 19) return 'moon';
+  return 'stars'; // 0-4
+}
+
+function generateDayparts(hoursStr, baseEnergy) {
+  const energy = baseEnergy || 5;
+
+  if (!hoursStr || !hoursStr.trim()) {
+    return DEFAULT_DAYPARTS.map((dp, i) => ({
+      ...dp, energy: clamp(energy + [-2, 0, 1][i], 1, 10),
+    }));
+  }
+
+  const match = hoursStr.match(
+    /(\d{1,2}[:\.]?\d{0,2}\s*(?:am|pm)?)\s*[-\u2013\u2014to]+\s*(\d{1,2}[:\.]?\d{0,2}\s*(?:am|pm)?)/i
+  );
+  if (!match) {
+    return DEFAULT_DAYPARTS.map((dp, i) => ({
+      ...dp, energy: clamp(energy + [-2, 0, 1][i], 1, 10),
+    }));
+  }
+
+  const openMin = parseTime(match[1]);
+  let closeMin = parseTime(match[2]);
+  const totalMinutes = closeMin <= openMin
+    ? (1440 - openMin) + closeMin
+    : closeMin - openMin;
+  const totalHours = totalMinutes / 60;
+
+  const segCount = totalHours <= 6 ? 2 : totalHours <= 12 ? 3 : 4;
+  const segLen = Math.round(totalMinutes / segCount);
+
+  const labels = {
+    2: ['Opening', 'Peak'],
+    3: ['Opening', 'Peak Hours', 'Wind Down'],
+    4: ['Opening', 'Build Up', 'Peak Hours', 'Wind Down'],
+  };
+  const offsets = { 2: [-1, 1], 3: [-2, 0, 1], 4: [-2, -1, 1, 0] };
+
+  const dayparts = [];
+  for (let i = 0; i < segCount; i++) {
+    const startMin = (openMin + i * segLen) % 1440;
+    const endMin = (openMin + (i + 1) * segLen) % 1440;
+    const key = labels[segCount][i].toLowerCase().replace(/\s+/g, '_');
+    dayparts.push({
+      key,
+      label: `${labels[segCount][i]} (${timeLabel(startMin)}\u2013${timeLabel(endMin)})`,
+      timeRange: `${timeLabel(startMin)}-${timeLabel(endMin)}`,
+      icon: iconForTime(startMin),
+      energy: clamp(energy + offsets[segCount][i], 1, 10),
+    });
+  }
+  return dayparts;
+}
+
 function buildDesignerBrief(data) {
   const vibes = Array.isArray(data.vibes) ? data.vibes : [data.vibes].filter(Boolean);
   const energy = parseInt(data.energy, 10) || 5;
@@ -129,39 +221,49 @@ function buildDesignerBrief(data) {
     .map(v => VIBE_GENRES[v]?.bpm)
     .filter(Boolean);
 
-  const morningEnergy = clamp(energy - 2, 1, 10);
-  const afternoonEnergy = clamp(energy, 1, 10);
-  const eveningEnergy = clamp(energy + 1, 1, 10);
+  const dayparts = generateDayparts(data.hours, energy);
+  const daypartMap = {};
+  const daypartOrder = [];
+  for (const dp of dayparts) {
+    daypartOrder.push(dp.key);
+    daypartMap[dp.key] = {
+      energy: dp.energy,
+      genres: topGenres.slice(0, dp.energy >= energy ? 6 : 5),
+      label: dp.label,
+      icon: dp.icon,
+      timeRange: dp.timeRange,
+    };
+  }
 
   return {
     topGenres,
     bpmRanges: [...new Set(bpmRanges)],
-    dayparts: {
-      morning: { energy: morningEnergy, genres: topGenres.slice(0, 5) },
-      afternoon: { energy: afternoonEnergy, genres: topGenres.slice(0, 6) },
-      evening: { energy: eveningEnergy, genres: topGenres.slice(0, 6) },
-    },
+    dayparts: daypartMap,
+    daypartOrder,
   };
 }
 
 // ---------------------------------------------------------------------------
 // AI Playlist Recommendation System
 // ---------------------------------------------------------------------------
-function buildSystemPrompt() {
+function buildSystemPrompt(dayparts) {
+  const dpInstructions = dayparts.map(dp =>
+    `- "${dp.key}" \u2014 ${dp.label}: Energy ${dp.energy}/10`
+  ).join('\n');
+  const dpKeys = dayparts.map(dp => dp.key).join('|');
+
   return `You are a professional music curator for BMAsia Group. Analyze venue atmosphere briefs and recommend playlists from the Soundtrack Your Brand (SYB) catalog.
 
 ## SYB Playlist Catalog
 ${JSON.stringify(PLAYLIST_CATALOG)}
 
 ## Instructions
-Analyze ALL customer inputs holistically: vibes, energy level, venue type, demographics, vocal/language preferences, avoid list, mood changes, reference venues, and free-text descriptions.
+Analyze ALL customer inputs holistically: vibes, energy level, venue type, operating hours, demographics, vocal/language preferences, avoid list, mood changes, reference venues, and free-text descriptions.
 
-Recommend 8-12 playlists distributed across 3 dayparts:
-- Morning (opening to lunch): Lower energy, subtle background
-- Afternoon (lunch to dinner): Moderate, matches stated energy
-- Evening (dinner to close): Higher energy, more atmospheric
+Recommend 8-12 playlists distributed across these dayparts:
+${dpInstructions}
 
-Aim for 2-4 playlists per daypart.
+Aim for 2-4 playlists per daypart. The dayparts reflect the venue's actual operating hours, so use them as-is.
 
 ## Rules
 - ONLY recommend playlists from the catalog (use exact IDs)
@@ -170,9 +272,11 @@ Aim for 2-4 playlists per daypart.
 - Consider venue type (hotel playlists for hotels, etc.) but cross-match when appropriate
 - matchScore: 70-99, be honest. 90+ only for excellent matches
 - If mood changes are specified, reflect transitions across dayparts
+- Energy levels per daypart are guidelines \u2014 adjust slightly based on mood description
+- Reference the actual time segments in your reasons and designer notes
 
 ## Output (strict JSON, no markdown)
-{"recommendations":[{"playlistId":"syb_xxx","daypart":"morning|afternoon|evening","reason":"1-2 sentences","matchScore":70-99}],"designerNotes":"Brief direction for the design team"}`;
+{"recommendations":[{"playlistId":"syb_xxx","daypart":"${dpKeys}","reason":"1-2 sentences referencing the time segment","matchScore":70-99}],"designerNotes":"Brief direction for the design team referencing the actual time segments"}`;
 }
 
 function buildUserMessage(data) {
@@ -197,7 +301,7 @@ function buildUserMessage(data) {
   return parts.join('\n');
 }
 
-function deterministicMatch(data) {
+function deterministicMatch(data, dayparts) {
   const vibes = Array.isArray(data.vibes) ? data.vibes : [data.vibes].filter(Boolean);
   const energy = parseInt(data.energy, 10) || 5;
   const venueType = data.venueType || '';
@@ -245,12 +349,13 @@ function deterministicMatch(data) {
 
   scored.sort((a, b) => b.score - a.score);
   const top = scored.filter(p => p.score > 0).slice(0, 12);
-  const perDp = Math.ceil(top.length / 3);
+  const dpKeys = dayparts.map(dp => dp.key);
+  const perDp = Math.ceil(top.length / dpKeys.length);
 
   return {
     recommendations: top.map((p, i) => ({
       playlistId: p.id,
-      daypart: i < perDp ? 'morning' : i < perDp * 2 ? 'afternoon' : 'evening',
+      daypart: dpKeys[Math.min(Math.floor(i / perDp), dpKeys.length - 1)],
       reason: `Matches your ${vibes[0] || 'selected'} atmosphere for ${(venueType || 'your venue').replace(/-/g, ' ')}`,
       matchScore: Math.max(70, Math.min(95, Math.round(60 + p.score * 5))),
     })),
@@ -457,9 +562,10 @@ function buildEmailHtml(data, brief, aiResults) {
         <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Energy</th>
         <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Recommended Genres</th>
       </tr>
-      ${daypartRow('Morning', brief.dayparts.morning)}
-      ${daypartRow('Afternoon', brief.dayparts.afternoon)}
-      ${daypartRow('Evening', brief.dayparts.evening)}
+      ${(brief.daypartOrder || Object.keys(brief.dayparts)).map(key => {
+        const dp = brief.dayparts[key];
+        return daypartRow(dp.label || key.charAt(0).toUpperCase() + key.slice(1), dp);
+      }).join('')}
     </table>
   `)}
 
@@ -467,7 +573,7 @@ function buildEmailHtml(data, brief, aiResults) {
     <ul style="margin:0;padding:0 0 0 20px;color:#374151;line-height:1.8;">
       <li>Review venue type and vibe selections</li>
       <li>Build ${product === 'Beat Breeze' ? 'custom AI playlist' : 'curated playlist'} based on top genres</li>
-      <li>Set up daypart scheduling (morning / afternoon / evening)</li>
+      <li>Set up daypart scheduling (${(brief.daypartOrder || Object.keys(brief.dayparts)).map(k => brief.dayparts[k].label || k).join(' / ')})</li>
       <li>Apply BPM ranges per daypart</li>
       <li>Check avoid-list and vocal/language preferences</li>
       ${data.product === 'beatbreeze' ? '<li>Review brand story for AI music generation prompts</li>' : ''}
@@ -511,13 +617,16 @@ app.post('/api/recommend', recommendLimiter, async (req, res) => {
       return res.status(400).json({ error: 'At least one vibe is required.' });
     }
 
+    const energy = parseInt(data.energy, 10) || 5;
+    const dayparts = generateDayparts(data.hours, energy);
+
     let result;
     if (anthropic) {
       try {
         const response = await anthropic.messages.create({
           model: AI_MODEL,
           max_tokens: 1500,
-          system: buildSystemPrompt(),
+          system: buildSystemPrompt(dayparts),
           messages: [{ role: 'user', content: buildUserMessage(data) }],
         });
         const text = response.content[0].text.trim();
@@ -525,14 +634,14 @@ app.post('/api/recommend', recommendLimiter, async (req, res) => {
         result = JSON.parse(jsonStr);
       } catch (aiErr) {
         console.error('AI recommendation error, falling back:', aiErr.message);
-        result = deterministicMatch(data);
+        result = deterministicMatch(data, dayparts);
       }
     } else {
-      result = deterministicMatch(data);
+      result = deterministicMatch(data, dayparts);
     }
 
     const enriched = enrichRecommendations(result);
-    res.json({ success: true, ...enriched });
+    res.json({ success: true, dayparts, ...enriched });
   } catch (err) {
     console.error('Recommend error:', err);
     res.status(500).json({ error: 'Failed to generate recommendations.' });
@@ -557,10 +666,32 @@ app.post('/submit', submitLimiter, async (req, res) => {
       likedPlaylists: data.likedPlaylists || [],
       allRecommendations: data.allRecommendations || [],
     };
+    const daypartsMetadata = data.daypartsMetadata;
     delete data.likedPlaylists;
     delete data.allRecommendations;
+    delete data.daypartsMetadata;
 
     const brief = buildDesignerBrief(data);
+
+    // Override brief dayparts with AI-generated metadata if available
+    if (daypartsMetadata && Array.isArray(daypartsMetadata) && daypartsMetadata.length > 0) {
+      const energy = parseInt(data.energy, 10) || 5;
+      const dpMap = {};
+      const dpOrder = [];
+      for (const dp of daypartsMetadata) {
+        dpOrder.push(dp.key);
+        dpMap[dp.key] = {
+          energy: dp.energy,
+          genres: brief.topGenres.slice(0, dp.energy >= energy ? 6 : 5),
+          label: dp.label,
+          icon: dp.icon,
+          timeRange: dp.timeRange,
+        };
+      }
+      brief.dayparts = dpMap;
+      brief.daypartOrder = dpOrder;
+    }
+
     const html = buildEmailHtml(data, brief, aiResults);
 
     const product = data.product === 'beatbreeze' ? 'Beat Breeze' : 'SYB';

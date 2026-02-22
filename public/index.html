@@ -487,9 +487,11 @@ textarea { resize: vertical; min-height: 80px; }
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.daypart-icon.morning svg { stroke: #f59e0b; }
-.daypart-icon.afternoon svg { stroke: #ef4444; }
-.daypart-icon.evening svg { stroke: #6366f1; }
+.daypart-icon.sunrise svg { stroke: #f59e0b; }
+.daypart-icon.sun svg { stroke: #ef4444; }
+.daypart-icon.sunset svg { stroke: #f97316; }
+.daypart-icon.moon svg { stroke: #6366f1; }
+.daypart-icon.stars svg { stroke: #8b5cf6; }
 .brief-preview .daypart-genres {
   font-size: 13px;
   color: var(--text-muted);
@@ -1287,7 +1289,7 @@ function setLang(lang) {
     if (i18n[lang][key]) el.placeholder = i18n[lang][key];
   });
   if (document.getElementById('briefPreview').classList.contains('visible') && currentRecommendations.length > 0) {
-    renderPlaylistCards(currentRecommendations, currentDesignerNotes);
+    renderPlaylistCards(currentRecommendations, currentDesignerNotes, currentDayparts);
     updateLikedSummary();
   }
 }
@@ -1363,15 +1365,18 @@ const VENUE_BOOSTERS = {
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
-// Daypart SVG icons
+// Daypart SVG icons — keyed by icon type, not daypart key
 const DAYPART_ICONS = {
-  morning: '<span class="daypart-icon morning"><svg viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg></span>',
-  afternoon: '<span class="daypart-icon afternoon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>',
-  evening: '<span class="daypart-icon evening"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>',
+  sunrise: '<span class="daypart-icon sunrise"><svg viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg></span>',
+  sun: '<span class="daypart-icon sun"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>',
+  sunset: '<span class="daypart-icon sunset"><svg viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="13" x2="12" y2="20"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg></span>',
+  moon: '<span class="daypart-icon moon"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>',
+  stars: '<span class="daypart-icon stars"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg></span>',
 };
 
 let currentRecommendations = [];
 let currentDesignerNotes = '';
+let currentDayparts = null;
 const likedIds = new Set();
 const dislikedIds = new Set();
 
@@ -1427,10 +1432,11 @@ async function generateBrief() {
 
     currentRecommendations = result.recommendations;
     currentDesignerNotes = result.designerNotes || '';
+    currentDayparts = result.dayparts || null;
     likedIds.clear();
     dislikedIds.clear();
 
-    renderPlaylistCards(result.recommendations, result.designerNotes);
+    renderPlaylistCards(result.recommendations, result.designerNotes, result.dayparts);
     document.getElementById('submitBtn').disabled = false;
   } catch (err) {
     previewContent.innerHTML = `
@@ -1444,28 +1450,51 @@ async function generateBrief() {
   }
 }
 
-function renderPlaylistCards(recommendations, designerNotes) {
+function renderPlaylistCards(recommendations, designerNotes, dayparts) {
   const t = i18n[currentLang];
   const previewContent = document.getElementById('previewContent');
 
-  const groups = { morning: [], afternoon: [], evening: [] };
-  for (const rec of recommendations) {
-    if (groups[rec.daypart]) groups[rec.daypart].push(rec);
+  // Build ordered keys and labels from dynamic dayparts or fall back to defaults
+  let orderedKeys, daypartLabels, dpMeta;
+  if (dayparts && Array.isArray(dayparts) && dayparts.length > 0) {
+    dpMeta = dayparts;
+    orderedKeys = dayparts.map(dp => dp.key);
+    daypartLabels = {};
+    for (const dp of dayparts) daypartLabels[dp.key] = dp.label;
+  } else {
+    dpMeta = null;
+    orderedKeys = ['morning', 'afternoon', 'evening'];
+    daypartLabels = { morning: t.preview_morning, afternoon: t.preview_afternoon, evening: t.preview_evening };
   }
 
-  const daypartLabels = { morning: t.preview_morning, afternoon: t.preview_afternoon, evening: t.preview_evening };
+  const groups = {};
+  for (const key of orderedKeys) groups[key] = [];
+  for (const rec of recommendations) {
+    if (groups[rec.daypart]) groups[rec.daypart].push(rec);
+    else groups[orderedKeys[orderedKeys.length - 1]].push(rec);
+  }
+
+  function getIcon(dpKey) {
+    if (dpMeta) {
+      const dp = dpMeta.find(d => d.key === dpKey);
+      if (dp && dp.icon && DAYPART_ICONS[dp.icon]) return DAYPART_ICONS[dp.icon];
+    }
+    return DAYPART_ICONS[dpKey] || '';
+  }
+
   let html = '';
 
   if (designerNotes) {
     html += `<div class="designer-notes">${escHtml(designerNotes)}</div>`;
   }
 
-  for (const [dp, recs] of Object.entries(groups)) {
+  for (const dp of orderedKeys) {
+    const recs = groups[dp];
     if (recs.length === 0) continue;
     html += `
       <div class="daypart-section">
         <div class="daypart-section-header">
-          ${DAYPART_ICONS[dp] || ''} <strong>${daypartLabels[dp] || dp}</strong>
+          ${getIcon(dp)} <strong>${daypartLabels[dp] || dp}</strong>
         </div>
         <div class="playlist-cards">
           ${recs.map(rec => {
@@ -1578,6 +1607,7 @@ form.addEventListener('submit', async (e) => {
   data.likedPlaylists = currentRecommendations
     .filter(r => likedIds.has(r.playlistId));
   data.allRecommendations = currentRecommendations;
+  data.daypartsMetadata = currentDayparts;
 
   const controller = new AbortController();
   const fetchTimeout = setTimeout(() => controller.abort(), 30000);
@@ -1597,6 +1627,7 @@ form.addEventListener('submit', async (e) => {
       selectedVibes.clear();
       currentRecommendations = [];
       currentDesignerNotes = '';
+      currentDayparts = null;
       likedIds.clear();
       dislikedIds.clear();
       document.querySelectorAll('.vibe-card').forEach(c => c.classList.remove('selected'));
