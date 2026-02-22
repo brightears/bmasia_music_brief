@@ -1,10 +1,24 @@
+require('dotenv').config();
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const fs = require('fs');
 const dns = require('dns');
+const Anthropic = require('@anthropic-ai/sdk');
 
 dns.setDefaultResultOrder('ipv4first');
+
+// ---------------------------------------------------------------------------
+// SYB Playlist Catalog & AI Client
+// ---------------------------------------------------------------------------
+const PLAYLIST_CATALOG = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'data', 'syb-playlists.json'), 'utf8')
+).playlists;
+
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-6';
+const anthropic = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
 
 const app = express();
 app.set('trust proxy', 1);
@@ -39,6 +53,14 @@ const submitLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
   message: { error: 'Too many submissions. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const recommendLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many recommendation requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -123,9 +145,213 @@ function buildDesignerBrief(data) {
 }
 
 // ---------------------------------------------------------------------------
+// AI Playlist Recommendation System
+// ---------------------------------------------------------------------------
+function buildSystemPrompt() {
+  return `You are a professional music curator for BMAsia Group. Analyze venue atmosphere briefs and recommend playlists from the Soundtrack Your Brand (SYB) catalog.
+
+## SYB Playlist Catalog
+${JSON.stringify(PLAYLIST_CATALOG)}
+
+## Instructions
+Analyze ALL customer inputs holistically: vibes, energy level, venue type, demographics, vocal/language preferences, avoid list, mood changes, reference venues, and free-text descriptions.
+
+Recommend 8-12 playlists distributed across 3 dayparts:
+- Morning (opening to lunch): Lower energy, subtle background
+- Afternoon (lunch to dinner): Moderate, matches stated energy
+- Evening (dinner to close): Higher energy, more atmospheric
+
+Aim for 2-4 playlists per daypart.
+
+## Rules
+- ONLY recommend playlists from the catalog (use exact IDs)
+- Respect the avoid list: never recommend matching styles
+- Match vocal preferences (instrumental, mostly instrumental, etc.)
+- Consider venue type (hotel playlists for hotels, etc.) but cross-match when appropriate
+- matchScore: 70-99, be honest. 90+ only for excellent matches
+- If mood changes are specified, reflect transitions across dayparts
+
+## Output (strict JSON, no markdown)
+{"recommendations":[{"playlistId":"syb_xxx","daypart":"morning|afternoon|evening","reason":"1-2 sentences","matchScore":70-99}],"designerNotes":"Brief direction for the design team"}`;
+}
+
+function buildUserMessage(data) {
+  const vibes = Array.isArray(data.vibes) ? data.vibes : [data.vibes].filter(Boolean);
+  const parts = [
+    `Venue: ${data.venueName || 'Not specified'}`,
+    `Type: ${data.venueType || 'Not specified'}`,
+    `Location: ${data.location || 'Not specified'}`,
+    `Operating Hours: ${data.hours || 'Not specified'}`,
+    `Vibes: ${vibes.join(', ') || 'None selected'}`,
+    `Energy Level: ${data.energy || '5'}/10`,
+  ];
+  if (data.referenceVenues) parts.push(`Reference Venues: ${data.referenceVenues}`);
+  if (data.vibeDescription) parts.push(`Atmosphere Description: ${data.vibeDescription}`);
+  if (data.guestProfile) parts.push(`Guest Profile: ${data.guestProfile}`);
+  if (data.ageRange) parts.push(`Age Range: ${data.ageRange}`);
+  if (data.nationality) parts.push(`Primary Nationality: ${data.nationality}`);
+  if (data.vocals) parts.push(`Vocal Preference: ${data.vocals}`);
+  if (data.musicLanguages) parts.push(`Music Languages: ${data.musicLanguages}`);
+  if (data.avoidList) parts.push(`AVOID / Do Not Play: ${data.avoidList}`);
+  if (data.moodChanges) parts.push(`Mood Changes: ${data.moodChanges}`);
+  return parts.join('\n');
+}
+
+function deterministicMatch(data) {
+  const vibes = Array.isArray(data.vibes) ? data.vibes : [data.vibes].filter(Boolean);
+  const energy = parseInt(data.energy, 10) || 5;
+  const venueType = data.venueType || '';
+  const avoidList = (data.avoidList || '').toLowerCase();
+  const vocals = data.vocals || '';
+  const venueCatMap = {
+    'hotel-lobby': 'hotel', restaurant: 'restaurant', 'bar-lounge': 'bar',
+    'spa-wellness': 'spa', cafe: 'cafe', 'fashion-retail': 'store',
+    coworking: 'lounge', 'pool-beach': 'hotel', 'gym-fitness': 'store', qsr: 'restaurant',
+  };
+  const targetCat = venueCatMap[venueType] || '';
+  const vibeKw = {
+    relaxed: ['relax', 'chill', 'calm', 'gentle', 'soft', 'mellow', 'easy', 'soothing', 'acoustic'],
+    energetic: ['energetic', 'upbeat', 'energy', 'pop', 'dance', 'hits', 'rush'],
+    sophisticated: ['elegant', 'sophisticated', 'jazz', 'refined', 'grand', 'fine'],
+    warm: ['warm', 'cozy', 'acoustic', 'folk', 'inviting', 'friendly'],
+    trendy: ['modern', 'trendy', 'indie', 'hip', 'current', 'urban', 'fashion'],
+    upbeat: ['happy', 'feel-good', 'upbeat', 'fun', 'groovy', 'sunny', 'cheerful'],
+    zen: ['zen', 'ambient', 'meditation', 'nature', 'peaceful', 'mindful', 'spa'],
+    romantic: ['romantic', 'intimate', 'soul', 'ballad', 'dinner', 'date'],
+    luxurious: ['luxury', 'elegant', 'lounge', 'house', 'upscale', 'grand', 'boutique'],
+    tropical: ['tropical', 'beach', 'reggae', 'island', 'caribbean', 'bossa', 'surf'],
+    creative: ['indie', 'creative', 'alternative', 'art', 'fusion', 'world'],
+    professional: ['office', 'background', 'light', 'subtle', 'focus'],
+  };
+  const energyCats = energy <= 3 ? ['spa', 'lounge'] : energy <= 6 ? ['cafe', 'restaurant', 'hotel', 'lounge'] : ['bar', 'store'];
+
+  const scored = PLAYLIST_CATALOG.map(p => {
+    let score = 0;
+    const text = `${p.name} ${p.description}`.toLowerCase();
+    if (targetCat && p.categories.includes(targetCat)) score += 3;
+    for (const vibe of vibes) {
+      for (const kw of (vibeKw[vibe] || [])) { if (text.includes(kw)) score += 0.5; }
+    }
+    if (p.categories.some(c => energyCats.includes(c))) score += 1;
+    if (avoidList) {
+      for (const term of avoidList.split(/[,;]+/).map(s => s.trim()).filter(Boolean)) {
+        if (text.includes(term)) score -= 10;
+      }
+    }
+    if (vocals === 'instrumental' && /instrumental|piano|ambient|nature/.test(text)) score += 1.5;
+    if (vocals === 'mostly-instrumental' && /instrumental|piano|acoustic/.test(text)) score += 0.8;
+    return { ...p, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  const top = scored.filter(p => p.score > 0).slice(0, 12);
+  const perDp = Math.ceil(top.length / 3);
+
+  return {
+    recommendations: top.map((p, i) => ({
+      playlistId: p.id,
+      daypart: i < perDp ? 'morning' : i < perDp * 2 ? 'afternoon' : 'evening',
+      reason: `Matches your ${vibes[0] || 'selected'} atmosphere for ${(venueType || 'your venue').replace(/-/g, ' ')}`,
+      matchScore: Math.max(70, Math.min(95, Math.round(60 + p.score * 5))),
+    })),
+    designerNotes: 'Generated via keyword matching (AI unavailable). Please review and adjust.',
+  };
+}
+
+function enrichRecommendations(aiResult) {
+  const catalogMap = Object.fromEntries(PLAYLIST_CATALOG.map(p => [p.id, p]));
+  return {
+    ...aiResult,
+    recommendations: aiResult.recommendations.map(rec => {
+      const playlist = catalogMap[rec.playlistId];
+      if (!playlist) return null;
+      return {
+        ...rec,
+        name: playlist.name,
+        description: playlist.description,
+        categories: playlist.categories,
+        sybUrl: `https://app.soundtrack.io/search/${encodeURIComponent(playlist.name)}`,
+      };
+    }).filter(Boolean),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Email HTML builder
 // ---------------------------------------------------------------------------
-function buildEmailHtml(data, brief) {
+function buildPlaylistEmailSections(aiResults) {
+  if (!aiResults) return '';
+  let html = '';
+
+  if (aiResults.likedPlaylists && aiResults.likedPlaylists.length > 0) {
+    const likedRows = aiResults.likedPlaylists.map(p => `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;">
+          <a href="${esc(p.sybUrl)}" style="color:#4f46e5;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
+          <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
+        </td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${esc(p.daypart)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore}%</td>
+      </tr>`).join('');
+
+    html += `
+    <tr><td style="padding:0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+        <tr><td style="padding:12px 16px;background:#059669;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Customer-Approved Playlists</td></tr>
+        <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
+          <p style="margin:0 0 12px;color:#059669;font-weight:600;">${aiResults.likedPlaylists.length} playlist(s) approved by the customer</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+            <tr style="background:#f3f4f6;">
+              <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Playlist</th>
+              <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Daypart</th>
+              <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Match</th>
+            </tr>
+            ${likedRows}
+          </table>
+        </td></tr>
+      </table>
+    </td></tr>`;
+  }
+
+  if (aiResults.allRecommendations && aiResults.allRecommendations.length > 0) {
+    const likedIds = new Set((aiResults.likedPlaylists || []).map(p => p.playlistId));
+    const allRows = aiResults.allRecommendations.map(p => {
+      const liked = likedIds.has(p.playlistId);
+      return `
+        <tr${liked ? ' style="background:#f0fdf4;"' : ''}>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:14px;">${liked ? '&#10003;' : '&mdash;'}</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee;">
+            <a href="${esc(p.sybUrl || '#')}" style="color:#4f46e5;text-decoration:none;font-size:13px;">${esc(p.name || p.playlistId)}</a>
+          </td>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee;text-transform:capitalize;font-size:13px;">${esc(p.daypart)}</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:13px;">${p.matchScore}%</td>
+        </tr>`;
+    }).join('');
+
+    html += `
+    <tr><td style="padding:0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+        <tr><td style="padding:12px 16px;background:#1a1a2e;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">All AI Recommendations</td></tr>
+        <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
+          <p style="margin:0 0 12px;color:#666;font-size:13px;">Full AI-suggested list. Items with &#10003; were approved by the customer.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+            <tr style="background:#f3f4f6;">
+              <th style="padding:8px 12px;text-align:left;font-size:12px;color:#374151;width:40px;"></th>
+              <th style="padding:8px 12px;text-align:left;font-size:12px;color:#374151;">Playlist</th>
+              <th style="padding:8px 12px;text-align:left;font-size:12px;color:#374151;">Daypart</th>
+              <th style="padding:8px 12px;text-align:left;font-size:12px;color:#374151;">Match</th>
+            </tr>
+            ${allRows}
+          </table>
+        </td></tr>
+      </table>
+    </td></tr>`;
+  }
+
+  return html;
+}
+
+function buildEmailHtml(data, brief, aiResults) {
   const vibes = Array.isArray(data.vibes) ? data.vibes : [data.vibes].filter(Boolean);
   const product = data.product === 'beatbreeze' ? 'Beat Breeze' : 'Soundtrack Your Brand';
   const now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok', dateStyle: 'full', timeStyle: 'short' });
@@ -217,6 +443,8 @@ function buildEmailHtml(data, brief) {
     </table>
   `) : ''}
 
+  ${buildPlaylistEmailSections(aiResults)}
+
   ${section('Designer Brief &mdash; Genre Recommendations', `
     <p style="margin:0 0 12px;color:#666;font-size:13px;">Auto-generated from customer vibe selections. Daypart energy: morning=base-2, afternoon=base, evening=base+1.</p>
     <p style="margin:0 0 8px;"><strong>Top Genres:</strong> ${brief.topGenres.join(', ')}</p>
@@ -274,6 +502,41 @@ function esc(str) {
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
+app.post('/api/recommend', recommendLimiter, async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data.vibes || (Array.isArray(data.vibes) && data.vibes.length === 0)) {
+      return res.status(400).json({ error: 'At least one vibe is required.' });
+    }
+
+    let result;
+    if (anthropic) {
+      try {
+        const response = await anthropic.messages.create({
+          model: AI_MODEL,
+          max_tokens: 1500,
+          system: buildSystemPrompt(),
+          messages: [{ role: 'user', content: buildUserMessage(data) }],
+        });
+        const text = response.content[0].text.trim();
+        const jsonStr = text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+        result = JSON.parse(jsonStr);
+      } catch (aiErr) {
+        console.error('AI recommendation error, falling back:', aiErr.message);
+        result = deterministicMatch(data);
+      }
+    } else {
+      result = deterministicMatch(data);
+    }
+
+    const enriched = enrichRecommendations(result);
+    res.json({ success: true, ...enriched });
+  } catch (err) {
+    console.error('Recommend error:', err);
+    res.status(500).json({ error: 'Failed to generate recommendations.' });
+  }
+});
+
 app.post('/submit', submitLimiter, async (req, res) => {
   try {
     const data = req.body;
@@ -288,8 +551,15 @@ app.post('/submit', submitLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Venue name and at least one vibe are required.' });
     }
 
+    const aiResults = {
+      likedPlaylists: data.likedPlaylists || [],
+      allRecommendations: data.allRecommendations || [],
+    };
+    delete data.likedPlaylists;
+    delete data.allRecommendations;
+
     const brief = buildDesignerBrief(data);
-    const html = buildEmailHtml(data, brief);
+    const html = buildEmailHtml(data, brief, aiResults);
 
     const product = data.product === 'beatbreeze' ? 'Beat Breeze' : 'SYB';
     const subject = `Music Brief: ${data.venueName} (${product})`;

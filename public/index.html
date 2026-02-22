@@ -627,6 +627,179 @@ textarea { resize: vertical; min-height: 80px; }
   .vibe-icon svg { width: 20px; height: 20px; }
   .vibe-card { padding: 10px 4px 8px; }
 }
+
+/* ============ AI Playlist Recommendations ============ */
+.ai-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  gap: 16px;
+}
+.ai-loading p {
+  color: var(--muted);
+  font-size: 14px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.pulse-ring {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--primary-light);
+  border-radius: 50%;
+  animation: pulseRing 1.5s ease-out infinite;
+}
+@keyframes pulseRing {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.designer-notes {
+  background: var(--primary-light);
+  border-left: 3px solid var(--primary);
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--primary);
+}
+.daypart-section { margin-bottom: 20px; }
+.daypart-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  color: var(--text);
+}
+.playlist-cards { display: grid; gap: 10px; }
+.playlist-card {
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: all 0.2s ease;
+}
+.playlist-card:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 2px 8px rgba(26, 26, 46, 0.08);
+}
+.playlist-card.liked {
+  border-color: #059669;
+  background: #f0fdf4;
+}
+.playlist-card.disliked {
+  opacity: 0.4;
+  border-color: var(--border);
+}
+.playlist-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.playlist-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 15px;
+}
+.match-badge {
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.playlist-card.liked .match-badge { background: #059669; }
+.playlist-desc {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 4px;
+}
+.playlist-reason {
+  color: var(--primary);
+  font-size: 12px;
+  font-style: italic;
+  margin: 0 0 10px;
+}
+.playlist-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.preview-link {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.preview-link:hover { text-decoration: underline; }
+.preview-link svg { width: 14px; height: 14px; }
+.vote-btns { display: flex; gap: 6px; }
+.vote-btn {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+.vote-btn:hover { border-color: var(--primary-light); }
+.vote-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--muted);
+  stroke-width: 2;
+  fill: none;
+}
+.vote-btn.like-btn.active {
+  background: #059669;
+  border-color: #059669;
+}
+.vote-btn.like-btn.active svg { stroke: #fff; fill: #fff; }
+.vote-btn.dislike-btn.active {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+.vote-btn.dislike-btn.active svg { stroke: #fff; fill: #fff; }
+.liked-summary {
+  background: #f0fdf4;
+  border: 1px solid #059669;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #059669;
+  font-size: 14px;
+}
+.liked-summary.empty {
+  background: #fef3c7;
+  border-color: #d97706;
+  color: #d97706;
+}
+@media (max-width: 640px) {
+  .playlist-card { padding: 12px; }
+  .playlist-name { font-size: 14px; }
+}
 </style>
 </head>
 <body>
@@ -1018,6 +1191,10 @@ const i18n = {
     preview_afternoon: 'Afternoon',
     preview_evening: 'Evening',
     preview_energy: 'Energy',
+    ai_analyzing: 'Analyzing your brief...',
+    preview_on_syb: 'Preview on SYB',
+    select_playlists: 'Select playlists you like',
+    playlists_selected: 'playlist(s) selected',
   },
   th: {
     title: '\u0e41\u0e1a\u0e1a\u0e1f\u0e2d\u0e23\u0e4c\u0e21\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e40\u0e1e\u0e25\u0e07',
@@ -1088,6 +1265,10 @@ const i18n = {
     preview_afternoon: '\u0e0a\u0e48\u0e27\u0e07\u0e1a\u0e48\u0e32\u0e22',
     preview_evening: '\u0e0a\u0e48\u0e27\u0e07\u0e40\u0e22\u0e47\u0e19',
     preview_energy: '\u0e1e\u0e25\u0e31\u0e07\u0e07\u0e32\u0e19',
+    ai_analyzing: '\u0e01\u0e33\u0e25\u0e31\u0e07\u0e27\u0e34\u0e40\u0e04\u0e23\u0e32\u0e30\u0e2b\u0e4c...',
+    preview_on_syb: '\u0e1f\u0e31\u0e07\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e1a\u0e19 SYB',
+    select_playlists: '\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e0a\u0e2d\u0e1a',
+    playlists_selected: '\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e40\u0e25\u0e37\u0e2d\u0e01',
   }
 };
 
@@ -1104,7 +1285,10 @@ function setLang(lang) {
     const key = el.getAttribute('data-i18n-placeholder');
     if (i18n[lang][key]) el.placeholder = i18n[lang][key];
   });
-  if (document.getElementById('briefPreview').classList.contains('visible')) generateBrief();
+  if (document.getElementById('briefPreview').classList.contains('visible') && currentRecommendations.length > 0) {
+    renderPlaylistCards(currentRecommendations, currentDesignerNotes);
+    updateLikedSummary();
+  }
 }
 
 // =========================================================================
@@ -1185,7 +1369,12 @@ const DAYPART_ICONS = {
   evening: '<span class="daypart-icon evening"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>',
 };
 
-function generateBrief() {
+let currentRecommendations = [];
+let currentDesignerNotes = '';
+const likedIds = new Set();
+const dislikedIds = new Set();
+
+async function generateBrief() {
   const form = document.getElementById('briefForm');
   const venueName = form.venueName.value.trim();
   const vibes = [...selectedVibes];
@@ -1197,62 +1386,174 @@ function generateBrief() {
   }
   form.venueName.closest('.field').classList.remove('invalid');
 
-  const energy = parseInt(form.energy.value, 10);
-  const venueType = form.venueType.value;
-
-  // Score genres
-  const genreScores = {};
-  for (const vibe of vibes) {
-    const mapping = VIBE_GENRES[vibe];
-    if (!mapping) continue;
-    for (const genre of mapping.genres) {
-      genreScores[genre] = (genreScores[genre] || 0) + 1;
-    }
-  }
-  const boosters = VENUE_BOOSTERS[venueType] || [];
-  for (const genre of boosters) {
-    genreScores[genre] = (genreScores[genre] || 0) + 0.5;
-  }
-
-  const rankedGenres = Object.entries(genreScores).sort((a, b) => b[1] - a[1]).map(([g]) => g);
-  const topGenres = rankedGenres.slice(0, 8);
-  const bpmRanges = [...new Set(vibes.map(v => VIBE_GENRES[v]?.bpm).filter(Boolean))];
-
-  const morningE = clamp(energy - 2, 1, 10);
-  const afternoonE = clamp(energy, 1, 10);
-  const eveningE = clamp(energy + 1, 1, 10);
-
-  const t = i18n[currentLang];
-
-  const genreTags = (list) => list.map(g => `<span class="genre-tag">${g}</span>`).join(' ');
-
   const previewContent = document.getElementById('previewContent');
+  const briefPreview = document.getElementById('briefPreview');
+  const generateBtn = document.getElementById('generateBtn');
+
+  // Show loading state
+  generateBtn.disabled = true;
   previewContent.innerHTML = `
-    <p style="margin-bottom:8px;"><strong>${t.preview_top_genres}:</strong></p>
-    <p style="margin-bottom:12px;">${genreTags(topGenres)}</p>
-    <p style="margin-bottom:16px;"><strong>${t.preview_bpm}:</strong> ${bpmRanges.join(', ')}</p>
-    <div class="daypart">
-      <div class="daypart-label">${DAYPART_ICONS.morning} ${t.preview_morning}</div>
-      <div class="daypart-energy">${t.preview_energy}: ${morningE}/10</div>
-      <div class="daypart-genres">${genreTags(topGenres.slice(0, 5))}</div>
-    </div>
-    <div class="daypart">
-      <div class="daypart-label">${DAYPART_ICONS.afternoon} ${t.preview_afternoon}</div>
-      <div class="daypart-energy">${t.preview_energy}: ${afternoonE}/10</div>
-      <div class="daypart-genres">${genreTags(topGenres.slice(0, 6))}</div>
-    </div>
-    <div class="daypart">
-      <div class="daypart-label">${DAYPART_ICONS.evening} ${t.preview_evening}</div>
-      <div class="daypart-energy">${t.preview_energy}: ${eveningE}/10</div>
-      <div class="daypart-genres">${genreTags(topGenres.slice(0, 6))}</div>
+    <div class="ai-loading">
+      <div class="pulse-ring"></div>
+      <p>${i18n[currentLang].ai_analyzing}</p>
     </div>
   `;
-
-  const briefPreview = document.getElementById('briefPreview');
   briefPreview.classList.add('visible');
   briefPreview.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-  document.getElementById('submitBtn').disabled = false;
+  // Collect all form data
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData.entries());
+  data.vibes = vibes;
+
+  try {
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), 45000);
+
+    const res = await fetch('/api/recommend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: controller.signal,
+    });
+    clearTimeout(fetchTimeout);
+
+    const result = await res.json();
+
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || 'Failed to get recommendations');
+    }
+
+    currentRecommendations = result.recommendations;
+    currentDesignerNotes = result.designerNotes || '';
+    likedIds.clear();
+    dislikedIds.clear();
+
+    renderPlaylistCards(result.recommendations, result.designerNotes);
+    document.getElementById('submitBtn').disabled = false;
+  } catch (err) {
+    previewContent.innerHTML = `
+      <div style="text-align:center;padding:20px;">
+        <p style="color:var(--error);margin:0 0 12px;">${err.name === 'AbortError' ? 'Request timed out' : escHtml(err.message)}</p>
+        <button type="button" class="btn btn-secondary" onclick="generateBrief()" style="display:inline-block;width:auto;">Try Again</button>
+      </div>
+    `;
+  } finally {
+    generateBtn.disabled = false;
+  }
+}
+
+function renderPlaylistCards(recommendations, designerNotes) {
+  const t = i18n[currentLang];
+  const previewContent = document.getElementById('previewContent');
+
+  const groups = { morning: [], afternoon: [], evening: [] };
+  for (const rec of recommendations) {
+    if (groups[rec.daypart]) groups[rec.daypart].push(rec);
+  }
+
+  const daypartLabels = { morning: t.preview_morning, afternoon: t.preview_afternoon, evening: t.preview_evening };
+  let html = '';
+
+  if (designerNotes) {
+    html += `<div class="designer-notes">${escHtml(designerNotes)}</div>`;
+  }
+
+  for (const [dp, recs] of Object.entries(groups)) {
+    if (recs.length === 0) continue;
+    html += `
+      <div class="daypart-section">
+        <div class="daypart-section-header">
+          ${DAYPART_ICONS[dp] || ''} <strong>${daypartLabels[dp] || dp}</strong>
+        </div>
+        <div class="playlist-cards">
+          ${recs.map(rec => {
+            const isLiked = likedIds.has(rec.playlistId);
+            const isDisliked = dislikedIds.has(rec.playlistId);
+            return `
+            <div class="playlist-card${isLiked ? ' liked' : ''}${isDisliked ? ' disliked' : ''}" data-id="${rec.playlistId}">
+              <div class="playlist-card-header">
+                <span class="playlist-name">${escHtml(rec.name)}</span>
+                <span class="match-badge">${rec.matchScore}%</span>
+              </div>
+              <p class="playlist-desc">${escHtml(rec.description)}</p>
+              <p class="playlist-reason">${escHtml(rec.reason)}</p>
+              <div class="playlist-actions">
+                <a href="${rec.sybUrl}" target="_blank" rel="noopener" class="preview-link">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  ${t.preview_on_syb}
+                </a>
+                <div class="vote-btns">
+                  <button type="button" class="vote-btn like-btn${isLiked ? ' active' : ''}" onclick="toggleVote(this,'like')" title="Like">
+                    <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                  </button>
+                  <button type="button" class="vote-btn dislike-btn${isDisliked ? ' active' : ''}" onclick="toggleVote(this,'dislike')" title="Dislike">
+                    <svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10zM17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  html += `<div class="liked-summary empty" id="likedSummary">${t.select_playlists}</div>`;
+  previewContent.innerHTML = html;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function toggleVote(btn, type) {
+  const card = btn.closest('.playlist-card');
+  const id = card.dataset.id;
+
+  if (type === 'like') {
+    const wasLiked = likedIds.has(id);
+    dislikedIds.delete(id);
+    card.classList.remove('disliked');
+    card.querySelector('.dislike-btn').classList.remove('active');
+    if (wasLiked) {
+      likedIds.delete(id);
+      card.classList.remove('liked');
+      btn.classList.remove('active');
+    } else {
+      likedIds.add(id);
+      card.classList.add('liked');
+      btn.classList.add('active');
+    }
+  } else {
+    const wasDisliked = dislikedIds.has(id);
+    likedIds.delete(id);
+    card.classList.remove('liked');
+    card.querySelector('.like-btn').classList.remove('active');
+    if (wasDisliked) {
+      dislikedIds.delete(id);
+      card.classList.remove('disliked');
+      btn.classList.remove('active');
+    } else {
+      dislikedIds.add(id);
+      card.classList.add('disliked');
+      btn.classList.add('active');
+    }
+  }
+  updateLikedSummary();
+}
+
+function updateLikedSummary() {
+  const el = document.getElementById('likedSummary');
+  const t = i18n[currentLang];
+  if (likedIds.size > 0) {
+    el.className = 'liked-summary';
+    el.textContent = `${likedIds.size} ${t.playlists_selected}`;
+  } else {
+    el.className = 'liked-summary empty';
+    el.textContent = t.select_playlists;
+  }
 }
 
 // =========================================================================
@@ -1272,6 +1573,11 @@ form.addEventListener('submit', async (e) => {
   const data = Object.fromEntries(formData.entries());
   data.vibes = [...selectedVibes];
 
+  // Include AI playlist recommendations
+  data.likedPlaylists = currentRecommendations
+    .filter(r => likedIds.has(r.playlistId));
+  data.allRecommendations = currentRecommendations;
+
   const controller = new AbortController();
   const fetchTimeout = setTimeout(() => controller.abort(), 30000);
   try {
@@ -1288,6 +1594,10 @@ form.addEventListener('submit', async (e) => {
       showToast(i18n[currentLang].toast_success, 'success');
       form.reset();
       selectedVibes.clear();
+      currentRecommendations = [];
+      currentDesignerNotes = '';
+      likedIds.clear();
+      dislikedIds.clear();
       document.querySelectorAll('.vibe-card').forEach(c => c.classList.remove('selected'));
       document.getElementById('briefPreview').classList.remove('visible');
       document.getElementById('energyVal').textContent = '5';
