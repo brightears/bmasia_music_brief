@@ -1,247 +1,2063 @@
 {
   "version": "1.0.0",
   "lastUpdated": "2026-02-22",
-  "urlFormat": "https://app.soundtrack.io/search/{encodedName}",
+  "urlFormat": "https://app.soundtrack.io/music/{sybId}",
   "playlists": [
-    {"id":"syb_001","name":"Grand Hotel Jazz","description":"Mellow jazz for a dandy hotel feeling","categories":["hotel"]},
-    {"id":"syb_002","name":"Piano In The Lobby","description":"Elegant, instrumental piano covers","categories":["hotel"]},
-    {"id":"syb_003","name":"Hotel Lounge","description":"Low-key lounge music for the lobby","categories":["hotel","lounge"]},
-    {"id":"syb_004","name":"Hotel Covers","description":"Acoustic covers for the lobby","categories":["hotel"]},
-    {"id":"syb_005","name":"Boutique Hotel","description":"Modern indie grooves for the vagabond","categories":["hotel"]},
-    {"id":"syb_006","name":"Family-friendly Hotel","description":"Safe background music for all ears","categories":["hotel"]},
-    {"id":"syb_007","name":"Poolside Lounge","description":"Breezy lounge grooves and tropical house","categories":["hotel"]},
-    {"id":"syb_008","name":"Lobby House","description":"Low-key house beats","categories":["hotel"]},
-    {"id":"syb_009","name":"Lobby Lofi","description":"Lofi beats for a soothing lobby ambience","categories":["hotel"]},
-    {"id":"syb_010","name":"Bossa in the Lobby","description":"Sophisticated sounds of bossa nova","categories":["hotel"]},
-    {"id":"syb_011","name":"Grand Hotel Classical","description":"Classical music for traditional elegancy","categories":["hotel"]},
-    {"id":"syb_012","name":"Elevator Music","description":"Soundtrack your ascent with easy listening music","categories":["hotel"]},
-    {"id":"syb_013","name":"Instrumental Hotel Jazz","description":"A nice blend of relaxed jazz","categories":["hotel"]},
-    {"id":"syb_014","name":"Zen Retreat","description":"Refuge for both body and mind","categories":["hotel"]},
-    {"id":"syb_015","name":"Classical Suite","description":"Classical music for a grandiose ambience","categories":["hotel"]},
-    {"id":"syb_016","name":"Acoustic Lobby","description":"Happy acoustic pop","categories":["hotel"]},
-    {"id":"syb_017","name":"Concierge Jazz","description":"Elegant, easy-listening jazz","categories":["hotel"]},
-    {"id":"syb_018","name":"Miami Beach Hotel","description":"A touch of Cuba in the hotel lobby","categories":["hotel"]},
-    {"id":"syb_019","name":"Hawaii Hideaway","description":"Polynesian instrumental music","categories":["hotel"]},
-    {"id":"syb_020","name":"Tropical Bungalow","description":"Sunny tropical house beats","categories":["hotel"]},
-    {"id":"syb_021","name":"Mexican Getaway","description":"Traditional mariachi and rancheras","categories":["hotel"]},
-    {"id":"syb_022","name":"Caribbean Resort","description":"Sunny getaway reggae","categories":["hotel"]},
-    {"id":"syb_023","name":"Brazilian Retreat","description":"Elegant bossa nova for the hotel lobby","categories":["hotel"]},
-    {"id":"syb_024","name":"Latin Heat Hotel","description":"Latin pop fire","categories":["hotel"]},
-    {"id":"syb_025","name":"Jazz in the Lobby","description":"Slow and cozy jazz","categories":["hotel"]},
-    {"id":"syb_026","name":"Lobby Lounge Jazz","description":"Instrumental hotel jazz","categories":["hotel"]},
-    {"id":"syb_027","name":"Cozy Bed & Breakfast","description":"Warm and soulful vibes","categories":["hotel"]},
-    {"id":"syb_028","name":"Hotel Beats","description":"Instrumental chill hop for an urban touch","categories":["hotel"]},
-    {"id":"syb_029","name":"B&B Country","description":"Welcoming, low-key country music","categories":["hotel"]},
-    {"id":"syb_030","name":"Mellow Hotel Mix","description":"Modern jazz and soul with a relaxed touch","categories":["hotel"]},
-    {"id":"syb_031","name":"Hotel Chill","description":"Chill lofi beats for the lobby","categories":["hotel"]},
-    {"id":"syb_032","name":"Dinner and Drinks","description":"An elegant and feel-good Friday mix","categories":["restaurant"]},
-    {"id":"syb_033","name":"Family-friendly Restaurant","description":"Easy going and inclusive pop","categories":["restaurant"]},
-    {"id":"syb_034","name":"Brunch With Friends","description":"Groovy music for brunching","categories":["restaurant"]},
-    {"id":"syb_035","name":"Fast Food Pop","description":"Modern burger place pop","categories":["restaurant"]},
-    {"id":"syb_036","name":"Lunch Rush Pop","description":"High energy pop to clear tables","categories":["restaurant"]},
-    {"id":"syb_037","name":"Feel-good Dining","description":"Happy acoustic pop and singer songwriter","categories":["restaurant"]},
-    {"id":"syb_038","name":"Dinner Rush Pop","description":"Energetic and modern pop for busy hours","categories":["restaurant"]},
-    {"id":"syb_039","name":"Food Court Pop","description":"Teen pop in between shopping","categories":["restaurant"]},
-    {"id":"syb_040","name":"Timeless Energy","description":"Timeless music for the peak hours","categories":["restaurant"]},
-    {"id":"syb_041","name":"Lunch Rush Rock","description":"Energized rock to clear tables","categories":["restaurant"]},
-    {"id":"syb_042","name":"Dinner Rush Rock","description":"High energy rock","categories":["restaurant"]},
-    {"id":"syb_043","name":"Mellow Restaurant Mix","description":"Calming acoustic soul for quieter settings","categories":["restaurant"]},
-    {"id":"syb_044","name":"Fine Dining Indie","description":"Elegant and breezy indie pop","categories":["restaurant"]},
-    {"id":"syb_045","name":"Soul Food","description":"Let the soul shine through","categories":["restaurant"]},
-    {"id":"syb_046","name":"Paris Cuisine","description":"French indie pop for the modern cuisine","categories":["restaurant"]},
-    {"id":"syb_047","name":"Restaurant Piano","description":"Instrumental piano for the dining room","categories":["restaurant"]},
-    {"id":"syb_048","name":"Fine Dining Lounge","description":"Elegant lounge for fine restaurants","categories":["restaurant"]},
-    {"id":"syb_049","name":"Soulful Brunch","description":"Neo-soul and R&B for brunch vibes","categories":["restaurant"]},
-    {"id":"syb_050","name":"Brunch Goldies","description":"Classic hits for weekend brunch","categories":["restaurant"]},
-    {"id":"syb_051","name":"Jazzy Brunch","description":"Light jazz for morning dining","categories":["restaurant"]},
-    {"id":"syb_052","name":"Jazzy Dinner","description":"Sophisticated jazz for evening dining","categories":["restaurant"]},
-    {"id":"syb_053","name":"Romantic Dinner","description":"Intimate soul and jazz for date night","categories":["restaurant"]},
-    {"id":"syb_054","name":"Happy Dinner Classics","description":"Feel-good classics for dinner time","categories":["restaurant"]},
-    {"id":"syb_055","name":"Late Night Dining","description":"Deep house for late evening restaurants","categories":["restaurant"]},
-    {"id":"syb_056","name":"Bossa Nova Dinner","description":"Brazilian bossa nova for dinner","categories":["restaurant"]},
-    {"id":"syb_057","name":"Italian American Restaurant","description":"Italian American classics","categories":["restaurant"]},
-    {"id":"syb_058","name":"Italian Restaurant","description":"Italian pop and classics","categories":["restaurant"]},
-    {"id":"syb_059","name":"French Bistro","description":"French chanson and indie pop","categories":["restaurant"]},
-    {"id":"syb_060","name":"Greek Restaurant","description":"Traditional Greek music","categories":["restaurant"]},
-    {"id":"syb_061","name":"Mexican Restaurant","description":"Mexican folk and Latin pop","categories":["restaurant"]},
-    {"id":"syb_062","name":"Chinese Restaurant","description":"Traditional Chinese instrumental music","categories":["restaurant"]},
-    {"id":"syb_063","name":"Korean Kitchen","description":"Modern K-pop and Korean indie","categories":["restaurant"]},
-    {"id":"syb_064","name":"Grill Piano Covers","description":"Piano covers for steakhouses","categories":["restaurant"]},
-    {"id":"syb_065","name":"Family Style Steakhouse","description":"Classic rock for family dining","categories":["restaurant"]},
-    {"id":"syb_066","name":"Dinner Grooves","description":"Groovy dinner beats","categories":["restaurant"]},
-    {"id":"syb_067","name":"Indian Fine Dining","description":"Indian classical and fusion","categories":["restaurant"]},
-    {"id":"syb_068","name":"Fine Dining Classical","description":"Classical music for upscale restaurants","categories":["restaurant"]},
-    {"id":"syb_069","name":"Cozy Dining","description":"Warm acoustic for intimate restaurants","categories":["restaurant"]},
-    {"id":"syb_070","name":"Burger Rock","description":"Rock for burger joints","categories":["restaurant"]},
-    {"id":"syb_071","name":"Breakfast Diner","description":"Morning classics for diners","categories":["restaurant"]},
-    {"id":"syb_072","name":"50s Diner","description":"1950s rock and roll classics","categories":["restaurant"]},
-    {"id":"syb_073","name":"Retro Diner","description":"Retro hits for classic diners","categories":["restaurant"]},
-    {"id":"syb_074","name":"Greasy Spoon","description":"Blues and rock for roadside diners","categories":["restaurant"]},
-    {"id":"syb_075","name":"Country Diner","description":"Country music for southern diners","categories":["restaurant"]},
-    {"id":"syb_076","name":"BBQ Country","description":"Country and southern rock for BBQ joints","categories":["restaurant"]},
-    {"id":"syb_077","name":"Afro Cuban Dining","description":"Afro-Cuban rhythms for dining","categories":["restaurant"]},
-    {"id":"syb_078","name":"Italo Disco Dinner","description":"Italian disco for fun dining","categories":["restaurant"]},
-    {"id":"syb_079","name":"Green & Organic","description":"Organic acoustic sounds for healthy dining","categories":["restaurant"]},
-    {"id":"syb_080","name":"Classic Bar Hits","description":"Half a century of classic party hits","categories":["bar"]},
-    {"id":"syb_081","name":"80s Bar Hits","description":"The top of the pops from the 80s","categories":["bar"]},
-    {"id":"syb_082","name":"Happy Hour Hits","description":"Casual hits for the after work crowd","categories":["bar"]},
-    {"id":"syb_083","name":"Dive Bar Indie Hits","description":"A mix of timeless indie pop and rock hits","categories":["bar"]},
-    {"id":"syb_084","name":"Cocktail Hour","description":"Elegant mix of pop, soul and disco for mingling","categories":["bar"]},
-    {"id":"syb_085","name":"90s Bar Hits","description":"The greatest party hits from the 90s","categories":["bar"]},
-    {"id":"syb_086","name":"Bar Dance Hits","description":"Turn up the heat with 20 years of dance hits","categories":["bar"]},
-    {"id":"syb_087","name":"Craft Beer Rock","description":"Indie and rock for rustic city bars","categories":["bar"]},
-    {"id":"syb_088","name":"Champagne Bar","description":"Airy indie pop for sipping bubbles","categories":["bar"]},
-    {"id":"syb_089","name":"Wine Bar Jazz","description":"Soft jazz for Merlots","categories":["bar"]},
-    {"id":"syb_090","name":"Natural Wine Bar","description":"Acoustic indie pop with an organic touch","categories":["bar"]},
-    {"id":"syb_091","name":"Whiskey Room","description":"Calm country and bourbon on the rocks","categories":["bar"]},
-    {"id":"syb_092","name":"Tequila Bar","description":"Modern Latin pop and reggaeton","categories":["bar"]},
-    {"id":"syb_093","name":"Grand Cru Wine Bar","description":"Elegant and modern French indie pop","categories":["bar"]},
-    {"id":"syb_094","name":"Quiz Night Indie","description":"A mix of classic and current indie hits","categories":["bar"]},
-    {"id":"syb_095","name":"Gameday Bangers","description":"Energetic hits from the last decades","categories":["bar"]},
-    {"id":"syb_096","name":"Speakeasy Jazz","description":"Mellow vintage style jazz for seasoned bars","categories":["bar"]},
-    {"id":"syb_097","name":"Rock Bar","description":"Classic uplifting rock for bars","categories":["bar"]},
-    {"id":"syb_098","name":"Cocktail Soul","description":"Smooth soul for cocktail bars","categories":["bar"]},
-    {"id":"syb_099","name":"Cocktail Lounge","description":"Elegant lounge for cocktail bars","categories":["bar"]},
-    {"id":"syb_100","name":"Jazz Bar","description":"Smooth and sophisticated bar jazz","categories":["bar"]},
-    {"id":"syb_101","name":"Sky Bar Vibes","description":"Upscale electronic for rooftop bars","categories":["bar"]},
-    {"id":"syb_102","name":"Hip Bar Grooves","description":"Hip hop and R&B grooves for trendy bars","categories":["bar"]},
-    {"id":"syb_103","name":"Jazz Piano Bar","description":"Piano jazz for intimate bars","categories":["bar"]},
-    {"id":"syb_104","name":"Piano Bar Hits","description":"Piano covers of popular hits","categories":["bar"]},
-    {"id":"syb_105","name":"Reggaeton Bar","description":"Latin reggaeton beats","categories":["bar"]},
-    {"id":"syb_106","name":"Tropical Beach Bar","description":"Tropical house and reggae for beach bars","categories":["bar"]},
-    {"id":"syb_107","name":"Balearic Beach Bar","description":"Balearic beats and chill house","categories":["bar"]},
-    {"id":"syb_108","name":"California Beach Bar","description":"West coast vibes and surf rock","categories":["bar"]},
-    {"id":"syb_109","name":"Italian Wine Bar","description":"Italian pop and jazz for wine bars","categories":["bar"]},
-    {"id":"syb_110","name":"Groovy Bar Mix","description":"Groovy funk and soul for bars","categories":["bar"]},
-    {"id":"syb_111","name":"R&B Bar Hits","description":"R&B hits for bars","categories":["bar"]},
-    {"id":"syb_112","name":"Day Spa Dreams","description":"Dreamy and peaceful spa music","categories":["spa"]},
-    {"id":"syb_113","name":"Zen Spa Music","description":"Zen-inspired ambient for deep relaxation","categories":["spa"]},
-    {"id":"syb_114","name":"Spa Instrumentals","description":"Soft instrumental music for spa treatments","categories":["spa"]},
-    {"id":"syb_115","name":"Spa Lounge","description":"Chilled lounge for spa waiting areas","categories":["spa"]},
-    {"id":"syb_116","name":"Piano Spa Music","description":"Gentle piano for spa relaxation","categories":["spa"]},
-    {"id":"syb_117","name":"Nature Ambient","description":"Natural soundscapes and ambient textures","categories":["spa"]},
-    {"id":"syb_118","name":"Peaceful Meditation","description":"Music for mindfulness and meditation","categories":["spa"]},
-    {"id":"syb_119","name":"Waiting Area Acoustic","description":"Acoustic music for spa reception","categories":["spa"]},
-    {"id":"syb_120","name":"Tropical Chill","description":"Tropical ambient for spa relaxation","categories":["spa"]},
-    {"id":"syb_121","name":"Waiting Area Bossa","description":"Bossa nova for spa waiting areas","categories":["spa"]},
-    {"id":"syb_122","name":"Relaxing Pool Sounds","description":"Water sounds and ambient for pool areas","categories":["spa"]},
-    {"id":"syb_123","name":"Waiting Area Piano","description":"Piano music for spa reception","categories":["spa"]},
-    {"id":"syb_124","name":"Poolside Beats","description":"Chilled house for a more energetic spa mood","categories":["spa"]},
-    {"id":"syb_125","name":"Boutique Spa","description":"Chilled electronic beats for chilled spa vibes","categories":["spa"]},
-    {"id":"syb_126","name":"Swedish Massage","description":"Soft Swedish singer-songwriters","categories":["spa"]},
-    {"id":"syb_127","name":"Ambient Spa","description":"Peaceful ambient for spa treatments","categories":["spa"]},
-    {"id":"syb_128","name":"Soothing Voices","description":"Immersive choral harmonies for calming spa experiences","categories":["spa"]},
-    {"id":"syb_129","name":"Peaceful Spa","description":"Relaxing piano music with nature sounds","categories":["spa"]},
-    {"id":"syb_130","name":"Reiki Treatment","description":"Dreamy music for reiki treatments","categories":["spa"]},
-    {"id":"syb_131","name":"Rain Sounds","description":"Gentle rain sounds for deep immersion","categories":["spa"]},
-    {"id":"syb_132","name":"Water Sounds","description":"Ocean waves and gentle splashes","categories":["spa"]},
-    {"id":"syb_133","name":"Nature Sounds","description":"Birds and forest ambience","categories":["spa"]},
-    {"id":"syb_134","name":"Jungle Sounds","description":"Noises of the rainforest","categories":["spa"]},
-    {"id":"syb_135","name":"Vinyasa Flow","description":"Gently pulsating beats for dynamic yoga sessions","categories":["spa"]},
-    {"id":"syb_136","name":"Classic Yoga","description":"Traditional ambient yoga sounds","categories":["spa"]},
-    {"id":"syb_137","name":"Guitar Meditation","description":"Beautiful and serene guitar music","categories":["spa"]},
-    {"id":"syb_138","name":"Piano Yoga","description":"Peaceful piano for yoga practice","categories":["spa"]},
-    {"id":"syb_139","name":"Hatha Yoga","description":"Calming music for hatha yoga","categories":["spa"]},
-    {"id":"syb_140","name":"Flute Meditation","description":"Serene flute music for meditation","categories":["spa"]},
-    {"id":"syb_141","name":"Indian Chill Lounge","description":"Indian-inspired chill and ambient","categories":["spa"]},
-    {"id":"syb_142","name":"Japanese Bathhouse","description":"Traditional Japanese ambient sounds","categories":["spa"]},
-    {"id":"syb_143","name":"Bossa Nova Spa","description":"Gentle bossa nova for spa relaxation","categories":["spa"]},
-    {"id":"syb_144","name":"Tibetan Bowls","description":"Tibetan singing bowls for deep relaxation","categories":["spa"]},
-    {"id":"syb_145","name":"Cafe Jazz","description":"Smooth jazz for coffee shops","categories":["cafe"]},
-    {"id":"syb_146","name":"Cozy Cafe","description":"Warm and inviting cafe music","categories":["cafe"]},
-    {"id":"syb_147","name":"Happy Retro Cafe","description":"Retro pop for cheerful cafes","categories":["cafe"]},
-    {"id":"syb_148","name":"Coffee Shop Beats","description":"Lo-fi beats for coffee shops","categories":["cafe","lounge"]},
-    {"id":"syb_149","name":"Feel-good Cafe","description":"Happy acoustic for bright cafes","categories":["cafe"]},
-    {"id":"syb_150","name":"Cafe Chillout","description":"Chilled beats for relaxed cafes","categories":["cafe","lounge"]},
-    {"id":"syb_151","name":"French Jazz Cafe","description":"French jazz for Parisian-style cafes","categories":["cafe"]},
-    {"id":"syb_152","name":"Brunch Grooves","description":"Groovy beats for weekend brunch","categories":["cafe"]},
-    {"id":"syb_153","name":"Happy Cafe","description":"Upbeat pop for cheerful cafes","categories":["cafe"]},
-    {"id":"syb_154","name":"LoFi Cafe","description":"Lo-fi hip hop for laid-back cafes","categories":["cafe"]},
-    {"id":"syb_155","name":"Cafe Grooves","description":"Groovy soul and funk for cafes","categories":["cafe"]},
-    {"id":"syb_156","name":"Guitar Cafe","description":"Acoustic guitar for cozy cafes","categories":["cafe"]},
-    {"id":"syb_157","name":"Afternoon Tea Classical","description":"Classical music for afternoon tea","categories":["cafe"]},
-    {"id":"syb_158","name":"Chinese Tea House","description":"Traditional Chinese tea house music","categories":["cafe"]},
-    {"id":"syb_159","name":"Instrumental Bossa Cafe","description":"Instrumental bossa nova for cafes","categories":["cafe"]},
-    {"id":"syb_160","name":"Cafe Piano","description":"Piano music for cafes","categories":["cafe"]},
-    {"id":"syb_161","name":"Acoustic Breakfast","description":"Acoustic music for morning cafes","categories":["cafe"]},
-    {"id":"syb_162","name":"Chill Vibes Cafe","description":"Chill beats for relaxed cafes","categories":["cafe"]},
-    {"id":"syb_163","name":"Afternoon Tea Jazz","description":"Jazz for afternoon tea service","categories":["cafe"]},
-    {"id":"syb_164","name":"Bubble Tea Cafe","description":"K-pop and Asian pop for bubble tea shops","categories":["cafe"]},
-    {"id":"syb_165","name":"Japanese Tea House","description":"Traditional Japanese music for tea rooms","categories":["cafe"]},
-    {"id":"syb_166","name":"French Cafe","description":"French chanson and indie for cafes","categories":["cafe"]},
-    {"id":"syb_167","name":"Italian Cafe","description":"Italian pop and classics for cafes","categories":["cafe"]},
-    {"id":"syb_168","name":"Desi Cafe Pop","description":"Indian pop for modern cafes","categories":["cafe"]},
-    {"id":"syb_169","name":"Cafe Africa","description":"African rhythms for vibrant cafes","categories":["cafe"]},
-    {"id":"syb_170","name":"Coffee Shop Reggae","description":"Reggae for laid-back coffee shops","categories":["cafe"]},
-    {"id":"syb_171","name":"Cafe Cubano","description":"Cuban music for lively cafes","categories":["cafe"]},
-    {"id":"syb_172","name":"Family-friendly Cafe","description":"Family-safe pop for cafes","categories":["cafe"]},
-    {"id":"syb_173","name":"Cafe Soul","description":"Soul music for cafes","categories":["cafe"]},
-    {"id":"syb_174","name":"Jazz Brunch","description":"Jazz for brunch service","categories":["cafe"]},
-    {"id":"syb_175","name":"Elegant Lounge","description":"Tasteful lounge music","categories":["lounge"]},
-    {"id":"syb_176","name":"Lofi Chill","description":"Soothing lo-fi beats","categories":["lounge"]},
-    {"id":"syb_177","name":"Can't Stop Chill Hop","description":"Jazzy chill hop instrumentals","categories":["lounge"]},
-    {"id":"syb_178","name":"Office Chill","description":"Soft instrumental lofi chill","categories":["lounge"]},
-    {"id":"syb_179","name":"House Lounging","description":"Modern lounge and house","categories":["lounge"]},
-    {"id":"syb_180","name":"Lounge Jazz","description":"Elegant and groovy","categories":["lounge"]},
-    {"id":"syb_181","name":"Lofi Beats","description":"Chilled beats for the mind and the soul","categories":["lounge"]},
-    {"id":"syb_182","name":"Chill Instrumental Beats","description":"Laidback lofi beats","categories":["lounge"]},
-    {"id":"syb_183","name":"Chill Out Music","description":"Play it cool with the best chill out tunes","categories":["lounge"]},
-    {"id":"syb_184","name":"Chill Vibes","description":"Turn down the energy to a minimum","categories":["lounge"]},
-    {"id":"syb_185","name":"Lounge Instrumentals","description":"Lounge music with no disturbing voices","categories":["lounge"]},
-    {"id":"syb_186","name":"Instrumental Evening","description":"Sunset chill hop beats","categories":["lounge"]},
-    {"id":"syb_187","name":"Modern Chill","description":"The current sound of lofi chill","categories":["lounge"]},
-    {"id":"syb_188","name":"LoFi Relax","description":"Chill lofi beats","categories":["lounge"]},
-    {"id":"syb_189","name":"Modern Electronica","description":"Bass music with a slow tempo","categories":["lounge"]},
-    {"id":"syb_190","name":"Feel-good Lofi","description":"Positive and chill background beats","categories":["lounge"]},
-    {"id":"syb_191","name":"Dreamy Electronica","description":"Indie beats and slow chillwave sounds","categories":["lounge"]},
-    {"id":"syb_192","name":"Deep Chill","description":"Sincerity in lofi","categories":["lounge"]},
-    {"id":"syb_193","name":"Trip Hop","description":"Downtempo, jazzy elegance","categories":["lounge"]},
-    {"id":"syb_194","name":"Electrotango","description":"Tango with an electronic twist","categories":["lounge"]},
-    {"id":"syb_195","name":"Ibiza Chillout","description":"Balearic chill and sunset house","categories":["lounge"]},
-    {"id":"syb_196","name":"Lay Low Lounge","description":"Ultra-relaxed lounge beats","categories":["lounge"]},
-    {"id":"syb_197","name":"Nu Jazz Breeze","description":"Modern nu-jazz and broken beats","categories":["lounge"]},
-    {"id":"syb_198","name":"Easy Listening","description":"Light and pleasant background music","categories":["lounge"]},
-    {"id":"syb_199","name":"Morning Lofi","description":"Gentle lofi for morning hours","categories":["lounge"]},
-    {"id":"syb_200","name":"Lofi Covers","description":"Lo-fi covers of popular songs","categories":["lounge"]},
-    {"id":"syb_201","name":"Jazz Vibes","description":"Modern jazz with hip hop influence","categories":["lounge"]},
-    {"id":"syb_202","name":"Jazzy Beats","description":"Jazz-infused lo-fi beats","categories":["lounge"]},
-    {"id":"syb_203","name":"Alt Electronica","description":"Alternative electronic music","categories":["lounge"]},
-    {"id":"syb_204","name":"Global House","description":"World-influenced house music","categories":["lounge"]},
-    {"id":"syb_205","name":"Soft Electronic","description":"Gentle electronic textures","categories":["lounge"]},
-    {"id":"syb_206","name":"Retail Beats","description":"Modern beats for retail spaces","categories":["lounge","store"]},
-    {"id":"syb_207","name":"Worldwide Lounge","description":"Global lounge sounds","categories":["lounge"]},
-    {"id":"syb_208","name":"Chillout Instrumental","description":"Instrumental chill music","categories":["lounge"]},
-    {"id":"syb_209","name":"Electronic Dreams","description":"Dreamy electronic soundscapes","categories":["lounge"]},
-    {"id":"syb_210","name":"Upbeat Lofi","description":"Energetic lo-fi beats","categories":["lounge"]},
-    {"id":"syb_211","name":"Focus Vibes","description":"Music for concentration","categories":["lounge"]},
-    {"id":"syb_212","name":"Dreamy Vibes","description":"Dreamlike ambient textures","categories":["lounge"]},
-    {"id":"syb_213","name":"Museum Chill","description":"Ambient for galleries and museums","categories":["lounge"]},
-    {"id":"syb_214","name":"Mall Lounge","description":"Background lounge for shopping malls","categories":["lounge"]},
-    {"id":"syb_215","name":"Lofi Instrumental","description":"Instrumental lo-fi beats","categories":["lounge"]},
-    {"id":"syb_216","name":"Elegant Store","description":"Instrumental bossa for an elegant atmosphere","categories":["store"]},
-    {"id":"syb_217","name":"Store Instrumentals","description":"Soft and grounded guitar instrumentals","categories":["store"]},
-    {"id":"syb_218","name":"Bookshop Jazz","description":"Soft instrumental paper back jazz","categories":["store"]},
-    {"id":"syb_219","name":"Pharmacy Pop","description":"Family-friendly current pop for drugstores","categories":["store"]},
-    {"id":"syb_220","name":"Market Hall Music","description":"Elegant and low-key shopping music","categories":["store"]},
-    {"id":"syb_221","name":"Rush Hour Pop","description":"High energy pop to move the crowd","categories":["store"]},
-    {"id":"syb_222","name":"Rush Hour Rock","description":"Uptempo rock to move the crowd","categories":["store"]},
-    {"id":"syb_223","name":"Mellow Store Mix","description":"Warm and calming acoustic soul tracks","categories":["store"]},
-    {"id":"syb_224","name":"Stylish Shopping","description":"Elegant fashion style jazz","categories":["store"]},
-    {"id":"syb_225","name":"Bookstore Indie","description":"Library pop for the bookshop","categories":["store"]},
-    {"id":"syb_226","name":"Classical Bookstore","description":"Classical piano pieces","categories":["store"]},
-    {"id":"syb_227","name":"Grocery Shopping Mix","description":"Acoustic and feelgood indie songs","categories":["store"]},
-    {"id":"syb_228","name":"Classical Boutique","description":"Classical music for fashion boutiques","categories":["store"]},
-    {"id":"syb_229","name":"Fashion Forward","description":"Trendy electronic for fashion retail","categories":["store"]},
-    {"id":"syb_230","name":"Streetwear Store","description":"Hip hop and urban beats for streetwear","categories":["store"]},
-    {"id":"syb_231","name":"Vintage Store","description":"Retro hits for vintage shops","categories":["store"]},
-    {"id":"syb_232","name":"Surf Shop","description":"Surf rock and beach vibes","categories":["store"]},
-    {"id":"syb_233","name":"Kids Store Pop","description":"Family-friendly pop for children's stores","categories":["store"]},
-    {"id":"syb_234","name":"Home Decor Acoustic","description":"Acoustic music for home stores","categories":["store"]},
-    {"id":"syb_235","name":"Luxury Retail","description":"Sophisticated electronic for luxury stores","categories":["store"]},
-    {"id":"syb_236","name":"Pet Store Pop","description":"Happy pop for pet stores","categories":["store"]},
-    {"id":"syb_237","name":"Garden Center","description":"Acoustic and folk for garden shops","categories":["store"]},
-    {"id":"syb_238","name":"Tech Store Beats","description":"Modern electronic for technology stores","categories":["store"]},
-    {"id":"syb_239","name":"Florist Acoustic","description":"Gentle acoustic for flower shops","categories":["store"]},
-    {"id":"syb_240","name":"Sneaker Store Beats","description":"Hip hop and beats for sneaker shops","categories":["store"]}
+    {
+      "id": "syb_001",
+      "name": "Grand Hotel Jazz",
+      "description": "Mellow jazz for a dandy hotel feeling",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW1iMmtpc3YyMHcvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_002",
+      "name": "Piano In The Lobby",
+      "description": "Elegant, instrumental piano covers",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXIyNXl3bGI0ZTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_003",
+      "name": "Hotel Lounge",
+      "description": "Low-key lounge music for the lobby",
+      "categories": [
+        "hotel",
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWVvNGtpYmhhMHcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_004",
+      "name": "Hotel Covers",
+      "description": "Acoustic covers for the lobby",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWw4Nm4xejY3MGcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_005",
+      "name": "Boutique Hotel",
+      "description": "Modern indie grooves for the vagabond",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWhkaHM0emcxczAvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_006",
+      "name": "Family-friendly Hotel",
+      "description": "Safe background music for all ears",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWF0ZWE2MHo1czAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_007",
+      "name": "Poolside Lounge",
+      "description": "Breezy lounge grooves and tropical house",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWp1Nmt4amloaGMvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_008",
+      "name": "Lobby House",
+      "description": "Low-key house beats",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWhsdjVwdTRhZ3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_009",
+      "name": "Lobby Lofi",
+      "description": "Lofi beats for a soothing lobby ambience",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw2QVVjaFI1a0c1MDV3T3o1VEhHd2NYLDAv"
+    },
+    {
+      "id": "syb_010",
+      "name": "Bossa in the Lobby",
+      "description": "Sophisticated sounds of bossa nova",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwzUHV0QURRTVhWRVpyZTFyNFFmVE5OLDAv"
+    },
+    {
+      "id": "syb_011",
+      "name": "Grand Hotel Classical",
+      "description": "Classical music for traditional elegancy",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWVoajR1Znk3N2svQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_012",
+      "name": "Elevator Music",
+      "description": "Soundtrack your ascent with easy listening music",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwySUN2TkJZZ25oUWx3bDNTdXJjdVFBLDAv"
+    },
+    {
+      "id": "syb_013",
+      "name": "Instrumental Hotel Jazz",
+      "description": "A nice blend of relaxed jazz",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwzS1o2Qm54MzlsMHZhSGVVckVwcWI2LDAv"
+    },
+    {
+      "id": "syb_014",
+      "name": "Zen Retreat",
+      "description": "Refuge for both body and mind",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWI5ZnNvbWJuNXMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_015",
+      "name": "Classical Suite",
+      "description": "Classical music for a grandiose ambience",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWpobWE4dDk1YTgvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_016",
+      "name": "Acoustic Lobby",
+      "description": "Happy acoustic pop",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWl3N2tyejNzM2svQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_017",
+      "name": "Concierge Jazz",
+      "description": "Elegant, easy-listening jazz",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWI4YXVqdjFjZTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_018",
+      "name": "Miami Beach Hotel",
+      "description": "A touch of Cuba in the hotel lobby",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW5xbDB2b2RyZW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_019",
+      "name": "Hawaii Hideaway",
+      "description": "Polynesian instrumental music",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXJxeWk5Z3loYTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_020",
+      "name": "Tropical Bungalow",
+      "description": "Sunny tropical house beats",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWcxY2xibWY2ZGMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_021",
+      "name": "Mexican Getaway",
+      "description": "Traditional mariachi and rancheras",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWIycG9oNWZyNDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_022",
+      "name": "Caribbean Resort",
+      "description": "Sunny getaway reggae",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWFwcDB4dXZ5MHcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_023",
+      "name": "Brazilian Retreat",
+      "description": "Elegant bossa nova for the hotel lobby",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWF2c3NkMWg5bW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_024",
+      "name": "Latin Heat Hotel",
+      "description": "Latin pop fire",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWIwYXVndnl5Mm8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_025",
+      "name": "Jazz in the Lobby",
+      "description": "Slow and cozy jazz",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwzd011WDFPdVBPczRnbm9vcm10bmwyLDAv"
+    },
+    {
+      "id": "syb_026",
+      "name": "Lobby Lounge Jazz",
+      "description": "Instrumental hotel jazz",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0SjI5ckR0NUxKTm15R0d6R0VCQk9NLDAv"
+    },
+    {
+      "id": "syb_027",
+      "name": "Cozy Bed & Breakfast",
+      "description": "Warm and soulful vibes",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWxxc3VhYncwemsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_028",
+      "name": "Hotel Beats",
+      "description": "Instrumental chill hop for an urban touch",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXBsbmF1a3Q5OGcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_029",
+      "name": "B&B Country",
+      "description": "Welcoming, low-key country music",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW10N2h4bjk4dTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_030",
+      "name": "Mellow Hotel Mix",
+      "description": "Modern jazz and soul with a relaxed touch",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw1d2NsdFBTOWs0UHpqaVdicklxWEtoLDAv"
+    },
+    {
+      "id": "syb_031",
+      "name": "Hotel Chill",
+      "description": "Chill lofi beats for the lobby",
+      "categories": [
+        "hotel"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0TjRxR0dSUWxTc0puODk1T3hSQml1LDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_032",
+      "name": "Dinner and Drinks",
+      "description": "An elegant and feel-good Friday mix",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXQxamh2YXV5Z3cvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_033",
+      "name": "Family-friendly Restaurant",
+      "description": "Easy going and inclusive pop",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWZxeDhhcmNnNzQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_034",
+      "name": "Brunch With Friends",
+      "description": "Groovy music for brunching",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWx4Z2Ntcm1wejQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_035",
+      "name": "Fast Food Pop",
+      "description": "Modern burger place pop",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWNhdW15dXNyZ2cvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_036",
+      "name": "Lunch Rush Pop",
+      "description": "High energy pop to clear tables",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXNnOTdxNHdpNjgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_037",
+      "name": "Feel-good Dining",
+      "description": "Happy acoustic pop and singer songwriter",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW5nY2JidDQ5MzQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_038",
+      "name": "Dinner Rush Pop",
+      "description": "Energetic and modern pop for busy hours",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWcyZXcyMmI2a2cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_039",
+      "name": "Food Court Pop",
+      "description": "Teen pop in between shopping",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXNmaGZzaW9ucGMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_040",
+      "name": "Timeless Energy",
+      "description": "Timeless music for the peak hours",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwxdzZYb3U5QWtmem5jdm5rc2Zaam9pLDAv"
+    },
+    {
+      "id": "syb_041",
+      "name": "Lunch Rush Rock",
+      "description": "Energized rock to clear tables",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXJsbmF6emEzbmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_042",
+      "name": "Dinner Rush Rock",
+      "description": "High energy rock",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWk5ZXFveGtwb2cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_043",
+      "name": "Mellow Restaurant Mix",
+      "description": "Calming acoustic soul for quieter settings",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0S21pNzNtemZoTmVOTVFhQlhmaERwLDAv"
+    },
+    {
+      "id": "syb_044",
+      "name": "Fine Dining Indie",
+      "description": "Elegant and breezy indie pop",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXJsNTIwZjdhaW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_045",
+      "name": "Soul Food",
+      "description": "Let the soul shine through",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW5sZmJwenN1ZjQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_046",
+      "name": "Paris Cuisine",
+      "description": "French indie pop for the modern cuisine",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXEydnY1Y2huOWMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_047",
+      "name": "Restaurant Piano",
+      "description": "Instrumental piano for the dining room",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWhsMDl6dmhsMzQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_048",
+      "name": "Fine Dining Lounge",
+      "description": "Elegant lounge for fine restaurants",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWI4Mzh1YzJzY2cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_049",
+      "name": "Soulful Brunch",
+      "description": "Neo-soul and R&B for brunch vibes",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwwM3Q2ek1JaW5xZlhNWXlBQzFnZHF0LDAv"
+    },
+    {
+      "id": "syb_050",
+      "name": "Brunch Goldies",
+      "description": "Classic hits for weekend brunch",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWxjYXlvcXJsa3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_051",
+      "name": "Jazzy Brunch",
+      "description": "Light jazz for morning dining",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMTltc3NubXQxcTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_052",
+      "name": "Jazzy Dinner",
+      "description": "Sophisticated jazz for evening dining",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWRucmlibXkxdmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_053",
+      "name": "Romantic Dinner",
+      "description": "Intimate soul and jazz for date night",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWp3eHBlcmg2djQvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_054",
+      "name": "Happy Dinner Classics",
+      "description": "Feel-good classics for dinner time",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXUydjExeXdqY3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_055",
+      "name": "Late Night Dining",
+      "description": "Deep house for late evening restaurants",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWU2MmE4N3ZlMm8vU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_056",
+      "name": "Bossa Nova Dinner",
+      "description": "Brazilian bossa nova for dinner",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWZnbzVzc2ExMzQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_057",
+      "name": "Italian American Restaurant",
+      "description": "Italian American classics",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw1bnYzRVBsS3hBTTdtUDd5WldPNGh4LDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_058",
+      "name": "Italian Restaurant",
+      "description": "Italian pop and classics",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWJscHI0cjdyNDAvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_059",
+      "name": "French Bistro",
+      "description": "French chanson and indie pop",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWpueTZodmtwYTgvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_060",
+      "name": "Greek Restaurant",
+      "description": "Traditional Greek music",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWRreDZpeDhqeTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_061",
+      "name": "Mexican Restaurant",
+      "description": "Mexican folk and Latin pop",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWY5MjdlbDg5b2cvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_062",
+      "name": "Chinese Restaurant",
+      "description": "Traditional Chinese instrumental music",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWp4eHhzcXd2N2svU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_063",
+      "name": "Korean Kitchen",
+      "description": "Modern K-pop and Korean indie",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXE0Y3Zsem9wdmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_064",
+      "name": "Grill Piano Covers",
+      "description": "Piano covers for steakhouses",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwyblN4SlE3OE53blF4UWJmdVVqMFFSLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_065",
+      "name": "Family Style Steakhouse",
+      "description": "Classic rock for family dining",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwwSUU3OE55dlZzRVVoNnNtNjRSaWtWLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_066",
+      "name": "Dinner Grooves",
+      "description": "Groovy dinner beats",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw2TTNEd25VQXcyWVhqZXhhdnBxbXZNLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_067",
+      "name": "Indian Fine Dining",
+      "description": "Indian classical and fusion",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwxcHpmSjNHZGdoT3lyYUk3bU5IdkFoLDAv"
+    },
+    {
+      "id": "syb_068",
+      "name": "Fine Dining Classical",
+      "description": "Classical music for upscale restaurants",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWR3cXl4cWdvdzAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_069",
+      "name": "Cozy Dining",
+      "description": "Warm acoustic for intimate restaurants",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWtocTJrMGRmazAvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_070",
+      "name": "Burger Rock",
+      "description": "Rock for burger joints",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW0wd21zbXFoYTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_071",
+      "name": "Breakfast Diner",
+      "description": "Morning classics for diners",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWtrdDN6MGN1ODAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_072",
+      "name": "50s Diner",
+      "description": "1950s rock and roll classics",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWFzcGFtZjNuY3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_073",
+      "name": "Retro Diner",
+      "description": "Retro hits for classic diners",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXJwand4dThybmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_074",
+      "name": "Greasy Spoon",
+      "description": "Blues and rock for roadside diners",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW5ldmNybW16bmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_075",
+      "name": "Country Diner",
+      "description": "Country music for southern diners",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWo5cDVkMmR1NjgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_076",
+      "name": "BBQ Country",
+      "description": "Country and southern rock for BBQ joints",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0RjFJQ2RpbktKOGdydFhuUm5KSVE2LDAv"
+    },
+    {
+      "id": "syb_077",
+      "name": "Afro Cuban Dining",
+      "description": "Afro-Cuban rhythms for dining",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwyZFVxMktBcVNqbDBTQWxTMFk2OXlXLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_078",
+      "name": "Italo Disco Dinner",
+      "description": "Italian disco for fun dining",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwxbFoyWVo5elRaN1FvcFFuN3BsM0VvLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_079",
+      "name": "Green & Organic",
+      "description": "Organic acoustic sounds for healthy dining",
+      "categories": [
+        "restaurant"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWU1YnZqZGI2cmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_080",
+      "name": "Classic Bar Hits",
+      "description": "Half a century of classic party hits",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWdibjh2ejg5YTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_081",
+      "name": "80s Bar Hits",
+      "description": "The top of the pops from the 80s",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWo2MnM0MmR5NGcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_082",
+      "name": "Happy Hour Hits",
+      "description": "Casual hits for the after work crowd",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwwQk5FTmI3WGdkM0tpczVOZUR0ZXlhLDAv"
+    },
+    {
+      "id": "syb_083",
+      "name": "Dive Bar Indie Hits",
+      "description": "A mix of timeless indie pop and rock hits",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWtzZXhnYjRsYzAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_084",
+      "name": "Cocktail Hour",
+      "description": "Elegant mix of pop, soul and disco for mingling",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXMwNTQ5cnQ1aGMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_085",
+      "name": "90s Bar Hits",
+      "description": "The greatest party hits from the 90s",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXJvOXFqaXlsbW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_086",
+      "name": "Bar Dance Hits",
+      "description": "Turn up the heat with 20 years of dance hits",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWppMHFnYnBrb3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_087",
+      "name": "Craft Beer Rock",
+      "description": "Indie and rock for rustic city bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWY3dHdscXMwbGMvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_088",
+      "name": "Champagne Bar",
+      "description": "Airy indie pop for sipping bubbles",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW1uaTMwZ3R1a2cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_089",
+      "name": "Wine Bar Jazz",
+      "description": "Soft jazz for Merlots",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW0yZmxzbXBpaW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_090",
+      "name": "Natural Wine Bar",
+      "description": "Acoustic indie pop with an organic touch",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWJ1MGFlM3p1Z3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_091",
+      "name": "Whiskey Room",
+      "description": "Calm country and bourbon on the rocks",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWlneTdhMTJ1aW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_092",
+      "name": "Tequila Bar",
+      "description": "Modern Latin pop and reggaeton",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWRkemkzOGgzaTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_093",
+      "name": "Grand Cru Wine Bar",
+      "description": "Elegant and modern French indie pop",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWpsZXd4ZjJwZHMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_094",
+      "name": "Quiz Night Indie",
+      "description": "A mix of classic and current indie hits",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXJjZjh3MzY0bjQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_095",
+      "name": "Gameday Bangers",
+      "description": "Energetic hits from the last decades",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW14aDlrZWoyODAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_096",
+      "name": "Speakeasy Jazz",
+      "description": "Mellow vintage style jazz for seasoned bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWtvamJoNGJnZzAvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_097",
+      "name": "Rock Bar",
+      "description": "Classic uplifting rock for bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXFzZWV4bHNoZHMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_098",
+      "name": "Cocktail Soul",
+      "description": "Smooth soul for cocktail bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwya2o1RmhrUHo1OEIxVEhwN0dKTUpPLDAv"
+    },
+    {
+      "id": "syb_099",
+      "name": "Cocktail Lounge",
+      "description": "Elegant lounge for cocktail bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW83dGRyYmYyODAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_100",
+      "name": "Jazz Bar",
+      "description": "Smooth and sophisticated bar jazz",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXMyNDdzeThybmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_101",
+      "name": "Sky Bar Vibes",
+      "description": "Upscale electronic for rooftop bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWYxNzRndzZodmsvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_102",
+      "name": "Hip Bar Grooves",
+      "description": "Hip hop and R&B grooves for trendy bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWs2YXpsNHZkdmsvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_103",
+      "name": "Jazz Piano Bar",
+      "description": "Piano jazz for intimate bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW5idGFwNG5iNDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_104",
+      "name": "Piano Bar Hits",
+      "description": "Piano covers of popular hits",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWNmN2E4ZzR0dHMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_105",
+      "name": "Reggaeton Bar",
+      "description": "Latin reggaeton beats",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWNwNGVicWF1cHMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_106",
+      "name": "Tropical Beach Bar",
+      "description": "Tropical house and reggae for beach bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW82cGQ2emlkajQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_107",
+      "name": "Balearic Beach Bar",
+      "description": "Balearic beats and chill house",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWRqNzI5aThoZHMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_108",
+      "name": "California Beach Bar",
+      "description": "West coast vibes and surf rock",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMThpYmx1d2ozZW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_109",
+      "name": "Italian Wine Bar",
+      "description": "Italian pop and jazz for wine bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw3cmZLdVViYWZWV1lwUm54UGFObldVLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_110",
+      "name": "Groovy Bar Mix",
+      "description": "Groovy funk and soul for bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0WTVnamhCTFI3ODlGRXE1Q3RmM3c1LDAv"
+    },
+    {
+      "id": "syb_111",
+      "name": "R&B Bar Hits",
+      "description": "R&B hits for bars",
+      "categories": [
+        "bar"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw1NFpXYXJCWE9mc05nS0xzUkZUU1ZQLDAv"
+    },
+    {
+      "id": "syb_112",
+      "name": "Day Spa Dreams",
+      "description": "Dreamy and peaceful spa music",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWtoanhxZGlyY3cvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_113",
+      "name": "Zen Spa Music",
+      "description": "Zen-inspired ambient for deep relaxation",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWZjZ2tqYWJuNXMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_114",
+      "name": "Spa Instrumentals",
+      "description": "Soft instrumental music for spa treatments",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWFiMzczbnd3bGMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_115",
+      "name": "Spa Lounge",
+      "description": "Chilled lounge for spa waiting areas",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwyajVVSk4xQUNwNkJMeXFtSUtiNk1HLDAv"
+    },
+    {
+      "id": "syb_116",
+      "name": "Piano Spa Music",
+      "description": "Gentle piano for spa relaxation",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWVpMGgxcWk2bTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_117",
+      "name": "Nature Ambient",
+      "description": "Natural soundscapes and ambient textures",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXJpZGk4bjQ5aGMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_118",
+      "name": "Peaceful Meditation",
+      "description": "Music for mindfulness and meditation",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXE0bHNiYWRrb3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_119",
+      "name": "Waiting Area Acoustic",
+      "description": "Acoustic music for spa reception",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0YWtjUlhWd0x3U0VKaEtMVENIejdBLDAv"
+    },
+    {
+      "id": "syb_120",
+      "name": "Tropical Chill",
+      "description": "Tropical ambient for spa relaxation",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw3dnYwRlc1M1dBZERWM3V4QldyU3U4LDAv"
+    },
+    {
+      "id": "syb_121",
+      "name": "Waiting Area Bossa",
+      "description": "Bossa nova for spa waiting areas",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw3QjNoREloWEl5Q09GSDRxRktoU3UxLDAv"
+    },
+    {
+      "id": "syb_122",
+      "name": "Relaxing Pool Sounds",
+      "description": "Water sounds and ambient for pool areas",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWFqMTRkNWd3NzQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_123",
+      "name": "Waiting Area Piano",
+      "description": "Piano music for spa reception",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwyVkxkREZjOWZBcnRpYml6bFVFOTh5LDAv"
+    },
+    {
+      "id": "syb_124",
+      "name": "Poolside Beats",
+      "description": "Chilled house for a more energetic spa mood",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw2emxmYUduTGdSYkFvMzY0azl2SmYzLDAv"
+    },
+    {
+      "id": "syb_125",
+      "name": "Boutique Spa",
+      "description": "Chilled electronic beats for chilled spa vibes",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwzaUdPcXVZN2ZXR2VtaDZCekhadzRWLDAv"
+    },
+    {
+      "id": "syb_126",
+      "name": "Swedish Massage",
+      "description": "Soft Swedish singer-songwriters",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw2VXZOdlZGeHNNSWs0ejlycDVVU09GLDAv"
+    },
+    {
+      "id": "syb_127",
+      "name": "Ambient Spa",
+      "description": "Peaceful ambient for spa treatments",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0d1VvSkJMNVQzQ0VpdEhPYU9wdnd0LDAv"
+    },
+    {
+      "id": "syb_128",
+      "name": "Soothing Voices",
+      "description": "Immersive choral harmonies for calming spa experiences",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwwS0JXa1NRbGR6c0lXamo2b2o3bzF4LDAv"
+    },
+    {
+      "id": "syb_129",
+      "name": "Peaceful Spa",
+      "description": "Relaxing piano music with nature sounds",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0QU9mSnJxUFFCREFmMTYxU1F0Q3BJLDAv"
+    },
+    {
+      "id": "syb_130",
+      "name": "Reiki Treatment",
+      "description": "Dreamy music for reiki treatments",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMTk2MXQ4bmhjZTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_131",
+      "name": "Rain Sounds",
+      "description": "Gentle rain sounds for deep immersion",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW45d3QxazlzZTgvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_132",
+      "name": "Water Sounds",
+      "description": "Ocean waves and gentle splashes",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXAyOTRnNXdnZTgvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_133",
+      "name": "Nature Sounds",
+      "description": "Birds and forest ambience",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWo0bzhoeDQwZTgvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_134",
+      "name": "Jungle Sounds",
+      "description": "Noises of the rainforest",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWs2MnkzZDYwYW8vU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_135",
+      "name": "Vinyasa Flow",
+      "description": "Gently pulsating beats for dynamic yoga sessions",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWx4N3ZybnJnbjQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_136",
+      "name": "Classic Yoga",
+      "description": "Traditional ambient yoga sounds",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWp0NzhyYXdqY3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_137",
+      "name": "Guitar Meditation",
+      "description": "Beautiful and serene guitar music",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWo3cjM0OWR0a3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_138",
+      "name": "Piano Yoga",
+      "description": "Peaceful piano for yoga practice",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMThzbnNvc3U4MDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_139",
+      "name": "Hatha Yoga",
+      "description": "Calming music for hatha yoga",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWhoOW90bXQ5bW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_140",
+      "name": "Flute Meditation",
+      "description": "Serene flute music for meditation",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWtremlweTZuMGcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_141",
+      "name": "Indian Chill Lounge",
+      "description": "Indian-inspired chill and ambient",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwxM3Ztd1dyTHhCUFVUc0hBN3g5M3dSLDAv"
+    },
+    {
+      "id": "syb_142",
+      "name": "Japanese Bathhouse",
+      "description": "Traditional Japanese ambient sounds",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXF3dnA0ZDJxa2cvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_143",
+      "name": "Bossa Nova Spa",
+      "description": "Gentle bossa nova for spa relaxation",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwzWnJvc2R2WlNqT1k5NkNYc3ZHbzc4LDAv"
+    },
+    {
+      "id": "syb_144",
+      "name": "Tibetan Bowls",
+      "description": "Tibetan singing bowls for deep relaxation",
+      "categories": [
+        "spa"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWk2bGJkOHVoaGMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_145",
+      "name": "Café Jazz",
+      "description": "Smooth jazz for coffee shops",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWs4bHNjMHdxdjQvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_146",
+      "name": "Cozy Café",
+      "description": "Warm and inviting cafe music",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwxTzRoTGNsTTcweGxpTXo1Y0xaUFA3LDAv"
+    },
+    {
+      "id": "syb_147",
+      "name": "Happy Retro Café",
+      "description": "Retro pop for cheerful cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXFqNXVpeHlqZ2cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_148",
+      "name": "Coffee Shop Beats",
+      "description": "Lo-fi beats for coffee shops",
+      "categories": [
+        "cafe",
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW1xam9ncjR4ejQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_149",
+      "name": "Feel-good Café",
+      "description": "Happy acoustic for bright cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW9odm0yY2licjQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_150",
+      "name": "Café Chillout",
+      "description": "Chilled beats for relaxed cafes",
+      "categories": [
+        "cafe",
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW9sb2VzbjlmeTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_151",
+      "name": "French Jazz Café",
+      "description": "French jazz for Parisian-style cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWNlMjhlYXJxYmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_152",
+      "name": "Brunch Grooves",
+      "description": "Groovy beats for weekend brunch",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW1hcjZ3eGhxODAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_153",
+      "name": "Happy Café",
+      "description": "Upbeat pop for cheerful cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMThyaWJvMXAwamsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_154",
+      "name": "LoFi Café",
+      "description": "Lo-fi hip hop for laid-back cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW83YzFxb2xjMDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_155",
+      "name": "Café Grooves",
+      "description": "Groovy soul and funk for cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0d3ZBV3hoSXpyWXZUbVdFYVJlNlo2LDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_156",
+      "name": "Guitar Café",
+      "description": "Acoustic guitar for cozy cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw1MUdkQ1N2aFlzWTNQcW1uMkE0SjZSLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_157",
+      "name": "Afternoon Tea Classical",
+      "description": "Classical music for afternoon tea",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw1REpEc2hwWmZyUmk0SWlIUkVUbEwwLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_158",
+      "name": "Chinese Tea House",
+      "description": "Traditional Chinese tea house music",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw3aVpmQXBuQVpaOThERlZpVGJMRjlJLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_159",
+      "name": "Instrumental Bossa Café",
+      "description": "Instrumental bossa nova for cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0WWROaVQ4UEdMOGlYcHg5S0xwZzZPLDAv"
+    },
+    {
+      "id": "syb_160",
+      "name": "Café Piano",
+      "description": "Piano music for cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXVjejJwd2NtYmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_161",
+      "name": "Acoustic Breakfast",
+      "description": "Acoustic music for morning cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMTluZDVpb3VuMGcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_162",
+      "name": "Chill Vibes Café",
+      "description": "Chill beats for relaxed cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwwaWI4MFdwM0YyaGk3VWdOWDI5Ujg3LDAv"
+    },
+    {
+      "id": "syb_163",
+      "name": "Afternoon Tea Jazz",
+      "description": "Jazz for afternoon tea service",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw1QzdDS216N1lNdXZkbXlpbUV6WFd5LDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_164",
+      "name": "Bubble Tea Café",
+      "description": "K-pop and Asian pop for bubble tea shops",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWczcGhwOXMzeTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_165",
+      "name": "Japanese Tea House",
+      "description": "Traditional Japanese music for tea rooms",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw3bWZUbVhlOGZ3NWVrYnkxcHdXYzJwLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_166",
+      "name": "French Café",
+      "description": "French chanson and indie for cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWFzN3p1YmI0c2cvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_167",
+      "name": "Italian Café",
+      "description": "Italian pop and classics for cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWJ2d3V3MGhxZjQvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_168",
+      "name": "Desi Café Pop",
+      "description": "Indian pop for modern cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwyQXBiZTgxdmtPNWVOMmZ0NWhIOVdyLDAv"
+    },
+    {
+      "id": "syb_169",
+      "name": "Café Africa",
+      "description": "African rhythms for vibrant cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWtjajJyMHJ1bzAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_170",
+      "name": "Coffee Shop Reggae",
+      "description": "Reggae for laid-back coffee shops",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWtxOGp1NmkwYW8vU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_171",
+      "name": "Café Cubano",
+      "description": "Cuban music for lively cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWoxenVwZWFtMHcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_172",
+      "name": "Family-friendly Café",
+      "description": "Family-safe pop for cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWNmazM4bHJkMzQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_173",
+      "name": "Café Soul",
+      "description": "Soul music for cafes",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXRrOXg2Y2xoajQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_174",
+      "name": "Jazz Brunch",
+      "description": "Jazz for brunch service",
+      "categories": [
+        "cafe"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW10NTZpdXRncW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_175",
+      "name": "Elegant Lounge",
+      "description": "Tasteful lounge music",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXByYXRkaG0wYW8vU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_176",
+      "name": "Lofi Chill",
+      "description": "Soothing lo-fi beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwweGNUbEZQT1JqZEJaUlJIS1B3QWhqLDAv"
+    },
+    {
+      "id": "syb_177",
+      "name": "Can't Stop Chill Hop",
+      "description": "Jazzy chill hop instrumentals",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWh1MHdvOThkbW8vU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_178",
+      "name": "Office Chill",
+      "description": "Soft instrumental lofi chill",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWJyN2p4aXZxd3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_179",
+      "name": "House Lounging",
+      "description": "Modern lounge and house",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWUxZ2pkdm1naHMvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_180",
+      "name": "Lounge Jazz",
+      "description": "Elegant and groovy",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW1kOGhuemxjNzQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_181",
+      "name": "Lofi Beats",
+      "description": "Chilled beats for the mind and the soul",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWNuejVjenY4amsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_182",
+      "name": "Chill Instrumental Beats",
+      "description": "Laidback lofi beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0UDQydVpzeW9uS3U4S1JtZFNITllJLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_183",
+      "name": "Chill Out Music",
+      "description": "Play it cool with the best chill out tunes",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXRydnN3NDNobW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_184",
+      "name": "Chill Vibes",
+      "description": "Turn down the energy to a minimum",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWJqdTV5cnliNXMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_185",
+      "name": "Lounge Instrumentals",
+      "description": "Lounge music with no disturbing voices",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWsxczh5ZTlwbW8vU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_186",
+      "name": "Instrumental Evening",
+      "description": "Sunset chill hop beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWFuemF3dWswemsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_187",
+      "name": "Modern Chill",
+      "description": "The current sound of lofi chill",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXRxYndhZGFycjQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_188",
+      "name": "LoFi Relax",
+      "description": "Chill lofi beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwyQ0xTQVpDSzJkajlIOXl3REdjeTd1LDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_189",
+      "name": "Modern Electronica",
+      "description": "Bass music with a slow tempo",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW9maHcwZ2ttcHMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_190",
+      "name": "Feel-good Lofi",
+      "description": "Positive and chill background beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwzbUFSWFZISXZmS1FpZ0VxekEweURpLDAv"
+    },
+    {
+      "id": "syb_191",
+      "name": "Dreamy Electronica",
+      "description": "Indie beats and slow chillwave sounds",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWloZDJudGx6aTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_192",
+      "name": "Deep Chill",
+      "description": "Sincerity in lofi",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW96azQ0b2pzb3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_193",
+      "name": "Trip Hop",
+      "description": "Downtempo, jazzy elegance",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw0VlExZkU1aFp6dzB5cFFpMjRLUTEwLDAv"
+    },
+    {
+      "id": "syb_194",
+      "name": "Electrotango",
+      "description": "Tango with an electronic twist",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWx4eHdtZGxxdGMvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_195",
+      "name": "Ibiza Chillout",
+      "description": "Balearic chill and sunset house",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMTljNTZwMDBpNjgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_196",
+      "name": "Lay Low Lounge",
+      "description": "Ultra-relaxed lounge beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWoxYnNrc2pyd2cvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_197",
+      "name": "Nu Jazz Breeze",
+      "description": "Modern nu-jazz and broken beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWwwaDNvMG81NHcvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_198",
+      "name": "Easy Listening",
+      "description": "Light and pleasant background music",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw2ZGNUMlB0SW03TGVqSW00c2V0Mm5aLDAv"
+    },
+    {
+      "id": "syb_199",
+      "name": "Morning Lofi",
+      "description": "Gentle lofi for morning hours",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw2WUdDYmx6TEtrUXd4a2VyeWlKR3B2LDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_200",
+      "name": "Lofi Covers",
+      "description": "Lo-fi covers of popular songs",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXF2eHBibHc3cGMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_201",
+      "name": "Jazz Vibes",
+      "description": "Modern jazz with hip hop influence",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWc0a2t0dmttNGcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_202",
+      "name": "Jazzy Beats",
+      "description": "Jazz-infused lo-fi beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwxbUhOakxld0M1Zk9oTHhGUnZrWWQ2LDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_203",
+      "name": "Alt Electronica",
+      "description": "Alternative electronic music",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXJ6cGV6M2huZ2cvU3lzdGVtLHN5c3RlbSwwLw.."
+    },
+    {
+      "id": "syb_204",
+      "name": "Global House",
+      "description": "World-influenced house music",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWdieXlrbTU4ZzAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_205",
+      "name": "Soft Electronic",
+      "description": "Gentle electronic textures",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWJndHVicWxxbTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_206",
+      "name": "Retail Beats",
+      "description": "Modern beats for retail spaces",
+      "categories": [
+        "lounge",
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW0ycWkwOHI2NjgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_207",
+      "name": "Worldwide Lounge",
+      "description": "Global lounge sounds",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXNyaHNraDBwMzQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_208",
+      "name": "Chillout Instrumental",
+      "description": "Instrumental chill music",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW05anFtdDRtaW8vQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_209",
+      "name": "Electronic Dreams",
+      "description": "Dreamy electronic soundscapes",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWhwb3l3bTByOWMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_210",
+      "name": "Upbeat Lofi",
+      "description": "Energetic lo-fi beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwyTXZhM2FKaFJWR3BNUGRKcmVlWHByLDAv"
+    },
+    {
+      "id": "syb_211",
+      "name": "Focus Vibes",
+      "description": "Music for concentration",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWR4ZHR1MjkycHMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_212",
+      "name": "Dreamy Vibes",
+      "description": "Dreamlike ambient textures",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWFzZmR4eDI2MHcvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_213",
+      "name": "Museum Chill",
+      "description": "Ambient for galleries and museums",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwzZ1FQdVF6TFMxNTBSRHd0eWxyS1lqLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_214",
+      "name": "Mall Lounge",
+      "description": "Background lounge for shopping malls",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw1VzNYbHpLSHg5eTRjSFdDMnB6RjVCLDAv"
+    },
+    {
+      "id": "syb_215",
+      "name": "Lofi Instrumental",
+      "description": "Instrumental lo-fi beats",
+      "categories": [
+        "lounge"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWpxMG55ZjF3NWMvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_216",
+      "name": "Elegant Store",
+      "description": "Instrumental bossa for an elegant atmosphere",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiw1ZDIydDRRdTNwUElNVnlKYnhBR1p2LDAv"
+    },
+    {
+      "id": "syb_217",
+      "name": "Store Instrumentals",
+      "description": "Soft and grounded guitar instrumentals",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWdwY3RtY3U5a3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_218",
+      "name": "Bookshop Jazz",
+      "description": "Soft instrumental paper back jazz",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwyaTVoR1U3dGFGUjJYY3RFUE1Bd1pxLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_219",
+      "name": "Pharmacy Pop",
+      "description": "Family-friendly current pop for drugstores",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwwWlJ3bEFna1BYZ1ZsbVpJS3Q1YUdxLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_220",
+      "name": "Market Hall Music",
+      "description": "Elegant and low-key shopping music",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWlpY2ozOXBsdmsvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_221",
+      "name": "Rush Hour Pop",
+      "description": "High energy pop to move the crowd",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXF4Zno4bTc1ejQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_222",
+      "name": "Rush Hour Rock",
+      "description": "Uptempo rock to move the crowd",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW91dTYyejJrbjQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_223",
+      "name": "Mellow Store Mix",
+      "description": "Warm and calming acoustic soul tracks",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwwOWZhTjUzQnZUQkRyNkU3QmRLV0xtLDAv"
+    },
+    {
+      "id": "syb_224",
+      "name": "Stylish Shopping",
+      "description": "Elegant fashion style jazz",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWZnczdsaWY1a3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_225",
+      "name": "Bookstore Indie",
+      "description": "Library pop for the bookshop",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMXRyYnc2MmZucjQvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_226",
+      "name": "Classical Bookstore",
+      "description": "Classical piano pieces",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwyUDZtS1g5ZG1JODZkZWlxRnJIMEVhLDAvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_227",
+      "name": "Grocery Shopping Mix",
+      "description": "Acoustic and feelgood indie songs",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMWx3eGg2Z3hla2cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    },
+    {
+      "id": "syb_228",
+      "name": "Classical Boutique",
+      "description": "Classical music for fashion boutiques",
+      "categories": [
+        "store"
+      ],
+      "sybId": "Q29sbGVjdGlvbiwsMW1iaTF2NHo3Y3cvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw.."
+    }
   ]
 }
