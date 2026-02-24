@@ -1250,6 +1250,215 @@ body.chat-active {
     background: var(--bg-elevated);
   }
 }
+
+/* ============ Structured Questionnaire ============ */
+.sq-card {
+  padding: 20px 24px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  border-top-left-radius: 4px;
+  margin-left: 36px;
+  position: relative;
+  animation: msgIn var(--dur-slow) var(--ease-out);
+}
+.sq-card::after {
+  content: '';
+  position: absolute;
+  left: -36px;
+  bottom: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.sq-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sq-question {
+  font-size: 15px;
+  font-weight: 500;
+  color: #e5e7eb;
+  line-height: 1.5;
+}
+.sq-pagination {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.sq-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 0;
+}
+.sq-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
+  width: 100%;
+}
+.sq-option:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.16);
+  transform: translateX(4px);
+}
+.sq-option:active {
+  transform: translateX(2px) scale(0.99);
+}
+.sq-option-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: all var(--dur-fast) ease;
+}
+.sq-option:hover .sq-option-num {
+  background: rgba(239,166,52,0.15);
+  border-color: rgba(239,166,52,0.3);
+  color: var(--brand-orange);
+}
+.sq-option-content {
+  flex: 1;
+  min-width: 0;
+}
+.sq-option-label {
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+}
+.sq-option-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.sq-option.selected {
+  background: rgba(239,166,52,0.12);
+  border-color: rgba(239,166,52,0.4);
+}
+.sq-option.selected .sq-option-num {
+  background: var(--brand-orange);
+  border-color: var(--brand-orange);
+  color: #fff;
+}
+.sq-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.sq-custom-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sq-custom-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  transition: all var(--dur-fast) ease;
+}
+.sq-custom-input::placeholder { color: var(--text-muted); }
+.sq-custom-input:focus {
+  outline: none;
+  border-color: rgba(239,166,52,0.5);
+  background: rgba(255,255,255,0.06);
+}
+.sq-skip-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--dur-fast) ease;
+  flex-shrink: 0;
+}
+.sq-skip-btn:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-secondary);
+}
+.sq-confirm-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--brand-orange);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--dur-fast) ease;
+  flex-shrink: 0;
+  opacity: 0.4;
+  pointer-events: none;
+}
+.sq-confirm-btn.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sq-confirm-btn:hover {
+  background: #d99530;
+  box-shadow: 0 0 12px rgba(239,166,52,0.3);
+}
+/* Answered state */
+.sq-card.sq-answered {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.sq-card.sq-answered .sq-option:not(.selected) {
+  opacity: 0.3;
+}
+/* Mobile */
+@media (max-width: 640px) {
+  .sq-card { margin-left: 0; padding: 16px; }
+  .sq-card::after { display: none; }
+  .sq-option { padding: 10px 14px; }
+  .sq-option-num { width: 24px; height: 24px; font-size: 11px; }
+  .sq-question { font-size: 14px; }
+  .sq-footer { flex-wrap: wrap; }
+}
 </style>
 </head>
 <body>
@@ -1431,6 +1640,9 @@ const i18n = {
     chip_event_desc: 'Curate the atmosphere for a one-time occasion',
     chip_update_desc: 'Refresh or refine your existing playlist',
     input_hint: 'Mention specific artists, genres, or describe the atmosphere you envision',
+    sq_other: 'Something else...',
+    sq_skip: 'Skip',
+    sq_confirm: 'Confirm selection',
   },
   th: {
     title: '\u0e1c\u0e39\u0e49\u0e0a\u0e48\u0e27\u0e22\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e25\u0e07',
@@ -1468,6 +1680,9 @@ const i18n = {
     chip_event_desc: '\u0e04\u0e31\u0e14\u0e2a\u0e23\u0e23\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e07\u0e32\u0e19\u0e1e\u0e34\u0e40\u0e28\u0e29',
     chip_update_desc: '\u0e1b\u0e23\u0e31\u0e1a\u0e1b\u0e23\u0e38\u0e07\u0e2b\u0e23\u0e37\u0e2d\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e21\u0e35\u0e2d\u0e22\u0e39\u0e48',
     input_hint: '\u0e23\u0e30\u0e1a\u0e38\u0e28\u0e34\u0e25\u0e1b\u0e34\u0e19 \u0e41\u0e19\u0e27\u0e40\u0e1e\u0e25\u0e07 \u0e2b\u0e23\u0e37\u0e2d\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23',
+    sq_other: '\u0e2d\u0e37\u0e48\u0e19\u0e46 \u0e23\u0e30\u0e1a\u0e38...',
+    sq_skip: '\u0e02\u0e49\u0e32\u0e21',
+    sq_confirm: '\u0e22\u0e37\u0e19\u0e22\u0e31\u0e19',
   }
 };
 
@@ -1501,6 +1716,7 @@ let designerNotes = '';
 const likedIds = new Set();
 const dislikedIds = new Set();
 let isStreaming = false;
+let pendingToolUse = null;
 
 // =========================================================================
 // Daypart SVG icons
@@ -1858,8 +2074,12 @@ async function sendMessage(text) {
         contextBar: getContextBar(),
         language: currentLang,
         product: currentProduct,
+        pendingToolUse: pendingToolUse || undefined,
       }),
     });
+
+    // Clear pendingToolUse after sending
+    pendingToolUse = null;
 
     if (!res.ok) {
       throw new Error('Chat request failed');
@@ -1918,6 +2138,14 @@ async function sendMessage(text) {
             renderRecommendationsInChat(currentRecommendations, currentDayparts, designerNotes);
             break;
 
+          case 'structured_question':
+            pendingToolUse = {
+              toolUseId: event.toolUseId,
+              assistantContent: event.assistantContent,
+            };
+            renderStructuredQuestion(event);
+            break;
+
           case 'error':
             if (!streamingEl) streamingEl = createStreamingMessage();
             streamingEl.textContent = event.content || 'Something went wrong.';
@@ -1955,6 +2183,116 @@ function formatMarkdown(text) {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/\n/g, '<br>');
+}
+
+// =========================================================================
+// Structured Questionnaire
+// =========================================================================
+function renderStructuredQuestion(data) {
+  const t = i18n[currentLang];
+  const allowMultiple = data.allowMultiple || false;
+  const allowCustom = data.allowCustom !== false; // default true
+  const allowSkip = data.allowSkip || false;
+
+  const div = document.createElement('div');
+  div.className = 'msg msg-ai';
+
+  let paginationHtml = '';
+  if (data.questionIndex && data.totalQuestions) {
+    paginationHtml = `<span class="sq-pagination">${data.questionIndex} / ${data.totalQuestions}</span>`;
+  }
+
+  let optionsHtml = data.options.map((opt, i) => {
+    const descHtml = opt.description ? `<span class="sq-option-desc">${escHtml(opt.description)}</span>` : '';
+    return `<button class="sq-option" data-value="${escHtml(opt.value)}" data-label="${escHtml(opt.label)}" onclick="selectStructuredOption(this, ${allowMultiple})">
+      <span class="sq-option-num">${i + 1}</span>
+      <span class="sq-option-content">
+        <span class="sq-option-label">${escHtml(opt.label)}</span>
+        ${descHtml}
+      </span>
+    </button>`;
+  }).join('');
+
+  let footerHtml = '';
+  const footerParts = [];
+
+  if (allowCustom) {
+    footerParts.push(`<div class="sq-custom-wrap">
+      <input class="sq-custom-input" type="text" placeholder="${escHtml(t.sq_other)}" onkeydown="if(event.key==='Enter'){event.preventDefault();submitCustomAnswer(this)}">
+    </div>`);
+  }
+  if (allowSkip) {
+    footerParts.push(`<button class="sq-skip-btn" onclick="submitStructuredAnswer('skip', '${escHtml(t.sq_skip)}')">${t.sq_skip}</button>`);
+  }
+  if (allowMultiple) {
+    footerParts.push(`<button class="sq-confirm-btn" onclick="submitMultiSelect(this)">${t.sq_confirm}</button>`);
+  }
+
+  if (footerParts.length > 0) {
+    footerHtml = `<div class="sq-footer">${footerParts.join('')}</div>`;
+  }
+
+  div.innerHTML = `<div class="sq-card">
+    <div class="sq-header">
+      <span class="sq-question">${escHtml(data.question)}</span>
+      ${paginationHtml}
+    </div>
+    <div class="sq-options">${optionsHtml}</div>
+    ${footerHtml}
+  </div>`;
+
+  chatArea.appendChild(div);
+  scrollToBottom();
+}
+
+function selectStructuredOption(btn, allowMultiple) {
+  if (allowMultiple) {
+    btn.classList.toggle('selected');
+    // Enable/disable confirm button
+    const card = btn.closest('.sq-card');
+    const confirmBtn = card.querySelector('.sq-confirm-btn');
+    const anySelected = card.querySelectorAll('.sq-option.selected').length > 0;
+    if (confirmBtn) {
+      confirmBtn.classList.toggle('active', anySelected);
+    }
+  } else {
+    // Single select — submit immediately
+    const value = btn.dataset.value;
+    const label = btn.dataset.label;
+    btn.classList.add('selected');
+    submitStructuredAnswer(value, label);
+  }
+}
+
+function submitMultiSelect(confirmBtn) {
+  const card = confirmBtn.closest('.sq-card');
+  const selected = card.querySelectorAll('.sq-option.selected');
+  if (selected.length === 0) return;
+
+  const values = [];
+  const labels = [];
+  selected.forEach(btn => {
+    values.push(btn.dataset.value);
+    labels.push(btn.dataset.label);
+  });
+
+  submitStructuredAnswer(values.join(', '), labels.join(', '));
+}
+
+function submitCustomAnswer(input) {
+  const value = input.value.trim();
+  if (!value) return;
+  submitStructuredAnswer(value, value);
+}
+
+function submitStructuredAnswer(value, displayText) {
+  // Disable the card
+  const cards = chatArea.querySelectorAll('.sq-card:not(.sq-answered)');
+  const card = cards[cards.length - 1];
+  if (card) card.classList.add('sq-answered');
+
+  // Send as a regular chat message
+  sendMessage(displayText || value);
 }
 
 // =========================================================================

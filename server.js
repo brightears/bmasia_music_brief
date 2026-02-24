@@ -691,6 +691,21 @@ Infer energy level 1-10 from their language:
 ${venueContext}
 ${productContext}
 
+## Structured Questions (Tool: ask_structured_question)
+You have a tool to present numbered options to the customer. Use it when:
+- Asking about venue type, vibe/atmosphere (set allowMultiple: true), energy level, vocal preference, what music to avoid (set allowSkip: true)
+- The question has KNOWN likely answers that can be listed as 3-6 options
+
+Do NOT use it for:
+- Open-ended questions ("Tell me about your venue's atmosphere")
+- Simple yes/no questions (just ask in text)
+- Your first greeting or warm-up message
+- Follow-up questions where the user's previous answer already narrows things down enough
+
+When using it, always set allowCustom to true so the customer can type something different. Use questionIndex and totalQuestions when you plan a series (e.g. venue type → vibe → energy).
+
+After the customer answers a structured question, continue the conversation naturally in text — acknowledge their choice, maybe add a brief comment, then ask your next question (structured or text, whichever fits).
+
 ## After Generating Recommendations
 After calling the tool, present the results conversationally:
 - Briefly introduce what you've designed
@@ -750,6 +765,41 @@ const RECOMMEND_TOOL = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Structured Question Tool — presented as UI questionnaire in client
+// ---------------------------------------------------------------------------
+const STRUCTURED_QUESTION_TOOL = {
+  name: 'ask_structured_question',
+  description: 'Present a structured question with numbered options to the customer. Use for questions with known likely answers (venue type, vibe, energy level, vocal preference, avoidances). Do NOT use for open-ended questions, yes/no questions, or the first greeting. Only present ONE question per call.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      question: { type: 'string', description: 'The question text to display' },
+      options: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string', description: 'Option text the user sees' },
+            value: { type: 'string', description: 'Semantic value for the conversation' },
+            description: { type: 'string', description: 'Optional short description below the label' },
+          },
+          required: ['label', 'value'],
+        },
+        description: '2-8 options recommended',
+      },
+      allowCustom: { type: 'boolean', description: 'Show "Something else" free-text input. Default true.' },
+      allowSkip: { type: 'boolean', description: 'Show a Skip button. Default false.' },
+      allowMultiple: { type: 'boolean', description: 'Allow selecting multiple options (e.g. vibes). Default false.' },
+      questionIndex: { type: 'number', description: 'Current question number in a series (e.g. 1). Omit if standalone.' },
+      totalQuestions: { type: 'number', description: 'Total questions in the series (e.g. 3). Omit if standalone.' },
+    },
+    required: ['question', 'options'],
+  },
+};
+
+const ALL_TOOLS = [RECOMMEND_TOOL, STRUCTURED_QUESTION_TOOL];
+
 // Execute the recommendation tool server-side
 function executeRecommendationTool(toolInput, contextBar, product = 'syb') {
   const data = {
@@ -791,7 +841,7 @@ const chatLimiter = rateLimit({
 });
 
 app.post('/api/chat', chatLimiter, async (req, res) => {
-  const { message, history, mode, contextBar, language, product } = req.body;
+  const { message, history, mode, contextBar, language, product, pendingToolUse } = req.body;
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'Message is required.' });
@@ -834,79 +884,117 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
       model: AI_MODEL,
       max_tokens: 1500,
       system: systemPrompt,
-      tools: [RECOMMEND_TOOL],
+      tools: ALL_TOOLS,
       messages,
     });
 
-    // Check if Claude wants to use the recommendation tool
-    if (response.stop_reason === 'tool_use') {
-      const toolUseBlock = response.content.find(b => b.type === 'tool_use');
-      const textBlocks = response.content.filter(b => b.type === 'text');
+    // Helper: handle a completed API response (tool use or text)
+    async function handleResponse(resp, msgs) {
+      if (resp.stop_reason === 'tool_use') {
+        const toolUseBlock = resp.content.find(b => b.type === 'tool_use');
+        const textBlocks = resp.content.filter(b => b.type === 'text');
 
-      // Stream any text before the tool call
-      for (const tb of textBlocks) {
-        if (tb.text.trim()) {
-          sendSSE('text', { content: tb.text });
+        // Stream any text before the tool call
+        for (const tb of textBlocks) {
+          if (tb.text.trim()) {
+            sendSSE('text', { content: tb.text });
+          }
         }
-      }
 
-      // Execute the tool
-      const toolResult = executeRecommendationTool(toolUseBlock.input, contextBar, product);
-
-      // Send recommendations to client immediately
-      sendSSE('recommendations', {
-        recommendations: toolResult.recommendations,
-        dayparts: toolResult.dayparts,
-        designerNotes: toolResult.designerNotes,
-        extractedBrief: toolResult.extractedBrief,
-      });
-
-      // Now ask Claude to present the results conversationally
-      // Build the tool result summary for Claude
-      const playlistSummary = toolResult.recommendations.map(r =>
-        `- ${r.name} (${r.daypart}, ${r.matchScore}% match)`
-      ).join('\n');
-      const daypartSummary = toolResult.dayparts.map(d => d.label).join(', ');
-
-      const followUpMessages = [
-        ...messages,
-        { role: 'assistant', content: response.content },
-        {
-          role: 'user',
-          content: [{
-            type: 'tool_result',
-            tool_use_id: toolUseBlock.id,
-            content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are now displayed to the customer with preview links and like/skip buttons. Present these results conversationally — briefly introduce what you designed and invite the customer to listen and give feedback. Do NOT list the playlists again (they can see the cards). Keep it to 2-3 sentences.`,
-          }],
-        },
-      ];
-
-      // Second API call — Claude presents the results
-      const stream = anthropic.messages.stream({
-        model: AI_MODEL,
-        max_tokens: 500,
-        system: systemPrompt,
-        tools: [RECOMMEND_TOOL],
-        messages: followUpMessages,
-      });
-
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          sendSSE('text_delta', { content: event.delta.text });
+        if (toolUseBlock.name === 'ask_structured_question') {
+          // Relay structured question to client — response ends here
+          sendSSE('structured_question', {
+            toolUseId: toolUseBlock.id,
+            assistantContent: resp.content,
+            ...toolUseBlock.input,
+          });
+          return; // Don't send 'done' yet — caller handles it
         }
-      }
-    } else {
-      // No tool use — stream conversational response
-      // For the first call we already have the full response, so send it as a stream
-      for (const block of response.content) {
-        if (block.type === 'text' && block.text.trim()) {
-          // Simulate streaming by sending word by word
-          const words = block.text.split(/(\s+)/);
-          for (const word of words) {
-            sendSSE('text_delta', { content: word });
+
+        if (toolUseBlock.name === 'generate_recommendations') {
+          // Execute the recommendation tool
+          const toolResult = executeRecommendationTool(toolUseBlock.input, contextBar, product);
+
+          sendSSE('recommendations', {
+            recommendations: toolResult.recommendations,
+            dayparts: toolResult.dayparts,
+            designerNotes: toolResult.designerNotes,
+            extractedBrief: toolResult.extractedBrief,
+          });
+
+          // Build tool result summary for Claude
+          const playlistSummary = toolResult.recommendations.map(r =>
+            `- ${r.name} (${r.daypart}, ${r.matchScore}% match)`
+          ).join('\n');
+          const daypartSummary = toolResult.dayparts.map(d => d.label).join(', ');
+
+          const followUpMessages = [
+            ...msgs,
+            { role: 'assistant', content: resp.content },
+            {
+              role: 'user',
+              content: [{
+                type: 'tool_result',
+                tool_use_id: toolUseBlock.id,
+                content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are now displayed to the customer with preview links and like/skip buttons. Present these results conversationally — briefly introduce what you designed and invite the customer to listen and give feedback. Do NOT list the playlists again (they can see the cards). Keep it to 2-3 sentences.`,
+              }],
+            },
+          ];
+
+          // Second API call — Claude presents the results
+          const stream = anthropic.messages.stream({
+            model: AI_MODEL,
+            max_tokens: 500,
+            system: systemPrompt,
+            tools: ALL_TOOLS,
+            messages: followUpMessages,
+          });
+
+          for await (const event of stream) {
+            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+              sendSSE('text_delta', { content: event.delta.text });
+            }
+          }
+        }
+      } else {
+        // No tool use — stream conversational response word by word
+        for (const block of resp.content) {
+          if (block.type === 'text' && block.text.trim()) {
+            const words = block.text.split(/(\s+)/);
+            for (const word of words) {
+              sendSSE('text_delta', { content: word });
+            }
           }
         }
       }
+    }
+
+    // Handle pending tool use round-trip (user answered a structured question)
+    if (pendingToolUse && pendingToolUse.toolUseId && pendingToolUse.assistantContent) {
+      messages.pop(); // remove the user message we just added as plain text
+      messages.push({ role: 'assistant', content: pendingToolUse.assistantContent });
+      messages.push({
+        role: 'user',
+        content: [{
+          type: 'tool_result',
+          tool_use_id: pendingToolUse.toolUseId,
+          content: `The customer selected: "${message}"`,
+        }],
+      });
+
+      // API call with tool result — Claude continues the conversation
+      const toolResponse = await anthropic.messages.create({
+        model: AI_MODEL,
+        max_tokens: 1500,
+        system: systemPrompt,
+        tools: ALL_TOOLS,
+        messages,
+      });
+
+      await handleResponse(toolResponse, messages);
+    } else {
+      // Normal flow: first API call
+      await handleResponse(response, messages);
     }
 
     sendSSE('done', {});
