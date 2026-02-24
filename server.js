@@ -632,6 +632,7 @@ function buildChatSystemPrompt(contextBar, language, product = 'syb') {
 - You speak in ${lang}
 - Keep messages concise (2-4 sentences max) and conversational
 - Use the customer's own words back to them when relevant
+- NEVER use emojis in any response — not in messages, not in option labels, not anywhere. Keep the tone professional and clean.
 
 ## Conversation Rules
 - ALWAYS end every message with a clear question or call-to-action
