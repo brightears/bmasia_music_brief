@@ -338,8 +338,19 @@ function deterministicMatch(data, dayparts) {
     }
     if (p.categories.some(c => energyCats.includes(c))) score += 1;
     if (avoidList) {
-      for (const term of avoidList.split(/[,;]+/).map(s => s.trim()).filter(Boolean)) {
-        if (text.includes(term)) score -= 10;
+      // Extract individual genre/style keywords from avoid phrases
+      // e.g. "no hip-hop or rap, no mainstream pop" → ["hip-hop", "rap", "pop"]
+      const avoidTerms = avoidList
+        .replace(/\bno\b/gi, '')
+        .replace(/\bhits\b/gi, '')
+        .replace(/\bmainstream\b/gi, '')
+        .split(/[,;]+|\b(?:and|or)\b/i)
+        .map(s => s ? s.trim().toLowerCase() : '')
+        .filter(s => s && s.length > 1);
+      const normalizedText = text.replace(/-/g, ' ');
+      for (const term of avoidTerms) {
+        const normalizedTerm = term.replace(/-/g, ' ');
+        if (normalizedText.includes(normalizedTerm)) score -= 10;
       }
     }
     if (vocals === 'instrumental' && /instrumental|piano|ambient|nature/.test(text)) score += 1.5;
@@ -353,13 +364,25 @@ function deterministicMatch(data, dayparts) {
   const perDp = Math.ceil(top.length / dpKeys.length);
 
   return {
-    recommendations: top.map((p, i) => ({
-      playlistId: p.id,
-      daypart: dpKeys[Math.min(Math.floor(i / perDp), dpKeys.length - 1)],
-      reason: `Matches your ${vibes[0] || 'selected'} atmosphere for ${(venueType || 'your venue').replace(/-/g, ' ')}`,
-      matchScore: Math.max(70, Math.min(95, Math.round(60 + p.score * 5))),
-    })),
-    designerNotes: 'Generated via keyword matching (AI unavailable). Please review and adjust.',
+    recommendations: top.map((p, i) => {
+      const dpKey = dpKeys[Math.min(Math.floor(i / perDp), dpKeys.length - 1)];
+      const pText = `${p.name} ${p.description}`.toLowerCase();
+      const matchedVibes = vibes.filter(v =>
+        (vibeKw[v] || []).some(kw => pText.includes(kw))
+      );
+      const vibeStr = matchedVibes.length > 0 ? matchedVibes.join(', ') : vibes[0] || 'selected';
+      const catMatch = targetCat && p.categories.includes(targetCat);
+      const reason = catMatch
+        ? `${p.description} — fits your ${vibeStr} ${(venueType || 'venue').replace(/-/g, ' ')}`
+        : `${p.description} — complements the ${vibeStr} atmosphere`;
+      return {
+        playlistId: p.id,
+        daypart: dpKey,
+        reason,
+        matchScore: Math.max(70, Math.min(95, Math.round(60 + p.score * 5))),
+      };
+    }),
+    designerNotes: 'Generated via keyword matching. Please review and adjust.',
   };
 }
 
@@ -633,10 +656,9 @@ function buildChatSystemPrompt(language, product = 'syb') {
 
 ## Conversation Rules
 - ALWAYS end every message with a clear question or call-to-action
-- NEVER ask more than ONE question per message
-- After 2-3 exchanges, you should have enough info — call the generate_recommendations tool
-- If the customer gives a rich description upfront, skip unnecessary follow-ups and generate immediately
-- If the customer gives minimal input (e.g., "hotel, chill"), ask 1-2 focused follow-ups then generate
+- NEVER ask more than ONE question per message — this is critical. Do not combine a text question with a structured question in the same message.
+- ALWAYS collect operating hours before calling generate_recommendations. Without hours, the system falls back to generic Morning/Afternoon/Evening dayparts which may not match the venue at all (e.g. a bar that opens at 5pm should not get "Morning" playlists). Operating hours is non-negotiable.
+- If the customer gives a rich description upfront, you can skip unnecessary follow-ups — but you MUST still ask about operating hours
 - Do NOT list or explain the information you need — just ask naturally, one thing at a time
 
 ## Three Conversation Modes
@@ -644,8 +666,11 @@ function buildChatSystemPrompt(language, product = 'syb') {
 ### Mode: "new" — New Venue Design
 1. Ask what type of venue (if not already known from context)
 2. Ask about the atmosphere / feeling they want
-3. Ask 1-2 smart follow-ups based on gaps (venue name, location, hours, avoid list, vocals, guest mix)
-4. Call generate_recommendations when ready (include venueName and location if mentioned)
+3. Ask venue name and location
+4. Call research_venue to learn about the venue, property, and area (if venue name was given)
+5. Ask about operating hours (REQUIRED — this drives the entire daypart schedule)
+6. Ask 1-2 smart follow-ups if needed (avoid list, vocals, guest mix)
+7. Call generate_recommendations when ready (include venueName, location, and hours)
 
 ### Mode: "event" — Special Event Planning
 1. Ask for venue name and email on file (for verification)
@@ -661,11 +686,14 @@ function buildChatSystemPrompt(language, product = 'syb') {
 ## What Information to Gather (in priority order)
 1. Venue type (hotel, restaurant, bar, spa, cafe, etc.)
 2. Atmosphere description (the richest signal — vibes, mood, feeling)
-3. Venue name and location — ask naturally, e.g. "What's the name of your bar and where is it located?"
-   - Location means: which property or building is it in? (e.g. "rooftop at the Hilton Pattaya", "inside Central World mall")
-   - If it's a standalone business, just the city is enough (e.g. "Bangkok")
-   - Our design team needs this to understand the venue's context and guest profile
-4. Operating hours (for daypart segmentation) — e.g. "What are your opening hours?"
+3. Venue name and location — ask naturally, e.g. "What's the name of your bar?"
+   - Then follow up about location: "And is [name] inside a hotel or resort, or is it a standalone venue?"
+   - If they already mentioned both (e.g. "Horizon at the Hilton Pattaya"), acknowledge and move on
+   - Location means: which property or building is it in? Our design team needs this context.
+   - After learning name + location, call research_venue to gather context about the venue, property, and area
+4. Operating hours (REQUIRED for daypart segmentation) — ask as its own standalone question, e.g. "What time does [name] open and close?"
+   - NEVER combine this question with another question or a structured question in the same message
+   - The entire schedule design depends on this — without hours, the customer gets useless generic dayparts
 5. Things to avoid (genres, styles, explicit content)
 6. Vocal/language preferences (if relevant)
 7. Guest demographics (if relevant)
@@ -708,11 +736,30 @@ NEVER use emojis in option labels or descriptions. Keep them clean text only (e.
 
 After the customer answers a structured question, continue the conversation naturally in text — acknowledge their choice, maybe add a brief comment, then ask your next question (structured or text, whichever fits).
 
+## Venue Research (Tool: research_venue)
+After learning the venue name and location, call research_venue with 2-3 search queries to learn about:
+1. The venue itself (concept, reviews, photos, menu, atmosphere)
+2. The property/hotel/resort it belongs to (brand, guest profile, style)
+3. The city/area (nightlife scene, tourist profile, local culture)
+
+Example queries for "Horizon at the Hilton Pattaya":
+- "Horizon rooftop bar Hilton Pattaya"
+- "Hilton Pattaya hotel"
+- "Pattaya nightlife bars"
+
+Use the research findings to:
+- Share a brief relevant insight with the customer (shows you did your homework)
+- Inform your music recommendations (e.g. if it's a sunset lounge, factor that into the vibe)
+- Better understand the guest profile (e.g. resort tourists vs. local regulars)
+
+If research returns no useful results, that's fine — just continue the conversation.
+
 ## After Generating Recommendations
 After calling the tool, present the results conversationally:
-- Briefly introduce what you've designed
+- Briefly introduce what you've designed and how the schedule flows through their operating hours
 - Tell them to click "Preview on SYB" to listen to each playlist
-- Ask them to like/skip playlists and give feedback
+- Ask them to select the ones they like with "Add to brief"
+- Once they're happy, they can click "Review your music schedule" to see a summary before sending to the design team
 - If they want changes, adjust and regenerate
 
 ## Available Venue Types
@@ -752,7 +799,7 @@ const RECOMMEND_TOOL = {
         description: 'Operating hours (e.g., "17:00 - 02:00", "9am - 11pm")',
       },
       referenceVenues: { type: 'string', description: 'Reference venues mentioned by customer' },
-      avoidList: { type: 'string', description: 'Music styles/genres to avoid' },
+      avoidList: { type: 'string', description: 'Genres or styles to avoid, as clean comma-separated terms (e.g. "pop, hip-hop, rap, EDM"). Extract just the genre keywords, not full phrases like "no mainstream pop hits".' },
       vocals: {
         type: 'string',
         description: 'Vocal preference',
@@ -802,7 +849,75 @@ const STRUCTURED_QUESTION_TOOL = {
   },
 };
 
-const ALL_TOOLS = [RECOMMEND_TOOL, STRUCTURED_QUESTION_TOOL];
+const RESEARCH_VENUE_TOOL = {
+  name: 'research_venue',
+  description: 'Search the web for information about the venue, its location, and the property it belongs to. Call this AFTER learning the venue name and location, BEFORE asking about operating hours. This helps you understand the venue concept, brand, guest profile, and local context for better music design.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      venueName: { type: 'string', description: 'Name of the venue' },
+      location: { type: 'string', description: 'Location/property (e.g. "Hilton Hotel, Pattaya")' },
+      searchQueries: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Up to 3 search queries to research the venue context. Example: ["Horizon rooftop bar Hilton Pattaya", "Hilton Pattaya hotel", "Pattaya nightlife"]',
+        maxItems: 3,
+      },
+    },
+    required: ['venueName', 'searchQueries'],
+  },
+};
+
+const ALL_TOOLS = [RECOMMEND_TOOL, STRUCTURED_QUESTION_TOOL, RESEARCH_VENUE_TOOL];
+
+// ---------------------------------------------------------------------------
+// Brave Search — venue research
+// ---------------------------------------------------------------------------
+async function executeVenueResearch(toolInput) {
+  const apiKey = process.env.BRAVE_SEARCH_API_KEY;
+  if (!apiKey) {
+    return { success: false, summary: 'Web search is not configured (no BRAVE_SEARCH_API_KEY). Continue without research.' };
+  }
+
+  const queries = (toolInput.searchQueries || []).slice(0, 3);
+  const results = [];
+
+  for (const query of queries) {
+    try {
+      const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5&text_decorations=false`;
+      const resp = await fetch(url, {
+        headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip', 'X-Subscription-Token': apiKey },
+      });
+      if (!resp.ok) {
+        results.push({ query, snippets: [`Search failed: ${resp.status}`] });
+        continue;
+      }
+      const data = await resp.json();
+      const snippets = (data.web?.results || []).slice(0, 5).map(r =>
+        `${r.title}: ${r.description || ''}`
+      );
+      results.push({ query, snippets });
+    } catch (err) {
+      results.push({ query, snippets: [`Search error: ${err.message}`] });
+    }
+  }
+
+  // Format results as a text summary
+  let summary = '';
+  for (const r of results) {
+    summary += `\n### Search: "${r.query}"\n`;
+    for (const s of r.snippets) {
+      summary += `- ${s}\n`;
+    }
+  }
+
+  return {
+    success: true,
+    venueName: toolInput.venueName,
+    location: toolInput.location || '',
+    summary: summary.trim() || 'No results found.',
+  };
+}
 
 // Execute the recommendation tool server-side
 function executeRecommendationTool(toolInput, product = 'syb') {
@@ -915,6 +1030,40 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
           return; // Don't send 'done' yet — caller handles it
         }
 
+        if (toolUseBlock.name === 'research_venue') {
+          // Execute venue research via Brave Search
+          const researchResult = await executeVenueResearch(toolUseBlock.input);
+
+          // Send result back to Claude so it can continue the conversation
+          const researchMessages = [
+            ...msgs,
+            { role: 'assistant', content: resp.content },
+            {
+              role: 'user',
+              content: [{
+                type: 'tool_result',
+                tool_use_id: toolUseBlock.id,
+                content: researchResult.success
+                  ? `Research results for ${researchResult.venueName}:\n${researchResult.summary}\n\nUse this context to inform your music recommendations. Share a brief, relevant insight with the customer (1 sentence max), then continue the conversation — ask about operating hours next.`
+                  : `${researchResult.summary}\nContinue the conversation — ask about operating hours next.`,
+              }],
+            },
+          ];
+
+          // Claude continues with the research context
+          const researchResp = await anthropic.messages.create({
+            model: AI_MODEL,
+            max_tokens: 1500,
+            system: systemPrompt,
+            tools: ALL_TOOLS,
+            messages: researchMessages,
+          });
+
+          // Recursively handle the follow-up (could be text or another tool call)
+          await handleResponse(researchResp, researchMessages);
+          return;
+        }
+
         if (toolUseBlock.name === 'generate_recommendations') {
           // Execute the recommendation tool
           const toolResult = executeRecommendationTool(toolUseBlock.input, product);
@@ -940,7 +1089,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
               content: [{
                 type: 'tool_result',
                 tool_use_id: toolUseBlock.id,
-                content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are now displayed to the customer with preview links and like/skip buttons. Present these results conversationally — briefly introduce what you designed and invite the customer to listen and give feedback. Do NOT list the playlists again (they can see the cards). Keep it to 2-3 sentences.`,
+                content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are now displayed to the customer with preview links and "Add to brief" toggle buttons. Present these results conversationally — briefly introduce what you designed and how the schedule flows through their operating hours. Invite the customer to listen and select their favorites. Do NOT list the playlists again (they can see the cards). Keep it to 2-3 sentences.`,
               }],
             },
           ];
