@@ -404,9 +404,9 @@ function buildPlaylistEmailSections(aiResults) {
     html += `
     <tr><td style="padding:0;">
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-        <tr><td style="padding:12px 16px;background:#059669;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Customer-Approved Playlists</td></tr>
+        <tr><td style="padding:12px 16px;background:#059669;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Selected Playlists</td></tr>
         <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
-          <p style="margin:0 0 12px;color:#059669;font-weight:600;">${aiResults.likedPlaylists.length} playlist(s) approved by the customer</p>
+          <p style="margin:0 0 12px;color:#059669;font-weight:600;">${aiResults.likedPlaylists.length} playlist(s) selected by the customer</p>
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
             <tr style="background:#f3f4f6;">
               <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Playlist</th>
@@ -421,12 +421,12 @@ function buildPlaylistEmailSections(aiResults) {
   }
 
   if (aiResults.allRecommendations && aiResults.allRecommendations.length > 0) {
-    const likedIds = new Set((aiResults.likedPlaylists || []).map(p => p.playlistId));
+    const selIds = new Set((aiResults.likedPlaylists || []).map(p => p.playlistId));
     const allRows = aiResults.allRecommendations.map(p => {
-      const liked = likedIds.has(p.playlistId);
+      const sel = selIds.has(p.playlistId);
       return `
-        <tr${liked ? ' style="background:#f0fdf4;"' : ''}>
-          <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:14px;">${liked ? '&#10003;' : '&mdash;'}</td>
+        <tr${sel ? ' style="background:#f0fdf4;"' : ''}>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:14px;">${sel ? '&#10003;' : '&mdash;'}</td>
           <td style="padding:6px 12px;border-bottom:1px solid #eee;">
             <a href="${esc(p.sybUrl || '#')}" style="color:#4f46e5;text-decoration:none;font-size:13px;">${esc(p.name || p.playlistId)}</a>
           </td>
@@ -440,7 +440,7 @@ function buildPlaylistEmailSections(aiResults) {
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
         <tr><td style="padding:12px 16px;background:#1a1a2e;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">All AI Recommendations</td></tr>
         <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
-          <p style="margin:0 0 12px;color:#666;font-size:13px;">Full AI-suggested list. Items with &#10003; were approved by the customer.</p>
+          <p style="margin:0 0 12px;color:#666;font-size:13px;">Full AI-suggested list. Items with &#10003; were selected by the customer.</p>
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
             <tr style="background:#f3f4f6;">
               <th style="padding:8px 12px;text-align:left;font-size:12px;color:#374151;width:40px;"></th>
