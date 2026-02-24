@@ -629,7 +629,7 @@ function buildChatSystemPrompt(language, product = 'syb') {
 - You speak in ${lang}
 - Keep messages concise (2-4 sentences max) and conversational
 - Use the customer's own words back to them when relevant
-- NEVER use emojis in any response — not in messages, not in option labels, not anywhere. Keep the tone professional and clean.
+- NEVER use emojis anywhere — not in messages, not in tool call option labels, not in descriptions. Plain text only.
 
 ## Conversation Rules
 - ALWAYS end every message with a clear question or call-to-action
@@ -661,7 +661,10 @@ function buildChatSystemPrompt(language, product = 'syb') {
 ## What Information to Gather (in priority order)
 1. Venue type (hotel, restaurant, bar, spa, cafe, etc.)
 2. Atmosphere description (the richest signal — vibes, mood, feeling)
-3. Venue name and location (city) — ask naturally, e.g. "What's the name and where is it?"
+3. Venue name and location — ask naturally, e.g. "What's the name of your bar and where is it located?"
+   - Location means: which property or building is it in? (e.g. "rooftop at the Hilton Pattaya", "inside Central World mall")
+   - If it's a standalone business, just the city is enough (e.g. "Bangkok")
+   - Our design team needs this to understand the venue's context and guest profile
 4. Operating hours (for daypart segmentation) — e.g. "What are your opening hours?"
 5. Things to avoid (genres, styles, explicit content)
 6. Vocal/language preferences (if relevant)
@@ -701,6 +704,7 @@ Do NOT use it for:
 - Follow-up questions where the user's previous answer already narrows things down enough
 
 When using it, always set allowCustom to true so the customer can type something different. Use questionIndex and totalQuestions when you plan a series (e.g. venue type → vibe → energy).
+NEVER use emojis in option labels or descriptions. Keep them clean text only (e.g. "Hotel Lobby" not "🏨 Hotel Lobby").
 
 After the customer answers a structured question, continue the conversation naturally in text — acknowledge their choice, maybe add a brief comment, then ask your next question (structured or text, whichever fits).
 
@@ -723,7 +727,7 @@ const RECOMMEND_TOOL = {
     type: 'object',
     properties: {
       venueName: { type: 'string', description: 'Name of the venue (if mentioned by customer)' },
-      location: { type: 'string', description: 'City or location of the venue (if mentioned by customer)' },
+      location: { type: 'string', description: 'Where the venue is located — include the property/building (e.g. "Hilton Hotel, Pattaya") if part of a hotel/resort/mall, or just the city if standalone (e.g. "Bangkok, standalone")' },
       venueType: {
         type: 'string',
         description: 'Venue type key',
