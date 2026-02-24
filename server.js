@@ -308,35 +308,45 @@ function deterministicMatch(data, dayparts) {
   const avoidList = (data.avoidList || '').toLowerCase();
   const vocals = data.vocals || '';
   const venueCatMap = {
-    'hotel-lobby': 'hotel', restaurant: 'restaurant', 'bar-lounge': 'bar',
-    'spa-wellness': 'spa', cafe: 'cafe', 'fashion-retail': 'store',
-    coworking: 'lounge', 'pool-beach': 'hotel', 'gym-fitness': 'store', qsr: 'restaurant',
+    'hotel-lobby': ['hotel', 'lounge'],
+    restaurant: ['restaurant'],
+    'bar-lounge': ['bar', 'lounge'],
+    'spa-wellness': ['spa'],
+    cafe: ['cafe', 'lounge'],
+    'fashion-retail': ['store'],
+    coworking: ['lounge'],
+    'pool-beach': ['hotel', 'lounge'],
+    'gym-fitness': ['store'],
+    qsr: ['restaurant'],
   };
-  const targetCat = venueCatMap[venueType] || '';
+  const targetCats = venueCatMap[venueType] || [];
   const vibeKw = {
     relaxed: ['relax', 'chill', 'calm', 'gentle', 'soft', 'mellow', 'easy', 'soothing', 'acoustic'],
     energetic: ['energetic', 'upbeat', 'energy', 'pop', 'dance', 'hits', 'rush'],
-    sophisticated: ['elegant', 'sophisticated', 'jazz', 'refined', 'grand', 'fine'],
+    sophisticated: ['elegant', 'sophisticated', 'refined', 'grand', 'fine', 'polished', 'tasteful'],
     warm: ['warm', 'cozy', 'acoustic', 'folk', 'inviting', 'friendly'],
     trendy: ['modern', 'trendy', 'indie', 'hip', 'current', 'urban', 'fashion'],
     upbeat: ['happy', 'feel-good', 'upbeat', 'fun', 'groovy', 'sunny', 'cheerful'],
     zen: ['zen', 'ambient', 'meditation', 'nature', 'peaceful', 'mindful', 'spa'],
     romantic: ['romantic', 'intimate', 'soul', 'ballad', 'dinner', 'date'],
-    luxurious: ['luxury', 'elegant', 'lounge', 'house', 'upscale', 'grand', 'boutique'],
+    luxurious: ['luxury', 'elegant', 'lounge', 'upscale', 'grand', 'boutique', 'premium'],
     tropical: ['tropical', 'beach', 'reggae', 'island', 'caribbean', 'bossa', 'surf'],
     creative: ['indie', 'creative', 'alternative', 'art', 'fusion', 'world'],
     professional: ['office', 'background', 'light', 'subtle', 'focus'],
   };
-  const energyCats = energy <= 3 ? ['spa', 'lounge'] : energy <= 6 ? ['cafe', 'restaurant', 'hotel', 'lounge'] : ['bar', 'store'];
+  const genreHints = data.genreHints || [];
 
   const scored = PLAYLIST_CATALOG.map(p => {
     let score = 0;
     const text = `${p.name} ${p.description}`.toLowerCase();
-    if (targetCat && p.categories.includes(targetCat)) score += 3;
+    const catMatches = targetCats.filter(c => p.categories.includes(c)).length;
+    if (catMatches > 0) score += 2 + catMatches;
     for (const vibe of vibes) {
       for (const kw of (vibeKw[vibe] || [])) { if (text.includes(kw)) score += 0.5; }
     }
-    if (p.categories.some(c => energyCats.includes(c))) score += 1;
+    for (const hint of genreHints) {
+      if (text.includes(hint.toLowerCase())) score += 2;
+    }
     if (avoidList) {
       // Extract individual genre/style keywords from avoid phrases
       // e.g. "no hip-hop or rap, no mainstream pop" → ["hip-hop", "rap", "pop"]
@@ -355,34 +365,56 @@ function deterministicMatch(data, dayparts) {
     }
     if (vocals === 'instrumental' && /instrumental|piano|ambient|nature/.test(text)) score += 1.5;
     if (vocals === 'mostly-instrumental' && /instrumental|piano|acoustic/.test(text)) score += 0.8;
-    return { ...p, score };
+    return { ...p, baseScore: score, text };
   });
 
-  scored.sort((a, b) => b.score - a.score);
-  const top = scored.filter(p => p.score > 0).slice(0, 12);
-  const dpKeys = dayparts.map(dp => dp.key);
-  const perDp = Math.ceil(top.length / dpKeys.length);
+  // Per-daypart scoring: adjust for energy, pick top N, dedup across dayparts
+  const usedIds = new Set();
+  const perDp = Math.ceil(12 / dayparts.length);
+  const allRecs = [];
 
-  return {
-    recommendations: top.map((p, i) => {
-      const dpKey = dpKeys[Math.min(Math.floor(i / perDp), dpKeys.length - 1)];
-      const pText = `${p.name} ${p.description}`.toLowerCase();
+  for (const dp of dayparts) {
+    const dpEnergyCats = dp.energy <= 3 ? ['spa', 'lounge']
+      : dp.energy <= 6 ? ['cafe', 'restaurant', 'hotel', 'lounge']
+      : ['bar', 'store', 'lounge'];
+
+    const dpScored = scored.map(p => ({
+      ...p,
+      dpScore: p.baseScore + (p.categories.some(c => dpEnergyCats.includes(c)) ? 1 : 0),
+    }));
+    dpScored.sort((a, b) => b.dpScore - a.dpScore);
+
+    let picked = 0;
+    for (const p of dpScored) {
+      if (picked >= perDp || p.dpScore <= 0) break;
+      if (usedIds.has(p.id)) continue;
+      usedIds.add(p.id);
+
       const matchedVibes = vibes.filter(v =>
-        (vibeKw[v] || []).some(kw => pText.includes(kw))
+        (vibeKw[v] || []).some(kw => p.text.includes(kw))
       );
       const vibeStr = matchedVibes.length > 0 ? matchedVibes.join(', ') : vibes[0] || 'selected';
-      const catMatch = targetCat && p.categories.includes(targetCat);
+      const catMatch = targetCats.some(c => p.categories.includes(c));
       const reason = catMatch
         ? `${p.description} — fits your ${vibeStr} ${(venueType || 'venue').replace(/-/g, ' ')}`
         : `${p.description} — complements the ${vibeStr} atmosphere`;
-      return {
-        playlistId: p.id,
-        daypart: dpKey,
-        reason,
-        matchScore: Math.max(70, Math.min(95, Math.round(60 + p.score * 5))),
-      };
-    }),
-    designerNotes: 'Generated via keyword matching. Please review and adjust.',
+
+      allRecs.push({ playlistId: p.id, daypart: dp.key, reason, rawScore: p.dpScore });
+      picked++;
+    }
+  }
+
+  // Normalize scores relative to best in batch
+  const maxRaw = Math.max(...allRecs.map(r => r.rawScore), 1);
+
+  return {
+    recommendations: allRecs.map(r => ({
+      playlistId: r.playlistId,
+      daypart: r.daypart,
+      reason: r.reason,
+      matchScore: Math.round(70 + (r.rawScore / maxRaw) * 25),
+    })),
+    designerNotes: 'Generated via keyword matching with AI genre direction. Please review and adjust.',
   };
 }
 
@@ -644,11 +676,18 @@ function buildChatSystemPrompt(language, product = 'syb') {
     ? '\nThe customer has selected Beat Breeze — our royalty-free music solution. Beat Breeze offers curated royalty-free playlists with no licensing fees, ideal for businesses that want quality background music at an accessible price point. Frame your recommendations as Beat Breeze playlists.'
     : '\nThe customer has selected Soundtrack Your Brand (SYB) — our premium licensed music platform. SYB offers the largest catalog of expertly curated playlists for businesses, with fully licensed commercial music. Frame your recommendations as SYB playlists.';
 
-  return `You are a friendly, professional music designer at BMAsia Group — Asia's leading background music company. You help venue owners and event planners find the perfect soundtrack.
+  return `You are a senior music designer at BMAsia Group — Asia's leading background music company. You design soundtracks for venues across Asia.
+
+## Your Expertise
+You think like a professional music designer, not a form-filler:
+- ENERGY ARC: How music should evolve through the guest journey (arrival, settling in, peak experience, wind down). Every great venue has a musical story arc.
+- GENRE INTELLIGENCE: Genre depends on full context, not single keywords. "Sophisticated" could mean jazz piano in a hotel lobby, deep house at a rooftop bar, or neo-soul at a cocktail lounge. NEVER default to cliches.
+- DEMOGRAPHIC AWARENESS: A 25-35yo international crowd wants different music than a 50yo local business crowd, even in the same venue type.
+- F&B & ENTERTAINMENT CONTEXT: A bar with DJs needs pre-DJ sets for earlier hours. A wine bar has different energy than a craft cocktail bar. A beachside restaurant has different needs than a fine dining room.
 
 ## Your Personality
-- Warm, enthusiastic, and knowledgeable about music for commercial spaces
-- You LEAD the conversation proactively — the customer should never wonder what to say
+- Warm but expert — you know more about venue music than the customer does
+- You LEAD the conversation proactively — the customer should never wonder what to say next
 - You speak in ${lang}
 - Keep messages concise (2-4 sentences max) and conversational
 - Use the customer's own words back to them when relevant
@@ -664,41 +703,38 @@ function buildChatSystemPrompt(language, product = 'syb') {
 ## Three Conversation Modes
 
 ### Mode: "new" — New Venue Design
-1. Ask what type of venue (if not already known from context)
-2. Ask about the atmosphere / feeling they want
-3. Ask venue name and location
-4. Call research_venue to learn about the venue, property, and area (if venue name was given)
-5. Ask about operating hours (REQUIRED — this drives the entire daypart schedule)
-6. Ask 1-2 smart follow-ups if needed (avoid list, vocals, guest mix)
-7. Call generate_recommendations when ready (include venueName, location, and hours)
+
+Phase 1 — UNDERSTAND (2-3 exchanges):
+1. Ask what type of venue (structured question, unless already clear from context)
+2. Ask about the experience they want to create — use an open-ended question like "Paint me a picture — when a guest walks in, what should they feel?" This is your richest signal. Do NOT use a structured question here.
+3. Ask venue name and location naturally. If they give both (e.g. "Horizon at the Hilton Pattaya"), acknowledge and move on.
+4. Call research_venue with 2-3 search queries to learn about the venue, property, and area.
+
+Phase 2 — DIG DEEPER (2-3 exchanges):
+5. Share a design insight from your research (a conclusion, not facts — see "Using Venue Research" below). Then ask about operating hours as a standalone question.
+6. Ask ONE expert follow-up question based on what you have learned so far. Choose the most impactful one:
+   - For bars/lounges: "Who are your typical guests — age range, local crowd or tourists, after-work drinks or nightlife destination?"
+   - If they have DJs or live music (from research or conversation): "What style do your DJs usually play, and what times do they come on?"
+   - For restaurants: "What is the dining concept — and is there a bar area that needs a different energy?"
+   - For hotels: "What is the brand positioning — business hotel, luxury resort, or boutique property?"
+   - For any venue: "Are there any artists, venues, or playlists whose sound you love? This tells me more than any description."
+7. Ask about things to avoid (structured question, set allowSkip: true). This is optional — if the conversation already made avoidances clear, skip it.
+
+Phase 3 — DESIGN:
+8. Call generate_recommendations with all gathered context. You MUST include genreHints based on your expert synthesis of the entire conversation and research. The genreHints field is the most important signal you send to the matching algorithm.
 
 ### Mode: "event" — Special Event Planning
 1. Ask for venue name and email on file (for verification)
 2. Ask about the event: occasion, date, desired atmosphere
 3. Ask about duration and any specific music requirements
-4. Call generate_recommendations
+4. Call generate_recommendations with genreHints
 
 ### Mode: "update" — Update Existing Music
 1. Ask for venue name and email on file (for verification)
 2. Ask what they'd like to change and why
-3. Call generate_recommendations with the adjustments
+3. Call generate_recommendations with genreHints reflecting the adjustment
 
-## What Information to Gather (in priority order)
-1. Venue type (hotel, restaurant, bar, spa, cafe, etc.)
-2. Atmosphere description (the richest signal — vibes, mood, feeling)
-3. Venue name and location — ask naturally, e.g. "What's the name of your bar?"
-   - Then follow up about location: "And is [name] inside a hotel or resort, or is it a standalone venue?"
-   - If they already mentioned both (e.g. "Horizon at the Hilton Pattaya"), acknowledge and move on
-   - Location means: which property or building is it in? Our design team needs this context.
-   - After learning name + location, call research_venue to gather context about the venue, property, and area
-4. Operating hours (REQUIRED for daypart segmentation) — ask as its own standalone question, e.g. "What time does [name] open and close?"
-   - NEVER combine this question with another question or a structured question in the same message
-   - The entire schedule design depends on this — without hours, the customer gets useless generic dayparts
-5. Things to avoid (genres, styles, explicit content)
-6. Vocal/language preferences (if relevant)
-7. Guest demographics (if relevant)
-8. Reference venues (if they mention any)
-
+## Vibe Extraction
 Extract structured vibes from the customer's natural language:
 - "chill" / "relaxed" / "calm" → relaxed
 - "upbeat" / "fun" / "lively" → upbeat or energetic
@@ -712,55 +748,77 @@ Extract structured vibes from the customer's natural language:
 - "artsy" / "unique" → creative
 - "corporate" / "office" → professional
 
+## Energy Inference
 Infer energy level 1-10 from their language:
 - "quiet", "subtle", "background" → 2-3
 - "relaxed", "easy", "gentle" → 3-4
 - "moderate", "balanced" → 5-6
 - "lively", "fun", "upbeat" → 6-7
 - "energetic", "pumping", "party" → 8-9
+
+## Genre Intelligence — How to Fill genreHints
+When calling generate_recommendations, you MUST include genreHints — 4-8 specific genre/style keywords based on your expert synthesis of the full conversation + research. This is your core expertise: translating what the customer wants into concrete music direction.
+
+ANTI-PATTERNS (never do this — these are lazy cliches):
+- Sophisticated → jazz (could be deep house, neo-soul, bossa nova, lounge — depends entirely on the venue)
+- Bar → rock (depends on the bar concept)
+- Hotel → classical (only for traditional grand lobbies)
+- Trendy → indie (indie is just one flavor of trendy)
+
+CONTEXT-DRIVEN EXAMPLES:
+- Rooftop bar + DJs + sunset + upscale → ["deep house", "nu-disco", "lounge", "electronic", "cocktail", "balearic"]
+- Jazz bar + intimate + cocktails → ["jazz", "soul", "piano", "intimate", "bar"]
+- Trendy cafe + young crowd + Instagram → ["indie", "lo-fi", "acoustic", "modern", "coffee"]
+- Fine dining + wine program + date night → ["jazz", "bossa", "soul", "piano", "dinner"]
+- Beach club + international + daytime → ["tropical", "reggae", "balearic", "house", "beach"]
+- Hotel lobby + business + international → ["piano", "ambient", "lounge", "instrumental", "elegant"]
+- Gym + high energy + young crowd → ["dance", "hits", "energy", "pop", "upbeat"]
+
+Your genreHints are the STRONGEST signal to the matching algorithm — they carry more weight than vibes. Be specific: "deep house" is better than "electronic". Use terms likely to appear in playlist names/descriptions.
 ${productContext}
 
 ## Structured Questions (Tool: ask_structured_question)
 You have a tool to present numbered options to the customer. Use it when:
-- Asking about venue type, vibe/atmosphere (set allowMultiple: true), energy level, vocal preference, what music to avoid (set allowSkip: true)
-- The question has KNOWN likely answers that can be listed as 3-6 options
+- Asking about venue type (set questionIndex: 1, totalQuestions: 3)
+- Asking about what music to avoid (set allowSkip: true, allowMultiple: true)
+- Asking about vocal preference
+- The question has KNOWN likely answers that can be listed as 4-8 options
 
 Do NOT use it for:
-- Open-ended questions ("Tell me about your venue's atmosphere")
+- The atmosphere/experience question — this MUST be open-ended text to get the richest signal
 - Simple yes/no questions (just ask in text)
 - Your first greeting or warm-up message
-- Follow-up questions where the user's previous answer already narrows things down enough
+- Follow-up questions where the user's previous answer already narrows things down
 
-When using it, always set allowCustom to true so the customer can type something different. Use questionIndex and totalQuestions when you plan a series (e.g. venue type → vibe → energy).
-NEVER use emojis in option labels or descriptions. Keep them clean text only (e.g. "Hotel Lobby" not "🏨 Hotel Lobby").
+When using it, always set allowCustom to true so the customer can type something different.
+NEVER use emojis in option labels or descriptions. Keep them clean text only.
 
-After the customer answers a structured question, continue the conversation naturally in text — acknowledge their choice, maybe add a brief comment, then ask your next question (structured or text, whichever fits).
+After the customer answers a structured question, continue the conversation naturally in text — acknowledge their choice, add a brief expert comment, then ask your next question.
 
-## Venue Research (Tool: research_venue)
-After learning the venue name and location, call research_venue with 2-3 search queries to learn about:
-1. The venue itself (concept, reviews, photos, menu, atmosphere)
-2. The property/hotel/resort it belongs to (brand, guest profile, style)
-3. The city/area (nightlife scene, tourist profile, local culture)
+## Using Venue Research (Tool: research_venue)
+After learning the venue name and location, call research_venue with 2-3 search queries.
 
-Example queries for "Horizon at the Hilton Pattaya":
-- "Horizon rooftop bar Hilton Pattaya"
-- "Hilton Pattaya hotel"
-- "Pattaya nightlife bars"
+CRITICAL: When you get research results back, draw DESIGN CONCLUSIONS. Do NOT repeat facts the customer already told you.
 
-Use the research findings to:
-- Share a brief relevant insight with the customer (shows you did your homework)
-- Inform your music recommendations (e.g. if it's a sunset lounge, factor that into the vibe)
-- Better understand the guest profile (e.g. resort tourists vs. local regulars)
+BAD: "I can see Horizon is a 1,390 sqm rooftop bar on the 34th floor of the Hilton Pattaya with panoramic views."
+GOOD: "The sunset-facing terrace and DJ program tell me we should build around upscale electronic — deep house for the golden hour, transitioning to more energetic sets as the night picks up."
 
-If research returns no useful results, that's fine — just continue the conversation.
+Use research to conclude:
+- What genre direction fits the venue concept (DJs = electronic foundation, not jazz by default)
+- What the guest demographic likely is (Hilton Pattaya = international tourists + expats, 25-45)
+- How unique venue features should shape the energy arc (sunset views = important opening mood; late-night DJ sets = peak energy climax)
+- What the F&B concept tells you about the vibe (cocktail-forward = sophisticated, craft beer = casual)
+
+If research returns no useful results, continue the conversation without mentioning it.
 
 ## After Generating Recommendations
-After calling the tool, present the results conversationally:
-- Briefly introduce what you've designed and how the schedule flows through their operating hours
+Present the results like a designer presenting their work:
+- Briefly explain your DESIGN RATIONALE — why the schedule flows the way it does and how it matches their venue concept (2-3 sentences)
 - Tell them to click "Preview on SYB" to listen to each playlist
 - Ask them to select the ones they like with "Add to brief"
-- Once they're happy, they can click "Review your music schedule" to see a summary before sending to the design team
+- Once happy, they can click "Review your music schedule" to see a summary before sending to the design team
 - If they want changes, adjust and regenerate
+- Do NOT re-list the playlists — the customer can already see the cards
 
 ## Available Venue Types
 hotel-lobby, restaurant, bar-lounge, spa-wellness, fashion-retail, cafe, gym-fitness, pool-beach, qsr, coworking`;
@@ -811,6 +869,12 @@ const RECOMMEND_TOOL = {
       nationality: { type: 'string', description: 'Primary nationality of guests' },
       moodChanges: { type: 'string', description: 'How mood should change through the day' },
       eventDescription: { type: 'string', description: 'For events: description of the event, occasion, date' },
+      genreHints: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Genre/style keywords that best match the venue based on your expert analysis of the full conversation and research. Use specific terms likely to appear in playlist names/descriptions (e.g. ["deep house", "nu-disco", "cocktail", "lounge", "electronic"] for an upscale rooftop bar). These are the STRONGEST signal to the matching algorithm. Max 8 keywords.',
+        maxItems: 8,
+      },
     },
     required: ['venueType', 'vibes', 'energy'],
   },
@@ -936,6 +1000,7 @@ function executeRecommendationTool(toolInput, product = 'syb') {
     ageRange: toolInput.ageRange || '',
     nationality: toolInput.nationality || '',
     moodChanges: toolInput.moodChanges || '',
+    genreHints: toolInput.genreHints || [],
   };
 
   const energy = parseInt(data.energy, 10) || 5;
@@ -1044,7 +1109,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
                 type: 'tool_result',
                 tool_use_id: toolUseBlock.id,
                 content: researchResult.success
-                  ? `Research results for ${researchResult.venueName}:\n${researchResult.summary}\n\nUse this context to inform your music recommendations. Share a brief, relevant insight with the customer (1 sentence max), then continue the conversation — ask about operating hours next.`
+                  ? `Research results for ${researchResult.venueName}:\n${researchResult.summary}\n\nDraw a DESIGN CONCLUSION from this research — what does it mean for their music direction? Share your expert insight (1-2 sentences) that shows you understand their venue concept. Do NOT repeat facts the customer already told you. Then ask about operating hours as a standalone question.`
                   : `${researchResult.summary}\nContinue the conversation — ask about operating hours next.`,
               }],
             },
@@ -1089,7 +1154,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
               content: [{
                 type: 'tool_result',
                 tool_use_id: toolUseBlock.id,
-                content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are now displayed to the customer with preview links and "Add to brief" toggle buttons. Present these results conversationally — briefly introduce what you designed and how the schedule flows through their operating hours. Invite the customer to listen and select their favorites. Do NOT list the playlists again (they can see the cards). Keep it to 2-3 sentences.`,
+                content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are displayed with preview links and "Add to brief" buttons. Present these results like a designer presenting their work — briefly explain your DESIGN RATIONALE: why this schedule flows the way it does and how it matches their venue concept. Do NOT list the playlists (they can see the cards). Keep it to 2-3 sentences.`,
               }],
             },
           ];
