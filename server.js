@@ -614,11 +614,8 @@ function esc(str) {
 // ---------------------------------------------------------------------------
 // Chat System Prompt
 // ---------------------------------------------------------------------------
-function buildChatSystemPrompt(contextBar, language, product = 'syb') {
+function buildChatSystemPrompt(language, product = 'syb') {
   const lang = language === 'th' ? 'Thai' : 'English';
-  const venueContext = contextBar?.venueName
-    ? `\nThe customer has already provided:\n- Venue name: ${contextBar.venueName}${contextBar.location ? `\n- Location: ${contextBar.location}` : ''}${contextBar.hours ? `\n- Operating hours: ${contextBar.hours}` : ''}\nAcknowledge this information naturally in your first response.`
-    : '';
 
   const productContext = product === 'beatbreeze'
     ? '\nThe customer has selected Beat Breeze — our royalty-free music solution. Beat Breeze offers curated royalty-free playlists with no licensing fees, ideal for businesses that want quality background music at an accessible price point. Frame your recommendations as Beat Breeze playlists.'
@@ -647,8 +644,8 @@ function buildChatSystemPrompt(contextBar, language, product = 'syb') {
 ### Mode: "new" — New Venue Design
 1. Ask what type of venue (if not already known from context)
 2. Ask about the atmosphere / feeling they want
-3. Ask 1-2 smart follow-ups based on gaps (hours, avoid list, vocals, guest mix)
-4. Call generate_recommendations when ready
+3. Ask 1-2 smart follow-ups based on gaps (venue name, location, hours, avoid list, vocals, guest mix)
+4. Call generate_recommendations when ready (include venueName and location if mentioned)
 
 ### Mode: "event" — Special Event Planning
 1. Ask for venue name and email on file (for verification)
@@ -664,11 +661,12 @@ function buildChatSystemPrompt(contextBar, language, product = 'syb') {
 ## What Information to Gather (in priority order)
 1. Venue type (hotel, restaurant, bar, spa, cafe, etc.)
 2. Atmosphere description (the richest signal — vibes, mood, feeling)
-3. Operating hours (for daypart segmentation)
-4. Things to avoid (genres, styles, explicit content)
-5. Vocal/language preferences (if relevant)
-6. Guest demographics (if relevant)
-7. Reference venues (if they mention any)
+3. Venue name and location (city) — ask naturally, e.g. "What's the name and where is it?"
+4. Operating hours (for daypart segmentation) — e.g. "What are your opening hours?"
+5. Things to avoid (genres, styles, explicit content)
+6. Vocal/language preferences (if relevant)
+7. Guest demographics (if relevant)
+8. Reference venues (if they mention any)
 
 Extract structured vibes from the customer's natural language:
 - "chill" / "relaxed" / "calm" → relaxed
@@ -689,7 +687,6 @@ Infer energy level 1-10 from their language:
 - "moderate", "balanced" → 5-6
 - "lively", "fun", "upbeat" → 6-7
 - "energetic", "pumping", "party" → 8-9
-${venueContext}
 ${productContext}
 
 ## Structured Questions (Tool: ask_structured_question)
@@ -725,6 +722,8 @@ const RECOMMEND_TOOL = {
   input_schema: {
     type: 'object',
     properties: {
+      venueName: { type: 'string', description: 'Name of the venue (if mentioned by customer)' },
+      location: { type: 'string', description: 'City or location of the venue (if mentioned by customer)' },
       venueType: {
         type: 'string',
         description: 'Venue type key',
@@ -746,7 +745,7 @@ const RECOMMEND_TOOL = {
       },
       hours: {
         type: 'string',
-        description: 'Operating hours (e.g., "17:00 - 02:00", "9am - 11pm"). Use context bar value if provided.',
+        description: 'Operating hours (e.g., "17:00 - 02:00", "9am - 11pm")',
       },
       referenceVenues: { type: 'string', description: 'Reference venues mentioned by customer' },
       avoidList: { type: 'string', description: 'Music styles/genres to avoid' },
@@ -802,12 +801,12 @@ const STRUCTURED_QUESTION_TOOL = {
 const ALL_TOOLS = [RECOMMEND_TOOL, STRUCTURED_QUESTION_TOOL];
 
 // Execute the recommendation tool server-side
-function executeRecommendationTool(toolInput, contextBar, product = 'syb') {
+function executeRecommendationTool(toolInput, product = 'syb') {
   const data = {
-    venueName: contextBar?.venueName || 'Venue',
+    venueName: toolInput.venueName || 'Venue',
     venueType: toolInput.venueType || '',
-    location: contextBar?.location || '',
-    hours: toolInput.hours || contextBar?.hours || '',
+    location: toolInput.location || '',
+    hours: toolInput.hours || '',
     vibes: toolInput.vibes || ['relaxed'],
     energy: toolInput.energy || 5,
     referenceVenues: toolInput.referenceVenues || '',
@@ -842,7 +841,7 @@ const chatLimiter = rateLimit({
 });
 
 app.post('/api/chat', chatLimiter, async (req, res) => {
-  const { message, history, mode, contextBar, language, product, pendingToolUse } = req.body;
+  const { message, history, mode, language, product, pendingToolUse } = req.body;
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'Message is required.' });
@@ -878,7 +877,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
     }
     messages.push({ role: 'user', content: message });
 
-    const systemPrompt = buildChatSystemPrompt(contextBar, language, product);
+    const systemPrompt = buildChatSystemPrompt(language, product);
 
     // First API call — may result in tool use or direct text
     const response = await anthropic.messages.create({
@@ -914,7 +913,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
 
         if (toolUseBlock.name === 'generate_recommendations') {
           // Execute the recommendation tool
-          const toolResult = executeRecommendationTool(toolUseBlock.input, contextBar, product);
+          const toolResult = executeRecommendationTool(toolUseBlock.input, product);
 
           sendSSE('recommendations', {
             recommendations: toolResult.recommendations,
