@@ -1048,6 +1048,56 @@ body.chat-active {
   max-width: 480px;
   margin: 0 auto 48px;
 }
+
+/* Product Selector (SYB / Beat Breeze) */
+.product-selector {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 0 auto 32px;
+  max-width: 380px;
+}
+.product-btn {
+  flex: 1;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  color: var(--text-secondary);
+  transition: all var(--dur-normal) var(--ease-out);
+  font-family: inherit;
+}
+.product-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+  color: var(--text);
+}
+.product-btn.selected {
+  background: rgba(239,166,52,0.08);
+  border-color: var(--brand-orange);
+  color: var(--text);
+  box-shadow: 0 0 20px rgba(239,166,52,0.1);
+}
+.product-btn-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.product-btn-desc {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.product-btn.selected .product-btn-desc {
+  color: var(--text-secondary);
+}
+
 .mode-cards {
   display: flex;
   flex-direction: column;
@@ -1443,6 +1493,7 @@ function setLang(lang) {
 // =========================================================================
 let conversationHistory = [];
 let currentMode = null; // 'new', 'event', 'update'
+let currentProduct = 'syb'; // 'syb' or 'beatbreeze'
 let currentRecommendations = [];
 let currentDayparts = null;
 let extractedBrief = null;
@@ -1524,6 +1575,16 @@ function showWelcomeState() {
     <div class="welcome-content">
       <h1 class="welcome-title"><span data-i18n="greeting_title">Music Design</span> <span class="gradient-text" data-i18n="greeting_title_highlight">Assistant</span></h1>
       <p class="welcome-subtitle" data-i18n="greeting_subtitle">${t.greeting_subtitle}</p>
+      <div class="product-selector">
+        <button class="product-btn selected" data-product="syb" onclick="selectProductHero(this)">
+          <span class="product-btn-name">Soundtrack Your Brand</span>
+          <span class="product-btn-desc" data-i18n="syb_desc">${t.syb_desc}</span>
+        </button>
+        <button class="product-btn" data-product="beatbreeze" onclick="selectProductHero(this)">
+          <span class="product-btn-name">Beat Breeze</span>
+          <span class="product-btn-desc" data-i18n="bb_desc">${t.bb_desc}</span>
+        </button>
+      </div>
       <div class="mode-cards">
         <button class="mode-card" onclick="selectMode('new', this)">
           <span class="mode-card-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
@@ -1796,6 +1857,7 @@ async function sendMessage(text) {
         mode: currentMode,
         contextBar: getContextBar(),
         language: currentLang,
+        product: currentProduct,
       }),
     });
 
@@ -1977,6 +2039,12 @@ function openSubmission() {
   document.getElementById('sfVenue').value = ctx.venueName;
   document.getElementById('sfLocation').value = ctx.location;
   document.getElementById('sfHours').value = ctx.hours;
+  // Pre-fill product from hero selection
+  document.querySelectorAll('.product-card').forEach(c => {
+    const match = c.dataset.product === currentProduct;
+    c.classList.toggle('selected', match);
+    c.querySelector('input[type="radio"]').checked = match;
+  });
   document.getElementById('submissionOverlay').classList.add('visible');
 }
 
@@ -1984,10 +2052,22 @@ function closeSubmission() {
   document.getElementById('submissionOverlay').classList.remove('visible');
 }
 
+function selectProductHero(btn) {
+  document.querySelectorAll('.product-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  currentProduct = btn.dataset.product;
+  if (currentProduct === 'beatbreeze') {
+    document.body.setAttribute('data-theme', 'beatbreeze');
+  } else {
+    document.body.removeAttribute('data-theme');
+  }
+}
+
 function selectProduct(card) {
   document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
   card.classList.add('selected');
-  if (card.dataset.product === 'beatbreeze') {
+  currentProduct = card.dataset.product;
+  if (currentProduct === 'beatbreeze') {
     document.body.setAttribute('data-theme', 'beatbreeze');
   } else {
     document.body.removeAttribute('data-theme');

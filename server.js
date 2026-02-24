@@ -614,11 +614,15 @@ function esc(str) {
 // ---------------------------------------------------------------------------
 // Chat System Prompt
 // ---------------------------------------------------------------------------
-function buildChatSystemPrompt(contextBar, language) {
+function buildChatSystemPrompt(contextBar, language, product = 'syb') {
   const lang = language === 'th' ? 'Thai' : 'English';
   const venueContext = contextBar?.venueName
     ? `\nThe customer has already provided:\n- Venue name: ${contextBar.venueName}${contextBar.location ? `\n- Location: ${contextBar.location}` : ''}${contextBar.hours ? `\n- Operating hours: ${contextBar.hours}` : ''}\nAcknowledge this information naturally in your first response.`
     : '';
+
+  const productContext = product === 'beatbreeze'
+    ? '\nThe customer has selected Beat Breeze — our royalty-free music solution. Beat Breeze offers curated royalty-free playlists with no licensing fees, ideal for businesses that want quality background music at an accessible price point. Frame your recommendations as Beat Breeze playlists.'
+    : '\nThe customer has selected Soundtrack Your Brand (SYB) — our premium licensed music platform. SYB offers the largest catalog of expertly curated playlists for businesses, with fully licensed commercial music. Frame your recommendations as SYB playlists.';
 
   return `You are a friendly, professional music designer at BMAsia Group — Asia's leading background music company. You help venue owners and event planners find the perfect soundtrack.
 
@@ -685,6 +689,7 @@ Infer energy level 1-10 from their language:
 - "lively", "fun", "upbeat" → 6-7
 - "energetic", "pumping", "party" → 8-9
 ${venueContext}
+${productContext}
 
 ## After Generating Recommendations
 After calling the tool, present the results conversationally:
@@ -746,7 +751,7 @@ const RECOMMEND_TOOL = {
 };
 
 // Execute the recommendation tool server-side
-function executeRecommendationTool(toolInput, contextBar) {
+function executeRecommendationTool(toolInput, contextBar, product = 'syb') {
   const data = {
     venueName: contextBar?.venueName || 'Venue',
     venueType: toolInput.venueType || '',
@@ -769,7 +774,7 @@ function executeRecommendationTool(toolInput, contextBar) {
   const result = deterministicMatch(data, dayparts);
   const enriched = enrichRecommendations(result);
 
-  return { dayparts, ...enriched, extractedBrief: data };
+  return { dayparts, ...enriched, extractedBrief: data, product };
 }
 
 // ---------------------------------------------------------------------------
@@ -786,7 +791,7 @@ const chatLimiter = rateLimit({
 });
 
 app.post('/api/chat', chatLimiter, async (req, res) => {
-  const { message, history, mode, contextBar, language } = req.body;
+  const { message, history, mode, contextBar, language, product } = req.body;
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'Message is required.' });
@@ -822,7 +827,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
     }
     messages.push({ role: 'user', content: message });
 
-    const systemPrompt = buildChatSystemPrompt(contextBar, language);
+    const systemPrompt = buildChatSystemPrompt(contextBar, language, product);
 
     // First API call — may result in tool use or direct text
     const response = await anthropic.messages.create({
@@ -846,7 +851,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
       }
 
       // Execute the tool
-      const toolResult = executeRecommendationTool(toolUseBlock.input, contextBar);
+      const toolResult = executeRecommendationTool(toolUseBlock.input, contextBar, product);
 
       // Send recommendations to client immediately
       sendSSE('recommendations', {
