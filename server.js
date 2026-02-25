@@ -1741,6 +1741,115 @@ app.post('/submit', submitLimiter, async (req, res) => {
   }
 });
 
+// ---- Temporary: SYB mutation access test endpoint ----
+// Remove after testing. Access: /api/test-syb-mutation?key=bma2026
+app.get('/api/test-syb-mutation', async (req, res) => {
+  if (req.query.key !== 'bma2026') return res.status(403).json({ error: 'Forbidden' });
+  if (!process.env.SOUNDTRACK_API_TOKEN) return res.json({ error: 'SOUNDTRACK_API_TOKEN not set' });
+
+  const results = {};
+  const token = process.env.SOUNDTRACK_API_TOKEN;
+
+  // Test 1: Introspection — list schedule/zone mutations
+  try {
+    const intro = await sybQuery(`query { __schema { mutationType { fields { name } } } }`);
+    const mutations = intro?.__schema?.mutationType?.fields?.map(f => f.name) || [];
+    results.introspection = {
+      totalMutations: mutations.length,
+      relevantMutations: mutations.filter(n =>
+        /sound|zone|schedule|assign|source|playlist/i.test(n)
+      ),
+    };
+  } catch (e) { results.introspection = { error: e.message }; }
+
+  // Test 2: Search for a known playlist to verify ID format
+  try {
+    const searchData = await sybQuery(`{ search(query: "Morning Lofi", type: playlist, first: 1) { edges { node { ... on Playlist { id name } } } } }`);
+    const playlist = searchData?.search?.edges?.[0]?.node;
+    const catalogMatch = PLAYLIST_CATALOG.find(p => p.name === 'Morning Lofi');
+    results.playlistIdMatch = {
+      apiId: playlist?.id,
+      catalogSybId: catalogMatch?.sybId,
+      match: playlist?.id === catalogMatch?.sybId,
+    };
+  } catch (e) { results.playlistIdMatch = { error: e.message }; }
+
+  // Test 3: Find BMAsia Demo zones
+  try {
+    const accounts = await sybSearchAccount('BMAsia');
+    const demoAccount = accounts.find(a => /demo|playground/i.test(a.businessName)) || accounts[0];
+    if (demoAccount) {
+      const zones = await sybGetZones(demoAccount.id);
+      results.testZones = {
+        account: demoAccount.businessName,
+        accountId: demoAccount.id,
+        zones: zones.map(z => ({ id: z.id, name: z.name })),
+      };
+    } else {
+      results.testZones = { error: 'No BMAsia account found' };
+    }
+  } catch (e) { results.testZones = { error: e.message }; }
+
+  // Test 4: Attempt soundZoneAssignSource mutation on Demo zone
+  const testZoneId = results.testZones?.zones?.[0]?.id;
+  const testSourceId = results.playlistIdMatch?.catalogSybId;
+  if (testZoneId && testSourceId) {
+    try {
+      const mutResult = await sybQuery(`
+        mutation($input: SoundZoneAssignSourceInput!) {
+          soundZoneAssignSource(input: $input) {
+            soundZone { id name }
+          }
+        }
+      `, { input: { soundZones: [testZoneId], source: testSourceId } });
+      results.assignMutation = { success: true, data: mutResult };
+    } catch (e) {
+      results.assignMutation = {
+        success: false,
+        error: e.message,
+        hasAccess: !/unauthorized|forbidden|permission/i.test(e.message),
+      };
+    }
+  } else {
+    results.assignMutation = { skipped: true, reason: 'No test zone or source ID' };
+  }
+
+  // Test 5: Attempt createSchedule mutation (dry — no actual creation unless it works)
+  if (testSourceId) {
+    try {
+      const ownerId = results.testZones?.accountId;
+      const schedResult = await sybQuery(`
+        mutation($input: CreateScheduleInput!) {
+          createSchedule(input: $input) {
+            id name slots { id start duration playlistIds }
+          }
+        }
+      `, {
+        input: {
+          ownerId,
+          name: 'BMAsia Test Schedule (DELETE ME)',
+          description: 'Automated test — safe to delete',
+          presentAs: 'daily',
+          slots: [{
+            start: '09:00',
+            duration: 240,
+            playlistIds: [testSourceId],
+          }],
+        },
+      });
+      results.createSchedule = { success: true, data: schedResult };
+    } catch (e) {
+      results.createSchedule = {
+        success: false,
+        error: e.message,
+        hasAccess: !/unauthorized|forbidden|permission/i.test(e.message),
+      };
+    }
+  }
+
+  res.json(results);
+});
+
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
