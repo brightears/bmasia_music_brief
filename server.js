@@ -1831,7 +1831,7 @@ app.get('/api/test-syb-mutation', async (req, res) => {
               ownerId,
               name: 'BMAsia Test Schedule (DELETE ME)',
               slots: [{
-                rrule: 'RRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR,SA,SU',
+                rrule: 'RRULE:FREQ=DAILY',
                 start: '090000',
                 duration: 240,
                 playlistIds: [testSourceId],
