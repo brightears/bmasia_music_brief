@@ -76,11 +76,13 @@ if (pool) {
       start_time TIME NOT NULL,
       end_time TIME,
       days VARCHAR(20) DEFAULT 'daily',
+      timezone VARCHAR(50) DEFAULT 'Asia/Bangkok',
       status VARCHAR(20) DEFAULT 'active',
       last_assigned_at TIMESTAMP,
       retry_count INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT NOW()
     );
+    ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Bangkok';
 
     CREATE TABLE IF NOT EXISTS approval_tokens (
       id SERIAL PRIMARY KEY,
@@ -1806,11 +1808,11 @@ app.post('/submit', submitLimiter, async (req, res) => {
         if (data.product !== 'beatbreeze' && briefId) {
           // Check if venue qualifies for auto-schedule
           const { rows: venueRows } = await pool.query(
-            'SELECT auto_schedule, approved_brief_count FROM venues WHERE venue_name = $1',
+            'SELECT auto_schedule, approved_brief_count, timezone FROM venues WHERE venue_name = $1',
             [data.venueName]
           );
-          const venue = venueRows[0];
-          const canAutoSchedule = venue?.auto_schedule && (venue?.approved_brief_count || 0) >= 2;
+          const venueRow = venueRows[0];
+          const canAutoSchedule = venueRow?.auto_schedule && (venueRow?.approved_brief_count || 0) >= 2;
 
           if (canAutoSchedule) {
             // Auto-schedule: create entries directly using saved zone mappings
@@ -1838,10 +1840,11 @@ app.post('/submit', submitLimiter, async (req, res) => {
                 if (!sybId) continue;
 
                 const days = playlist.scheduleType === 'weekend' ? 'weekend' : 'daily';
+                const tz = venueRow?.timezone || 'Asia/Bangkok';
                 await pool.query(
-                  `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                  [briefId, mapping.syb_zone_id, zoneName, sybId, playlist.name, startTime, endTime, days]
+                  `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days, timezone)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                  [briefId, mapping.syb_zone_id, zoneName, sybId, playlist.name, startTime, endTime, days, tz]
                 );
                 entriesCreated++;
               }
@@ -2003,6 +2006,12 @@ app.post('/approve/:token', express.urlencoded({ extended: true }), async (req, 
     const tokenData = tokenRows[0];
     const briefId = tokenData.brief_id;
     const schedule = tokenData.schedule_data || {};
+
+    // Get venue timezone
+    const { rows: venueRows } = await pool.query(
+      'SELECT timezone FROM venues WHERE venue_name = $1', [tokenData.venue_name]
+    );
+    const venueTz = venueRows[0]?.timezone || 'Asia/Bangkok';
     const likedPlaylists = schedule.likedPlaylists || [];
     const zoneNames = schedule.multiZone && schedule.zoneNames?.length ? schedule.zoneNames : ['Main'];
 
@@ -2056,9 +2065,9 @@ app.post('/approve/:token', express.urlencoded({ extended: true }), async (req, 
       const days = playlist.scheduleType === 'weekend' ? 'weekend' : 'daily';
 
       await pool.query(
-        `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime, days]
+        `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days, timezone)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime, days, venueTz]
       );
       entriesCreated++;
     }
@@ -2081,9 +2090,9 @@ app.post('/approve/:token', express.urlencoded({ extended: true }), async (req, 
       if (!sybId) continue;
 
       await pool.query(
-        `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'weekend')`,
-        [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime]
+        `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days, timezone)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'weekend', $8)`,
+        [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime, venueTz]
       );
       entriesCreated++;
     }
@@ -2389,25 +2398,27 @@ async function scheduleWorker() {
   if (!pool || !process.env.SOUNDTRACK_API_TOKEN) return;
 
   try {
-    const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
-    const dayOfWeek = now.getDay(); // 0=Sun
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    // All time comparisons use the entry's own timezone via PostgreSQL AT TIME ZONE.
+    // This means schedule times like "08:00" are correctly compared against the current
+    // local time in the venue's timezone, not UTC.
 
     // Find entries due now (within 2-minute window to handle polling gaps)
     const { rows } = await pool.query(`
       SELECT * FROM schedule_entries
       WHERE status = 'active'
-        AND start_time BETWEEN ($1::time - interval '1 minute') AND ($1::time + interval '1 minute')
+        AND start_time BETWEEN
+          (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::time - interval '1 minute'
+          AND (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::time + interval '1 minute'
         AND (days = 'daily'
-             OR (days = 'weekday' AND $2 = false)
-             OR (days = 'weekend' AND $2 = true))
+             OR (days = 'weekday' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) BETWEEN 1 AND 5)
+             OR (days = 'weekend' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) IN (0, 6)))
         AND (last_assigned_at IS NULL
-             OR last_assigned_at < CURRENT_DATE)
-    `, [currentTime, isWeekend]);
+             OR last_assigned_at < (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::date)
+    `);
 
     if (rows.length > 0) {
-      console.log(`[Worker] Found ${rows.length} schedule entries to assign at ${currentTime}`);
+      const localTime = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false });
+      console.log(`[Worker] Found ${rows.length} schedule entries to assign at ${localTime} (local)`);
     }
 
     for (const entry of rows) {
@@ -2418,14 +2429,14 @@ async function scheduleWorker() {
     const { rows: overdue } = await pool.query(`
       SELECT * FROM schedule_entries
       WHERE status = 'active'
-        AND start_time < $1::time
+        AND start_time < (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::time
         AND (days = 'daily'
-             OR (days = 'weekday' AND $2 = false)
-             OR (days = 'weekend' AND $2 = true))
+             OR (days = 'weekday' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) BETWEEN 1 AND 5)
+             OR (days = 'weekend' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) IN (0, 6)))
         AND (last_assigned_at IS NULL
-             OR last_assigned_at < CURRENT_DATE)
+             OR last_assigned_at < (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::date)
       ORDER BY start_time DESC
-    `, [currentTime, isWeekend]);
+    `);
 
     // For overdue, only assign the most recent one per zone (latest daypart that should be playing)
     const latestPerZone = {};
@@ -2581,21 +2592,6 @@ app.get('/follow-up/track/:trackingId', async (req, res) => {
 });
 
 // Health check
-// TEMPORARY: debug endpoint for pipeline testing (remove after verification)
-app.get('/debug/latest-token', async (req, res) => {
-  if (!pool) return res.json({ error: 'no db' });
-  try {
-    const { rows } = await pool.query(`
-      SELECT at.token, at.brief_id, at.expires_at, at.used_at, b.venue_name, b.status
-      FROM approval_tokens at JOIN briefs b ON at.brief_id = b.id
-      ORDER BY at.created_at DESC LIMIT 3
-    `);
-    const { rows: fups } = await pool.query('SELECT * FROM follow_ups ORDER BY created_at DESC LIMIT 5');
-    const { rows: entries } = await pool.query('SELECT * FROM schedule_entries ORDER BY created_at DESC LIMIT 5');
-    res.json({ tokens: rows, followUps: fups, scheduleEntries: entries });
-  } catch (err) { res.json({ error: err.message }); }
-});
-
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.listen(PORT, () => {

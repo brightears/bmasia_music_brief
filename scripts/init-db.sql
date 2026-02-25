@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS schedule_entries (
   start_time TIME NOT NULL,               -- e.g. '09:00'
   end_time TIME,                          -- e.g. '12:00' (for display only; worker triggers on start_time)
   days VARCHAR(20) DEFAULT 'daily',       -- 'daily', 'weekday', 'weekend'
+  timezone VARCHAR(50) DEFAULT 'Asia/Bangkok', -- venue timezone for worker time comparisons
   status VARCHAR(20) DEFAULT 'active',    -- active/paused/completed/error
   last_assigned_at TIMESTAMP,
   retry_count INTEGER DEFAULT 0,
@@ -107,3 +108,4 @@ ALTER TABLE briefs ADD COLUMN IF NOT EXISTS schedule_data JSONB;
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS auto_schedule BOOLEAN DEFAULT FALSE;
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS approved_brief_count INTEGER DEFAULT 0;
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Bangkok';
+ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Bangkok';
