@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
 const dns = require('dns');
+const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 
 dns.setDefaultResultOrder('ipv4first');
@@ -57,6 +58,63 @@ if (pool) {
     CREATE INDEX IF NOT EXISTS idx_venues_name ON venues(venue_name);
     CREATE INDEX IF NOT EXISTS idx_briefs_venue ON briefs(venue_name);
     CREATE INDEX IF NOT EXISTS idx_briefs_email ON briefs(contact_email);
+
+    -- New columns for scheduling pipeline (safe to re-run: IF NOT EXISTS / ADD IF NOT EXISTS)
+    ALTER TABLE briefs ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'submitted';
+    ALTER TABLE briefs ADD COLUMN IF NOT EXISTS schedule_data JSONB;
+    ALTER TABLE venues ADD COLUMN IF NOT EXISTS auto_schedule BOOLEAN DEFAULT FALSE;
+    ALTER TABLE venues ADD COLUMN IF NOT EXISTS approved_brief_count INTEGER DEFAULT 0;
+    ALTER TABLE venues ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Bangkok';
+
+    CREATE TABLE IF NOT EXISTS schedule_entries (
+      id SERIAL PRIMARY KEY,
+      brief_id INTEGER REFERENCES briefs(id),
+      zone_id VARCHAR(255) NOT NULL,
+      zone_name VARCHAR(255),
+      playlist_syb_id VARCHAR(255) NOT NULL,
+      playlist_name VARCHAR(255),
+      start_time TIME NOT NULL,
+      end_time TIME,
+      days VARCHAR(20) DEFAULT 'daily',
+      status VARCHAR(20) DEFAULT 'active',
+      last_assigned_at TIMESTAMP,
+      retry_count INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS approval_tokens (
+      id SERIAL PRIMARY KEY,
+      brief_id INTEGER REFERENCES briefs(id),
+      token VARCHAR(64) UNIQUE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS follow_ups (
+      id SERIAL PRIMARY KEY,
+      brief_id INTEGER REFERENCES briefs(id),
+      type VARCHAR(20) NOT NULL,
+      scheduled_for TIMESTAMP NOT NULL,
+      sent_at TIMESTAMP,
+      tracking_id VARCHAR(64) UNIQUE,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS venue_zone_mappings (
+      id SERIAL PRIMARY KEY,
+      venue_name VARCHAR(255) NOT NULL,
+      brief_zone_name VARCHAR(255) NOT NULL,
+      syb_zone_id VARCHAR(255) NOT NULL,
+      syb_zone_name VARCHAR(255),
+      syb_account_id VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(venue_name, brief_zone_name)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_schedule_active ON schedule_entries(status, start_time) WHERE status = 'active';
+    CREATE INDEX IF NOT EXISTS idx_approval_token ON approval_tokens(token);
+    CREATE INDEX IF NOT EXISTS idx_followup_pending ON follow_ups(scheduled_for) WHERE sent_at IS NULL;
   `).then(() => console.log('Database tables ready'))
     .catch(err => console.error('Database init error:', err.message));
 }
@@ -586,7 +644,7 @@ function buildPlaylistEmailSections(aiResults) {
   return html;
 }
 
-function buildEmailHtml(data, brief, aiResults) {
+function buildEmailHtml(data, brief, aiResults, approvalUrl) {
   const vibes = Array.isArray(data.vibes) ? data.vibes : [data.vibes].filter(Boolean);
   const product = data.product === 'beatbreeze' ? 'Beat Breeze' : 'Soundtrack Your Brand';
   const now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok', dateStyle: 'full', timeStyle: 'short' });
@@ -712,6 +770,18 @@ function buildEmailHtml(data, brief, aiResults) {
       <li>Send draft playlist to customer for approval</li>
     </ul>
   `)}
+
+  ${approvalUrl ? `
+  <tr><td style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr><td style="padding:12px 16px;background:#EFA634;color:#1a1a2e;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Schedule Playlists on SYB</td></tr>
+      <tr><td style="padding:24px 16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;text-align:center;">
+        <p style="margin:0 0 16px;color:#374151;font-size:14px;">Review the schedule, map SYB zones, and activate automatic playlist scheduling.</p>
+        <a href="${esc(approvalUrl)}" style="display:inline-block;padding:14px 32px;background:#EFA634;color:#1a1a2e;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;">Approve &amp; Schedule</a>
+        <p style="margin:12px 0 0;color:#9ca3af;font-size:12px;">Link expires in 7 days</p>
+      </td></tr>
+    </table>
+  </td></tr>` : ''}
 
   ${section('Raw Data (for AI reprocessing)', `
     <pre style="margin:0;font-size:11px;color:#6b7280;white-space:pre-wrap;word-break:break-all;background:#f9fafb;padding:12px;border-radius:4px;">${esc(JSON.stringify(data, null, 2))}</pre>
@@ -1685,25 +1755,26 @@ app.post('/submit', submitLimiter, async (req, res) => {
       data._conversationSummary = conversationSummary;
     }
 
-    const html = buildEmailHtml(data, brief, aiResults);
+    // Store brief in PostgreSQL FIRST (need brief ID for approval token)
+    let briefId = null;
+    let approvalUrl = null;
+    const scheduleData = {
+      dayparts: brief.dayparts,
+      daypartOrder: brief.daypartOrder || Object.keys(brief.dayparts),
+      likedPlaylists: aiResults.likedPlaylists || [],
+      multiZone: data.multiZone || false,
+      zoneNames: data.zoneNames || [],
+      weekendDayparts: data.weekendDayparts || null,
+      weekendRecommendations: data.weekendRecommendations || null,
+      weekendLikedPlaylists: data.weekendLikedPlaylists || [],
+    };
 
-    const product = data.product === 'beatbreeze' ? 'Beat Breeze' : 'SYB';
-    const subject = `Music Brief: ${data.venueName} (${product})`;
-
-    await transporter.sendMail({
-      from: `"BMAsia Music Brief" <${GMAIL_USER}>`,
-      to: RECIPIENT_EMAIL,
-      subject,
-      html,
-    });
-
-    // Store brief in PostgreSQL (non-fatal — email is the primary delivery)
     if (pool) {
       try {
         const likedIds = aiResults.likedPlaylists.map(p => p.name || p);
         const briefResult = await pool.query(
-          `INSERT INTO briefs (venue_name, venue_type, location, contact_name, contact_email, product, liked_playlist_ids, conversation_summary, raw_data)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+          `INSERT INTO briefs (venue_name, venue_type, location, contact_name, contact_email, product, liked_playlist_ids, conversation_summary, raw_data, schedule_data)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
           [
             data.venueName,
             data.venueType || null,
@@ -1714,9 +1785,10 @@ app.post('/submit', submitLimiter, async (req, res) => {
             likedIds,
             conversationSummary || null,
             JSON.stringify({ brief, aiResults, extractedBrief }),
+            JSON.stringify(scheduleData),
           ]
         );
-        const briefId = briefResult.rows[0].id;
+        briefId = briefResult.rows[0].id;
 
         // Upsert venue profile
         await pool.query(
@@ -1729,15 +1801,782 @@ app.post('/submit', submitLimiter, async (req, res) => {
              updated_at = NOW()`,
           [data.venueName, data.location || null, data.venueType || null, briefId]
         );
+
+        // Scheduling pipeline (SYB product only)
+        if (data.product !== 'beatbreeze' && briefId) {
+          // Check if venue qualifies for auto-schedule
+          const { rows: venueRows } = await pool.query(
+            'SELECT auto_schedule, approved_brief_count FROM venues WHERE venue_name = $1',
+            [data.venueName]
+          );
+          const venue = venueRows[0];
+          const canAutoSchedule = venue?.auto_schedule && (venue?.approved_brief_count || 0) >= 2;
+
+          if (canAutoSchedule) {
+            // Auto-schedule: create entries directly using saved zone mappings
+            const { rows: mappings } = await pool.query(
+              'SELECT * FROM venue_zone_mappings WHERE venue_name = $1',
+              [data.venueName]
+            );
+
+            if (mappings.length > 0) {
+              let entriesCreated = 0;
+              const allPlaylists = [...(scheduleData.likedPlaylists || []), ...(scheduleData.weekendLikedPlaylists || [])];
+              for (const playlist of allPlaylists) {
+                const zoneName = playlist.zone || 'Main';
+                const mapping = mappings.find(m => m.brief_zone_name === zoneName);
+                if (!mapping) continue;
+
+                const dpKey = playlist.daypart;
+                const dp = scheduleData.dayparts?.[dpKey];
+                const timeRange = dp?.timeRange || playlist.timeRange || '';
+                const startTime = parseStartTime(timeRange);
+                const endTime = parseEndTime(timeRange);
+                if (!startTime) continue;
+
+                const sybId = playlist.sybId || findPlaylistSybId(playlist.name || playlist.playlistId);
+                if (!sybId) continue;
+
+                const days = playlist.scheduleType === 'weekend' ? 'weekend' : 'daily';
+                await pool.query(
+                  `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                  [briefId, mapping.syb_zone_id, zoneName, sybId, playlist.name, startTime, endTime, days]
+                );
+                entriesCreated++;
+              }
+
+              if (entriesCreated > 0) {
+                await pool.query('UPDATE briefs SET status = $1 WHERE id = $2', ['approved', briefId]);
+                await pool.query(
+                  'UPDATE venues SET approved_brief_count = approved_brief_count + 1, updated_at = NOW() WHERE venue_name = $1',
+                  [data.venueName]
+                );
+                console.log(`[AutoSchedule] Created ${entriesCreated} entries for returning client "${data.venueName}"`);
+              }
+            }
+          }
+
+          // Always generate approval token (even for auto-schedule, as a fallback/view link)
+          const token = crypto.randomBytes(32).toString('hex');
+          await pool.query(
+            `INSERT INTO approval_tokens (brief_id, token, expires_at)
+             VALUES ($1, $2, NOW() + INTERVAL '7 days')`,
+            [briefId, token]
+          );
+          const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+          approvalUrl = `${baseUrl}/approve/${token}`;
+
+          // Create follow-up entries
+          const trackingId7 = crypto.randomBytes(32).toString('hex');
+          const trackingId30 = crypto.randomBytes(32).toString('hex');
+          await pool.query(
+            `INSERT INTO follow_ups (brief_id, type, scheduled_for, tracking_id) VALUES
+             ($1, '7day', NOW() + INTERVAL '7 days', $2),
+             ($1, '30day', NOW() + INTERVAL '30 days', $3)`,
+            [briefId, trackingId7, trackingId30]
+          );
+        }
       } catch (dbErr) {
         console.error('DB brief storage error (non-fatal):', dbErr.message);
       }
     }
 
-    res.json({ success: true });
+    const html = buildEmailHtml(data, brief, aiResults, approvalUrl);
+
+    const product = data.product === 'beatbreeze' ? 'Beat Breeze' : 'SYB';
+    const subject = `Music Brief: ${data.venueName} (${product})`;
+
+    await transporter.sendMail({
+      from: `"BMAsia Music Brief" <${GMAIL_USER}>`,
+      to: RECIPIENT_EMAIL,
+      subject,
+      html,
+    });
+
+    res.json({ success: true, briefId });
   } catch (err) {
     console.error('Submit error:', err);
     res.status(500).json({ error: 'Failed to send brief. Please try again.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Approval Page — GET /approve/:token
+// ---------------------------------------------------------------------------
+app.get('/approve/:token', async (req, res) => {
+  if (!pool) return res.status(500).send('Database not configured');
+
+  try {
+    // Validate token
+    const { rows: tokenRows } = await pool.query(
+      `SELECT at.*, b.venue_name, b.venue_type, b.location, b.contact_name,
+              b.contact_email, b.product, b.schedule_data, b.raw_data, b.status as brief_status
+       FROM approval_tokens at
+       JOIN briefs b ON at.brief_id = b.id
+       WHERE at.token = $1`,
+      [req.params.token]
+    );
+
+    if (tokenRows.length === 0) {
+      return res.status(404).send(renderApprovalError('Invalid Link', 'This approval link is not valid.'));
+    }
+
+    const tokenData = tokenRows[0];
+
+    if (tokenData.used_at) {
+      return res.status(410).send(renderApprovalError('Already Approved', 'This brief has already been approved and scheduled.'));
+    }
+
+    if (new Date(tokenData.expires_at) < new Date()) {
+      return res.status(410).send(renderApprovalError('Link Expired', 'This approval link has expired. Please request a new brief submission.'));
+    }
+
+    // Fetch SYB zones for zone mapping
+    let sybZones = [];
+    let sybAccountId = null;
+    if (process.env.SOUNDTRACK_API_TOKEN) {
+      try {
+        const accounts = await sybSearchAccount(tokenData.venue_name);
+        if (accounts.length > 0) {
+          sybAccountId = accounts[0].id;
+          sybZones = await sybGetZones(sybAccountId);
+        }
+      } catch (err) {
+        console.error('SYB zone lookup for approval page:', err.message);
+      }
+    }
+
+    // Also check for existing zone mappings
+    const { rows: existingMappings } = await pool.query(
+      'SELECT * FROM venue_zone_mappings WHERE venue_name = $1',
+      [tokenData.venue_name]
+    );
+
+    const schedule = tokenData.schedule_data || {};
+    const likedPlaylists = schedule.likedPlaylists || [];
+    const daypartOrder = schedule.daypartOrder || [];
+    const dayparts = schedule.dayparts || {};
+    const zoneNames = schedule.zoneNames || [];
+    const isMultiZone = schedule.multiZone && zoneNames.length > 0;
+
+    res.send(renderApprovalPage({
+      token: req.params.token,
+      brief: tokenData,
+      likedPlaylists,
+      daypartOrder,
+      dayparts,
+      zoneNames: isMultiZone ? zoneNames : ['Main'],
+      isMultiZone,
+      sybZones,
+      sybAccountId,
+      existingMappings,
+      weekendPlaylists: schedule.weekendLikedPlaylists || [],
+      weekendDayparts: schedule.weekendDayparts || null,
+    }));
+  } catch (err) {
+    console.error('Approval page error:', err);
+    res.status(500).send(renderApprovalError('Server Error', 'Something went wrong. Please try again.'));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Approval Processing — POST /approve/:token
+// ---------------------------------------------------------------------------
+app.post('/approve/:token', express.urlencoded({ extended: true }), async (req, res) => {
+  if (!pool) return res.status(500).send('Database not configured');
+
+  try {
+    // Validate token
+    const { rows: tokenRows } = await pool.query(
+      `SELECT at.*, b.venue_name, b.schedule_data, b.id as brief_id
+       FROM approval_tokens at
+       JOIN briefs b ON at.brief_id = b.id
+       WHERE at.token = $1 AND at.used_at IS NULL AND at.expires_at > NOW()`,
+      [req.params.token]
+    );
+
+    if (tokenRows.length === 0) {
+      return res.status(400).send(renderApprovalError('Invalid or Expired', 'This approval link is no longer valid.'));
+    }
+
+    const tokenData = tokenRows[0];
+    const briefId = tokenData.brief_id;
+    const schedule = tokenData.schedule_data || {};
+    const likedPlaylists = schedule.likedPlaylists || [];
+    const zoneNames = schedule.multiZone && schedule.zoneNames?.length ? schedule.zoneNames : ['Main'];
+
+    // Parse zone mappings from form
+    const zoneMappings = {};
+    for (const zoneName of zoneNames) {
+      const sybZoneId = req.body[`zone_${zoneName}`];
+      const sybZoneName = req.body[`zone_name_${zoneName}`] || '';
+      if (sybZoneId) {
+        zoneMappings[zoneName] = { sybZoneId, sybZoneName };
+      }
+    }
+
+    if (Object.keys(zoneMappings).length === 0) {
+      return res.status(400).send(renderApprovalError('No Zones Mapped', 'Please map at least one zone to a SYB sound zone.'));
+    }
+
+    // Save zone mappings
+    const sybAccountId = req.body.syb_account_id || null;
+    for (const [briefZoneName, mapping] of Object.entries(zoneMappings)) {
+      await pool.query(
+        `INSERT INTO venue_zone_mappings (venue_name, brief_zone_name, syb_zone_id, syb_zone_name, syb_account_id)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (venue_name, brief_zone_name) DO UPDATE SET
+           syb_zone_id = EXCLUDED.syb_zone_id,
+           syb_zone_name = EXCLUDED.syb_zone_name,
+           syb_account_id = EXCLUDED.syb_account_id`,
+        [tokenData.venue_name, briefZoneName, mapping.sybZoneId, mapping.sybZoneName, sybAccountId]
+      );
+    }
+
+    // Create schedule entries from liked playlists
+    let entriesCreated = 0;
+    for (const playlist of likedPlaylists) {
+      const zoneName = playlist.zone || 'Main';
+      const mapping = zoneMappings[zoneName];
+      if (!mapping) continue;
+
+      // Find the daypart time range for this playlist
+      const dpKey = playlist.daypart;
+      const dp = schedule.dayparts?.[dpKey];
+      const timeRange = dp?.timeRange || playlist.timeRange || '';
+      const startTime = parseStartTime(timeRange);
+      const endTime = parseEndTime(timeRange);
+      if (!startTime) continue;
+
+      // Resolve sybId from playlist data or catalog
+      const sybId = playlist.sybId || findPlaylistSybId(playlist.name || playlist.playlistId);
+      if (!sybId) continue;
+
+      const days = playlist.scheduleType === 'weekend' ? 'weekend' : 'daily';
+
+      await pool.query(
+        `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime, days]
+      );
+      entriesCreated++;
+    }
+
+    // Also handle weekend playlists if present
+    const weekendPlaylists = schedule.weekendLikedPlaylists || [];
+    for (const playlist of weekendPlaylists) {
+      const zoneName = playlist.zone || 'Main';
+      const mapping = zoneMappings[zoneName];
+      if (!mapping) continue;
+
+      const dpKey = playlist.daypart;
+      const dp = schedule.weekendDayparts?.[dpKey] || schedule.dayparts?.[dpKey];
+      const timeRange = dp?.timeRange || playlist.timeRange || '';
+      const startTime = parseStartTime(timeRange);
+      const endTime = parseEndTime(timeRange);
+      if (!startTime) continue;
+
+      const sybId = playlist.sybId || findPlaylistSybId(playlist.name || playlist.playlistId);
+      if (!sybId) continue;
+
+      await pool.query(
+        `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'weekend')`,
+        [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime]
+      );
+      entriesCreated++;
+    }
+
+    // Mark token as used
+    await pool.query('UPDATE approval_tokens SET used_at = NOW() WHERE id = $1', [tokenData.id]);
+
+    // Update brief status
+    await pool.query('UPDATE briefs SET status = $1 WHERE id = $2', ['approved', briefId]);
+
+    // Increment venue approved count
+    await pool.query(
+      `UPDATE venues SET approved_brief_count = approved_brief_count + 1, updated_at = NOW()
+       WHERE venue_name = $1`,
+      [tokenData.venue_name]
+    );
+
+    res.send(renderApprovalSuccess(tokenData.venue_name, entriesCreated));
+  } catch (err) {
+    console.error('Approval processing error:', err);
+    res.status(500).send(renderApprovalError('Server Error', 'Failed to process approval. Please try again.'));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Helpers: time parsing, playlist lookup, approval page rendering
+// ---------------------------------------------------------------------------
+
+function parseStartTime(timeRange) {
+  // Parse "9:00 AM - 12:00 PM" or "09:00 - 12:00" or "9am - 12pm" format
+  if (!timeRange) return null;
+  const match = timeRange.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM|am|pm)?/);
+  if (!match) return null;
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2] || '00';
+  const ampm = (match[3] || '').toUpperCase();
+  if (ampm === 'PM' && hours < 12) hours += 12;
+  if (ampm === 'AM' && hours === 12) hours = 0;
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+}
+
+function parseEndTime(timeRange) {
+  if (!timeRange) return null;
+  // Match the second time in the range (after dash/hyphen)
+  const parts = timeRange.split(/[-–]/);
+  if (parts.length < 2) return null;
+  return parseStartTime(parts[1].trim());
+}
+
+function findPlaylistSybId(playlistName) {
+  if (!playlistName) return null;
+  const match = PLAYLIST_CATALOG.find(p =>
+    p.name.toLowerCase() === playlistName.toLowerCase()
+  );
+  return match?.sybId || null;
+}
+
+function renderApprovalError(title, message) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)} - BMAsia Music Brief</title>
+<style>
+  body{margin:0;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f23;color:#e5e7eb;display:flex;justify-content:center;align-items:center;min-height:100vh;}
+  .card{max-width:480px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:48px 32px;text-align:center;}
+  h1{margin:0 0 16px;color:#EFA634;font-size:24px;}
+  p{margin:0;color:#9ca3af;font-size:15px;line-height:1.6;}
+</style></head><body>
+<div class="card"><h1>${esc(title)}</h1><p>${esc(message)}</p></div>
+</body></html>`;
+}
+
+function renderApprovalSuccess(venueName, entriesCreated) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Schedule Activated - BMAsia Music Brief</title>
+<style>
+  body{margin:0;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f23;color:#e5e7eb;display:flex;justify-content:center;align-items:center;min-height:100vh;}
+  .card{max-width:480px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:48px 32px;text-align:center;}
+  h1{margin:0 0 16px;color:#059669;font-size:24px;}
+  .count{font-size:48px;font-weight:700;color:#EFA634;margin:16px 0;}
+  p{margin:0 0 8px;color:#9ca3af;font-size:15px;line-height:1.6;}
+  .venue{color:#e5e7eb;font-weight:600;}
+</style></head><body>
+<div class="card">
+  <h1>Schedule Activated</h1>
+  <p class="venue">${esc(venueName)}</p>
+  <div class="count">${entriesCreated}</div>
+  <p>playlist schedule ${entriesCreated === 1 ? 'entry' : 'entries'} created</p>
+  <p style="margin-top:24px;color:#6b7280;font-size:13px;">The background worker will assign playlists to SYB zones at the scheduled times.</p>
+</div>
+</body></html>`;
+}
+
+function renderApprovalPage({ token, brief, likedPlaylists, daypartOrder, dayparts, zoneNames, isMultiZone, sybZones, sybAccountId, existingMappings, weekendPlaylists, weekendDayparts }) {
+  const existingMap = {};
+  for (const m of existingMappings) {
+    existingMap[m.brief_zone_name] = m;
+  }
+
+  // Build zone mapping section
+  let zoneMappingHtml = '';
+  for (const zoneName of zoneNames) {
+    const existing = existingMap[zoneName];
+    const preselected = existing?.syb_zone_id || '';
+
+    let optionsHtml = '<option value="">-- Select SYB Zone --</option>';
+    for (const z of sybZones) {
+      const selected = z.id === preselected ? ' selected' : '';
+      const loc = z.location?.name ? ` (${esc(z.location.name)})` : '';
+      optionsHtml += `<option value="${esc(z.id)}"${selected}>${esc(z.name)}${loc}</option>`;
+    }
+    // Manual input option
+    optionsHtml += '<option value="__manual__">Enter zone ID manually...</option>';
+
+    zoneMappingHtml += `
+      <div class="zone-row">
+        <label>${esc(zoneName)}</label>
+        <select name="zone_${esc(zoneName)}" class="zone-select" onchange="toggleManual(this, '${esc(zoneName)}')">
+          ${optionsHtml}
+        </select>
+        <input type="hidden" name="zone_name_${esc(zoneName)}" value="${esc(sybZones.find(z => z.id === preselected)?.name || '')}">
+        <input type="text" class="manual-input" id="manual_${esc(zoneName)}" placeholder="Paste SYB zone ID" style="display:none;">
+      </div>`;
+  }
+
+  // Build schedule preview
+  let scheduleHtml = '';
+  // Group liked playlists by zone then daypart
+  const playlistsByZone = {};
+  for (const p of likedPlaylists) {
+    const z = p.zone || 'Main';
+    if (!playlistsByZone[z]) playlistsByZone[z] = {};
+    const dp = p.daypart || 'general';
+    if (!playlistsByZone[z][dp]) playlistsByZone[z][dp] = [];
+    playlistsByZone[z][dp].push(p);
+  }
+
+  for (const zoneName of zoneNames) {
+    const zonePlaylists = playlistsByZone[zoneName] || {};
+    if (isMultiZone) {
+      scheduleHtml += `<div class="zone-header">${esc(zoneName)}</div>`;
+    }
+    for (const dpKey of daypartOrder) {
+      const dp = dayparts[dpKey];
+      const pls = zonePlaylists[dpKey] || [];
+      if (pls.length === 0) continue;
+      scheduleHtml += `<div class="dp-header">${esc(dp?.label || dpKey)} ${dp?.timeRange ? `<span class="dp-time">${esc(dp.timeRange)}</span>` : ''}</div>`;
+      for (const p of pls) {
+        scheduleHtml += `<div class="playlist-row">${esc(p.name)} <span class="match">${p.matchScore}%</span></div>`;
+      }
+    }
+  }
+
+  // Weekend playlists section
+  let weekendHtml = '';
+  if (weekendPlaylists.length > 0) {
+    weekendHtml = '<div class="section-title" style="margin-top:24px;">Weekend Schedule</div>';
+    const wpByZone = {};
+    for (const p of weekendPlaylists) {
+      const z = p.zone || 'Main';
+      if (!wpByZone[z]) wpByZone[z] = {};
+      const dp = p.daypart || 'general';
+      if (!wpByZone[z][dp]) wpByZone[z][dp] = [];
+      wpByZone[z][dp].push(p);
+    }
+    for (const zoneName of zoneNames) {
+      const zonePls = wpByZone[zoneName] || {};
+      if (isMultiZone) weekendHtml += `<div class="zone-header">${esc(zoneName)}</div>`;
+      const wdOrder = weekendDayparts ? Object.keys(weekendDayparts) : daypartOrder;
+      for (const dpKey of wdOrder) {
+        const dp = weekendDayparts?.[dpKey] || dayparts[dpKey];
+        const pls = zonePls[dpKey] || [];
+        if (pls.length === 0) continue;
+        weekendHtml += `<div class="dp-header">${esc(dp?.label || dpKey)} ${dp?.timeRange ? `<span class="dp-time">${esc(dp.timeRange)}</span>` : ''}</div>`;
+        for (const p of pls) {
+          weekendHtml += `<div class="playlist-row">${esc(p.name)} <span class="match">${p.matchScore}%</span></div>`;
+        }
+      }
+    }
+  }
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Approve Schedule - ${esc(brief.venue_name)} - BMAsia</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;padding:24px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f23;color:#e5e7eb;}
+  .container{max-width:640px;margin:0 auto;}
+  .header{text-align:center;margin-bottom:32px;}
+  .header h1{margin:0;color:#EFA634;font-size:22px;font-weight:700;}
+  .header p{margin:8px 0 0;color:#9ca3af;font-size:14px;}
+  .card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px;margin-bottom:20px;}
+  .card h2{margin:0 0 16px;font-size:16px;color:#e5e7eb;text-transform:uppercase;letter-spacing:1px;}
+  .info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+  .info-label{color:#9ca3af;font-size:14px;}
+  .info-value{color:#e5e7eb;font-size:14px;font-weight:500;}
+  .section-title{font-size:14px;color:#EFA634;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+  .zone-header{font-size:15px;font-weight:700;color:#EFA634;margin:16px 0 8px;padding-left:4px;}
+  .dp-header{font-size:13px;font-weight:600;color:#a5b4fc;margin:12px 0 4px;padding-left:8px;}
+  .dp-time{font-weight:400;color:#6b7280;font-size:12px;}
+  .playlist-row{padding:6px 12px;font-size:14px;color:#d1d5db;}
+  .match{color:#059669;font-size:12px;font-weight:600;margin-left:8px;}
+  .zone-row{margin-bottom:16px;}
+  .zone-row label{display:block;font-size:14px;font-weight:600;color:#e5e7eb;margin-bottom:6px;}
+  .zone-select,.manual-input{width:100%;padding:10px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#e5e7eb;font-size:14px;outline:none;}
+  .zone-select:focus,.manual-input:focus{border-color:#EFA634;}
+  .manual-input{margin-top:8px;}
+  option{background:#1a1a2e;color:#e5e7eb;}
+  .btn{display:block;width:100%;padding:16px;background:#EFA634;color:#1a1a2e;font-size:16px;font-weight:700;border:none;border-radius:10px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;}
+  .btn:hover{background:#d4911f;}
+  .no-zones{padding:16px;text-align:center;color:#9ca3af;font-style:italic;}
+</style></head><body>
+<div class="container">
+  <div class="header">
+    <h1>Approve &amp; Schedule</h1>
+    <p>Review the music schedule and map SYB zones</p>
+  </div>
+
+  <div class="card">
+    <h2>Brief Summary</h2>
+    <div class="info-row"><span class="info-label">Venue</span><span class="info-value">${esc(brief.venue_name)}</span></div>
+    <div class="info-row"><span class="info-label">Type</span><span class="info-value">${esc(brief.venue_type || '-')}</span></div>
+    <div class="info-row"><span class="info-label">Location</span><span class="info-value">${esc(brief.location || '-')}</span></div>
+    <div class="info-row"><span class="info-label">Contact</span><span class="info-value">${esc(brief.contact_name || '-')} ${brief.contact_email ? `(${esc(brief.contact_email)})` : ''}</span></div>
+    <div class="info-row"><span class="info-label">Playlists Selected</span><span class="info-value">${likedPlaylists.length}</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Proposed Schedule</h2>
+    ${scheduleHtml || '<div class="no-zones">No playlists selected</div>'}
+    ${weekendHtml}
+  </div>
+
+  <form method="POST" action="/approve/${esc(token)}">
+    <input type="hidden" name="syb_account_id" value="${esc(sybAccountId || '')}">
+
+    <div class="card">
+      <h2>Map SYB Zones</h2>
+      ${sybZones.length > 0
+        ? `<p style="margin:0 0 16px;color:#6b7280;font-size:13px;">Match each area from the brief to a real SYB sound zone.</p>${zoneMappingHtml}`
+        : `<div class="no-zones">No SYB account found for "${esc(brief.venue_name)}". Enter zone IDs manually.</div>${zoneMappingHtml}`}
+    </div>
+
+    <button type="submit" class="btn">Approve &amp; Activate Schedule</button>
+  </form>
+</div>
+<script>
+function toggleManual(sel, zoneName) {
+  const manual = document.getElementById('manual_' + zoneName);
+  if (sel.value === '__manual__') {
+    manual.style.display = 'block';
+    manual.setAttribute('name', sel.name);
+    sel.removeAttribute('name');
+    manual.focus();
+  } else {
+    manual.style.display = 'none';
+    manual.removeAttribute('name');
+    sel.setAttribute('name', 'zone_' + zoneName);
+    // Update hidden zone name field
+    const opt = sel.options[sel.selectedIndex];
+    const nameInput = document.querySelector('input[name="zone_name_' + zoneName + '"]');
+    if (nameInput) nameInput.value = opt ? opt.textContent.trim() : '';
+  }
+}
+</script>
+</body></html>`;
+}
+
+// ---------------------------------------------------------------------------
+// Background Worker — Schedule Executor
+// ---------------------------------------------------------------------------
+async function sybAssignSource(zoneId, playlistSybId) {
+  return sybQuery(`
+    mutation($input: SoundZoneAssignSourceInput!) {
+      soundZoneAssignSource(input: $input) {
+        soundZones
+        source { ... on Playlist { id name } }
+      }
+    }
+  `, { input: { soundZones: [zoneId], source: playlistSybId } });
+}
+
+async function assignPlaylist(entry) {
+  try {
+    await sybAssignSource(entry.zone_id, entry.playlist_syb_id);
+    await pool.query(
+      'UPDATE schedule_entries SET last_assigned_at = NOW(), retry_count = 0 WHERE id = $1',
+      [entry.id]
+    );
+    console.log(`[Worker] Assigned "${entry.playlist_name}" to zone "${entry.zone_name}" (entry ${entry.id})`);
+  } catch (err) {
+    const retries = (entry.retry_count || 0) + 1;
+    console.error(`[Worker] Failed to assign entry ${entry.id} (retry ${retries}/3):`, err.message);
+    if (retries >= 3) {
+      await pool.query('UPDATE schedule_entries SET status = $1, retry_count = $2 WHERE id = $3', ['error', retries, entry.id]);
+    } else {
+      await pool.query('UPDATE schedule_entries SET retry_count = $1 WHERE id = $2', [retries, entry.id]);
+    }
+  }
+}
+
+async function scheduleWorker() {
+  if (!pool || !process.env.SOUNDTRACK_API_TOKEN) return;
+
+  try {
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+    const dayOfWeek = now.getDay(); // 0=Sun
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // Find entries due now (within 2-minute window to handle polling gaps)
+    const { rows } = await pool.query(`
+      SELECT * FROM schedule_entries
+      WHERE status = 'active'
+        AND start_time BETWEEN ($1::time - interval '1 minute') AND ($1::time + interval '1 minute')
+        AND (days = 'daily'
+             OR (days = 'weekday' AND $2 = false)
+             OR (days = 'weekend' AND $2 = true))
+        AND (last_assigned_at IS NULL
+             OR last_assigned_at < CURRENT_DATE)
+    `, [currentTime, isWeekend]);
+
+    if (rows.length > 0) {
+      console.log(`[Worker] Found ${rows.length} schedule entries to assign at ${currentTime}`);
+    }
+
+    for (const entry of rows) {
+      await assignPlaylist(entry);
+    }
+
+    // Check for overdue entries (Render cold start recovery)
+    const { rows: overdue } = await pool.query(`
+      SELECT * FROM schedule_entries
+      WHERE status = 'active'
+        AND start_time < $1::time
+        AND (days = 'daily'
+             OR (days = 'weekday' AND $2 = false)
+             OR (days = 'weekend' AND $2 = true))
+        AND (last_assigned_at IS NULL
+             OR last_assigned_at < CURRENT_DATE)
+      ORDER BY start_time DESC
+    `, [currentTime, isWeekend]);
+
+    // For overdue, only assign the most recent one per zone (latest daypart that should be playing)
+    const latestPerZone = {};
+    for (const entry of overdue) {
+      if (!latestPerZone[entry.zone_id]) {
+        latestPerZone[entry.zone_id] = entry;
+      }
+    }
+
+    for (const entry of Object.values(latestPerZone)) {
+      console.log(`[Worker] Catching up overdue entry ${entry.id}: "${entry.playlist_name}" (was due at ${entry.start_time})`);
+      await assignPlaylist(entry);
+    }
+
+    // Process pending follow-up emails
+    await processFollowUps();
+  } catch (err) {
+    console.error('[Worker] Schedule worker error:', err.message);
+  }
+}
+
+async function processFollowUps() {
+  if (!pool || !GMAIL_USER || !GMAIL_APP_PASSWORD) return;
+
+  try {
+    const { rows } = await pool.query(`
+      SELECT f.*, b.venue_name, b.contact_name, b.contact_email, b.schedule_data, b.raw_data
+      FROM follow_ups f
+      JOIN briefs b ON f.brief_id = b.id
+      WHERE f.sent_at IS NULL AND f.scheduled_for <= NOW()
+      LIMIT 5
+    `);
+
+    for (const followUp of rows) {
+      if (!followUp.contact_email) {
+        await pool.query('UPDATE follow_ups SET sent_at = NOW() WHERE id = $1', [followUp.id]);
+        continue;
+      }
+
+      try {
+        const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+        const trackingPixel = followUp.tracking_id
+          ? `<img src="${baseUrl}/follow-up/track/${followUp.tracking_id}" width="1" height="1" style="display:block;" alt="">`
+          : '';
+
+        const is7Day = followUp.type === '7day';
+        const subject = is7Day
+          ? `How's the music at ${followUp.venue_name}?`
+          : `Time for a music refresh at ${followUp.venue_name}?`;
+
+        const greeting = followUp.contact_name ? `Hi ${followUp.contact_name}` : 'Hello';
+
+        const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+  <tr><td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
+    <h1 style="margin:0;color:#fff;font-size:20px;">${is7Day ? 'One Week Check-In' : 'Monthly Music Refresh'}</h1>
+    <p style="margin:8px 0 0;color:#a5b4fc;font-size:13px;">${esc(followUp.venue_name)}</p>
+  </td></tr>
+  <tr><td style="padding:32px 24px;background:#fff;border:1px solid #e5e7eb;border-top:none;">
+    <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">${esc(greeting)},</p>
+    <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">${is7Day
+      ? 'It has been a week since we set up your music atmosphere. We would love to hear how it is working for your venue.'
+      : 'It has been a month since your last music design session. Seasons change, and so should your soundtrack.'}</p>
+    <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">${is7Day
+      ? 'If anything needs adjusting -- energy levels, genre mix, daypart transitions -- just let us know and we will fine-tune it.'
+      : 'Would you like to schedule a quick refinement session to keep things fresh?'}</p>
+    <div style="text-align:center;">
+      <a href="${baseUrl}" style="display:inline-block;padding:14px 32px;background:#EFA634;color:#1a1a2e;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;">${is7Day ? 'Request Adjustments' : 'Start a Refresh Session'}</a>
+    </div>
+  </td></tr>
+  <tr><td style="padding:20px 24px;text-align:center;background:#1a1a2e;border-radius:0 0 12px 12px;">
+    <p style="margin:0;color:#a5b4fc;font-size:12px;">BMAsia Group &bull; Music Atmosphere Design</p>
+    ${trackingPixel}
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+
+        await transporter.sendMail({
+          from: `"BMAsia Music Design" <${GMAIL_USER}>`,
+          to: followUp.contact_email,
+          subject,
+          html,
+        });
+
+        await pool.query('UPDATE follow_ups SET sent_at = NOW() WHERE id = $1', [followUp.id]);
+        console.log(`[Worker] Sent ${followUp.type} follow-up for "${followUp.venue_name}" to ${followUp.contact_email}`);
+      } catch (emailErr) {
+        console.error(`[Worker] Follow-up email error for ${followUp.id}:`, emailErr.message);
+      }
+    }
+  } catch (err) {
+    console.error('[Worker] Follow-up processing error:', err.message);
+  }
+}
+
+// Self-ping to prevent Render sleep when active schedules exist
+let selfPingInterval = null;
+async function manageSelfPing() {
+  if (!pool) return;
+  try {
+    const { rows } = await pool.query(
+      "SELECT COUNT(*) as count FROM schedule_entries WHERE status = 'active'"
+    );
+    const hasActive = parseInt(rows[0]?.count || 0, 10) > 0;
+
+    if (hasActive && !selfPingInterval) {
+      const baseUrl = process.env.RENDER_EXTERNAL_URL;
+      if (baseUrl) {
+        selfPingInterval = setInterval(() => {
+          fetch(`${baseUrl}/health`).catch(() => {});
+        }, 10 * 60 * 1000); // every 10 minutes
+        console.log('[Worker] Self-ping activated (active schedules detected)');
+      }
+    } else if (!hasActive && selfPingInterval) {
+      clearInterval(selfPingInterval);
+      selfPingInterval = null;
+      console.log('[Worker] Self-ping deactivated (no active schedules)');
+    }
+  } catch (err) {
+    // Non-fatal
+  }
+}
+
+// Start worker on boot
+if (pool) {
+  setInterval(scheduleWorker, 60_000);
+  setInterval(manageSelfPing, 5 * 60_000); // check every 5 min
+  console.log('[Worker] Schedule worker started (60s interval)');
+}
+
+// ---------------------------------------------------------------------------
+// Follow-up tracking pixel
+// ---------------------------------------------------------------------------
+app.get('/follow-up/track/:trackingId', async (req, res) => {
+  // 1x1 transparent GIF
+  const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+  res.set({ 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' });
+  res.send(pixel);
+
+  // Update opened_at (non-blocking, non-fatal)
+  if (pool) {
+    pool.query(
+      'UPDATE follow_ups SET opened_at = NOW() WHERE tracking_id = $1 AND opened_at IS NULL',
+      [req.params.trackingId]
+    ).catch(err => console.error('Follow-up tracking error:', err.message));
   }
 });
 
