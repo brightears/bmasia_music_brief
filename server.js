@@ -692,6 +692,8 @@ You think like a professional music designer, not a form-filler:
 - Keep messages concise (2-4 sentences max) and conversational
 - Use the customer's own words back to them when relevant
 - NEVER use emojis anywhere — not in messages, not in tool call option labels, not in descriptions. Plain text only.
+- ENERGY ARC STORYTELLING: Every great venue has a musical story arc. When presenting recommendations, narrate the energy journey: how music transitions from the opening mood through the build-up, hits the peak, then winds down. The schedule is a designed experience, not a list.
+- CREATIVE RISK: When a customer seems open to it — uses words like "unique", "different", "surprise me", shows passion for music — push boundaries. Suggest one unexpected playlist or genre direction. Frame it as: "Most designers would not suggest this, but I think it could work because..." Read the room — a conservative hotel GM does not want experimental electronic.
 
 ## Conversation Rules
 - ALWAYS end every message with a clear question or call-to-action
@@ -717,7 +719,7 @@ Phase 2 — DIG DEEPER (2-3 exchanges):
 6. Ask ONE expert follow-up question based on what you have learned so far. Choose the most impactful one:
    - For bars/lounges: "Who are your typical guests — age range, local crowd or tourists, after-work drinks or nightlife destination?"
    - If they have DJs or live music (from research or conversation): "What style do your DJs usually play, and what times do they come on?"
-   - For restaurants: "What is the dining concept — and is there a bar area that needs a different energy?"
+   - For restaurants: "What is the dining concept and cuisine — and is there a bar area that needs a different energy?"
    - For hotels: "What is the brand positioning — business hotel, luxury resort, or boutique property?"
    - For any venue: "Are there any artists, venues, or playlists whose sound you love? This tells me more than any description."
 7. Ask about vocal preference (structured question): "Do you prefer mostly instrumental music, a mix of vocals and instrumental, or mostly vocal tracks?" This is important — NEVER assume instrumental or vocal without asking.
@@ -777,6 +779,21 @@ CONTEXT-DRIVEN EXAMPLES:
 - Hotel lobby + business + international → ["piano", "ambient", "lounge", "instrumental", "elegant"]
 - Gym + high energy + young crowd → ["dance", "hits", "energy", "pop", "upbeat"]
 
+## F&B / Cuisine-Driven Genre Intelligence
+When the venue involves food or drink service, the dining concept is a critical signal:
+- Japanese omakase / kaiseki → ambient, minimal, zen, instrumental piano
+- Italian trattoria / osteria → bossa nova, jazz, warm acoustic
+- French bistro / fine dining → jazz piano, chanson, classical crossover
+- Thai / Southeast Asian → world fusion, acoustic, lounge, tropical
+- Wine bar / sommelier-led → jazz, classical, sophisticated lounge
+- Craft beer / taproom → indie rock, alternative, upbeat, funk
+- Cocktail bar / speakeasy → deep house, nu-disco, jazz lounge, soul
+- Steakhouse / grill → classic rock, blues, jazz, Americana
+- Sushi bar → lo-fi, ambient, minimal electronic
+- Brunch spot / all-day → acoustic covers, indie folk, soft pop
+
+For bars: the drink program is your signal. Wine = sophistication. Craft cocktails = creativity. Beer = casual energy.
+
 Your genreHints are the STRONGEST signal to the matching algorithm — they carry more weight than vibes. Be specific: "deep house" is better than "electronic". Use terms likely to appear in playlist names/descriptions.
 ${productContext}
 
@@ -799,7 +816,7 @@ NEVER use emojis in option labels or descriptions. Keep them clean text only.
 After the customer answers a structured question, continue the conversation naturally in text — acknowledge their choice, add a brief expert comment, then ask your next question.
 
 ## Using Venue Research (Tool: research_venue)
-After learning the venue name and location, call research_venue with 2-3 search queries.
+After learning the venue name and location, call research_venue with 3-4 search queries. ALWAYS include at least one trend-focused query such as "trending music for [venue type] ${new Date().getFullYear()}" or "[location] music scene ${new Date().getFullYear()}". This keeps your recommendations current and informed by what is working right now in the industry.
 
 CRITICAL: When you get research results back, draw DESIGN CONCLUSIONS. Do NOT repeat facts the customer already told you.
 
@@ -927,8 +944,8 @@ const RESEARCH_VENUE_TOOL = {
       searchQueries: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Up to 3 search queries to research the venue context. Example: ["Horizon rooftop bar Hilton Pattaya", "Hilton Pattaya hotel", "Pattaya nightlife"]',
-        maxItems: 3,
+        description: 'Up to 4 search queries to research the venue context and current music trends. Example: ["Horizon rooftop bar Hilton Pattaya", "Hilton Pattaya hotel", "Pattaya nightlife scene", "trending music rooftop bars 2026"]',
+        maxItems: 4,
       },
     },
     required: ['venueName', 'searchQueries'],
@@ -946,7 +963,7 @@ async function executeVenueResearch(toolInput) {
     return { success: false, summary: 'Web search is not configured (no BRAVE_SEARCH_API_KEY). Continue without research.' };
   }
 
-  const queries = (toolInput.searchQueries || []).slice(0, 3);
+  const queries = (toolInput.searchQueries || []).slice(0, 4);
   const results = [];
 
   for (const query of queries) {
@@ -1112,7 +1129,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
                 type: 'tool_result',
                 tool_use_id: toolUseBlock.id,
                 content: researchResult.success
-                  ? `Research results for ${researchResult.venueName}:\n${researchResult.summary}\n\nDraw a DESIGN CONCLUSION from this research — what does it mean for their music direction? Share your expert insight (1-2 sentences) that shows you understand their venue concept. Do NOT repeat facts the customer already told you. Then ask about operating hours as a standalone question.`
+                  ? `Research results for ${researchResult.venueName}:\n${researchResult.summary}\n\nDraw a DESIGN CONCLUSION from this research — what does it mean for their music direction? If trend data was found, use it to inform your genreHints later. Share your expert insight (1-2 sentences) that shows you understand their venue concept. Do NOT repeat facts the customer already told you. Then ask about operating hours as a standalone question.`
                   : `${researchResult.summary}\nContinue the conversation — ask about operating hours next.`,
               }],
             },
@@ -1157,7 +1174,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
               content: [{
                 type: 'tool_result',
                 tool_use_id: toolUseBlock.id,
-                content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are displayed with preview links and "Add to brief" buttons. Present these results like a designer presenting their work — briefly explain your DESIGN RATIONALE: why this schedule flows the way it does and how it matches their venue concept. Do NOT list the playlists (they can see the cards). Keep it to 2-3 sentences.`,
+                content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are displayed with preview links and "Add to brief" buttons. Present these results like a designer presenting their work — briefly explain your DESIGN RATIONALE: why this schedule flows the way it does and how it matches their venue concept. Describe the ENERGY ARC: how the music story flows from opening through peak to close. The customer should feel the journey, not just see a list. Do NOT list the playlists (they can see the cards). Keep it to 2-3 sentences.`,
               }],
             },
           ];
