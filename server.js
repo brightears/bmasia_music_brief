@@ -1813,42 +1813,40 @@ app.get('/api/test-syb-mutation', async (req, res) => {
 
   // Test 5: Attempt createSchedule mutation (dry — no actual creation unless it works)
   if (testSourceId) {
-    try {
-      const ownerId = DEMO_ACCOUNT_ID;
-      // Try multiple rrule formats to find the right one
-      const schedResult = {};
-      const formats = [
-        { label: 'RRULE:FREQ=DAILY', rrule: 'RRULE:FREQ=DAILY' },
-        { label: 'FREQ=DAILY', rrule: 'FREQ=DAILY' },
-        { label: 'empty string', rrule: '' },
-      ];
-      for (const fmt of formats) {
-        try {
-          const r = await sybQuery(`
-            mutation($input: CreateScheduleInput!) {
-              createSchedule(input: $input) {
-                id name slots { id rrule start duration playlistIds }
-              }
+    const ownerId = DEMO_ACCOUNT_ID;
+    const schedResult = {};
+    const formats = [
+      { label: 'RRULE:FREQ=DAILY', rrule: 'RRULE:FREQ=DAILY' },
+      { label: 'FREQ=DAILY', rrule: 'FREQ=DAILY' },
+      { label: 'empty string', rrule: '' },
+    ];
+    for (const fmt of formats) {
+      try {
+        const r = await sybQuery(`
+          mutation($input: CreateScheduleInput!) {
+            createSchedule(input: $input) {
+              id name slots { id rrule start duration playlistIds }
             }
-          `, {
-            input: {
-              ownerId,
-              name: 'BMAsia Test ' + fmt.label,
-              slots: [{
-                rrule: fmt.rrule,
-                start: '09:00',
-                duration: 240,
-                playlistIds: [testSourceId],
-              }],
-            },
-          });
-          schedResult[fmt.label] = { success: true, data: r };
-          break; // Stop on first success
-        } catch (e) {
-          schedResult[fmt.label] = { error: e.message };
-        }
+          }
+        `, {
+          input: {
+            ownerId,
+            name: 'BMAsia Test ' + fmt.label,
+            slots: [{
+              rrule: fmt.rrule,
+              start: '09:00',
+              duration: 240,
+              playlistIds: [testSourceId],
+            }],
+          },
+        });
+        schedResult[fmt.label] = { success: true, data: r };
+        break;
+      } catch (e) {
+        schedResult[fmt.label] = { error: e.message };
       }
-      results.createSchedule = schedResult;
+    }
+    results.createSchedule = schedResult;
   }
 
   res.json(results);
