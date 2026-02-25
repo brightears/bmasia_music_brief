@@ -1812,41 +1812,39 @@ app.get('/api/test-syb-mutation', async (req, res) => {
   }
 
   // Test 5: Attempt createSchedule mutation (dry — no actual creation unless it works)
+  // Test 5: createSchedule — use raw fetch for full error detail
   if (testSourceId) {
     const ownerId = DEMO_ACCOUNT_ID;
-    const schedResult = {};
-    const formats = [
-      { label: 'RRULE:FREQ=DAILY', rrule: 'RRULE:FREQ=DAILY' },
-      { label: 'FREQ=DAILY', rrule: 'FREQ=DAILY' },
-      { label: 'empty string', rrule: '' },
-    ];
-    for (const fmt of formats) {
-      try {
-        const r = await sybQuery(`
-          mutation($input: CreateScheduleInput!) {
-            createSchedule(input: $input) {
-              id name slots { id rrule start duration playlistIds }
-            }
-          }
-        `, {
-          input: {
-            ownerId,
-            name: 'BMAsia Test ' + fmt.label,
-            slots: [{
-              rrule: fmt.rrule,
-              start: '09:00',
-              duration: 240,
-              playlistIds: [testSourceId],
-            }],
+    try {
+      const rawRes = await fetch(SYB_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${token}`,
+        },
+        body: JSON.stringify({
+          query: `mutation($input: CreateScheduleInput!) {
+            createSchedule(input: $input) { id name slots { id rrule start duration playlistIds } }
+          }`,
+          variables: {
+            input: {
+              ownerId,
+              name: 'BMAsia Test Schedule (DELETE ME)',
+              slots: [{
+                rrule: 'FREQ=DAILY',
+                start: '09:00',
+                duration: 240,
+                playlistIds: [testSourceId],
+              }],
+            },
           },
-        });
-        schedResult[fmt.label] = { success: true, data: r };
-        break;
-      } catch (e) {
-        schedResult[fmt.label] = { error: e.message };
-      }
+        }),
+      });
+      const rawJson = await rawRes.json();
+      results.createSchedule = rawJson;
+    } catch (e) {
+      results.createSchedule = { fetchError: e.message };
     }
-    results.createSchedule = schedResult;
   }
 
   res.json(results);
