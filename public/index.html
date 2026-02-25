@@ -318,6 +318,48 @@ body.chat-active {
   to   { opacity: 1; transform: translateY(0); }
 }
 .daypart-section { margin-bottom: 20px; }
+.zone-section { margin-bottom: 28px; }
+.zone-section:last-child { margin-bottom: 0; }
+.zone-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  background: rgba(239, 166, 52, 0.12);
+  border: 1px solid rgba(239, 166, 52, 0.25);
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #EFA634;
+  letter-spacing: -0.2px;
+}
+.zone-header svg { color: #EFA634; }
+.schedule-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+.schedule-toggle button {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.schedule-toggle button.active {
+  background: rgba(239, 166, 52, 0.2);
+  color: #EFA634;
+  font-weight: 600;
+}
 .daypart-section-header {
   display: flex;
   align-items: center;
@@ -1745,6 +1787,11 @@ let designerNotes = '';
 const selectedIds = new Set();
 let scheduleNarrative = '';
 let captureNarrative = false;
+let isMultiZone = false;
+let zoneNames = [];
+let weekendRecommendations = null;
+let weekendDayparts = null;
+let currentScheduleType = 'weekday'; // 'weekday' or 'weekend'
 let isStreaming = false;
 let pendingToolUse = null;
 
@@ -1958,6 +2005,94 @@ function renderRecommendationsInChat(recommendations, dayparts, notes) {
   scrollToBottom();
 }
 
+function renderMultiZoneRecommendations(recommendations, daypartsMap, notes) {
+  const t = i18n[currentLang];
+  const block = document.createElement('div');
+  block.className = 'recommendations-block multi-zone-block';
+
+  let html = '';
+
+  for (const zoneName of zoneNames) {
+    const zoneDayparts = daypartsMap[zoneName] || [];
+    const zoneRecs = recommendations.filter(r => r.zone === zoneName);
+
+    let orderedKeys, daypartLabels, dpMeta;
+    if (zoneDayparts.length > 0) {
+      dpMeta = zoneDayparts;
+      orderedKeys = zoneDayparts.map(dp => dp.key);
+      daypartLabels = {};
+      for (const dp of zoneDayparts) daypartLabels[dp.key] = dp.label;
+    } else {
+      dpMeta = null;
+      orderedKeys = ['morning', 'afternoon', 'evening'];
+      daypartLabels = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' };
+    }
+
+    const groups = {};
+    for (const key of orderedKeys) groups[key] = [];
+    for (const rec of zoneRecs) {
+      if (groups[rec.daypart]) groups[rec.daypart].push(rec);
+      else if (orderedKeys.length > 0) groups[orderedKeys[orderedKeys.length - 1]].push(rec);
+    }
+
+    function getIcon(dpKey) {
+      if (dpMeta) {
+        const dp = dpMeta.find(d => d.key === dpKey);
+        if (dp && dp.icon && DAYPART_ICONS[dp.icon]) return DAYPART_ICONS[dp.icon];
+      }
+      return DAYPART_ICONS[dpKey] || '';
+    }
+
+    html += `<div class="zone-section" data-zone="${escHtml(zoneName)}">
+      <div class="zone-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;flex-shrink:0"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span>${escHtml(zoneName)}</span>
+      </div>`;
+
+    for (const dp of orderedKeys) {
+      const recs = groups[dp];
+      if (recs.length === 0) continue;
+      html += `
+        <div class="daypart-section">
+          <div class="daypart-section-header">
+            ${getIcon(dp)} <strong>${daypartLabels[dp] || dp}</strong>
+          </div>
+          <div class="playlist-cards">
+            ${recs.map(rec => {
+              const ml = getMatchLabel(rec.matchScore);
+              return `
+              <div class="playlist-card" data-id="${rec.playlistId}" data-zone="${escHtml(zoneName)}">
+                <div class="playlist-card-header">
+                  <span class="playlist-name">${escHtml(rec.name)}</span>
+                  <span class="match-badge ${ml.tier}">${ml.label}</span>
+                </div>
+                <p class="playlist-desc">${escHtml(rec.description)}</p>
+                <p class="playlist-reason">${escHtml(rec.reason)}</p>
+                <div class="playlist-actions">
+                  <a href="${rec.sybUrl}" target="_blank" rel="noopener" class="preview-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    ${t.preview_on_syb}
+                  </a>
+                  <button type="button" class="select-btn" onclick="toggleSelect(this)">
+                    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span class="select-label">${t.add_to_brief}</span>
+                  </button>
+                </div>
+              </div>
+            `;}).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    html += `</div>`;
+  }
+
+  block.innerHTML = html;
+  chatArea.appendChild(block);
+  scrollToBottom();
+}
+
 function showSendBriefButton() {
   // Don't add duplicate
   if (document.querySelector('.send-brief-block')) return;
@@ -2008,18 +2143,6 @@ function showScheduleSummary() {
   const existing = document.querySelector('.schedule-summary');
   if (existing) existing.remove();
 
-  // Group selected recommendations by daypart
-  const dpMeta = currentDayparts;
-  const orderedKeys = dpMeta ? dpMeta.map(dp => dp.key) : ['morning', 'afternoon', 'evening'];
-  const daypartLabels = {};
-  if (dpMeta) {
-    for (const dp of dpMeta) daypartLabels[dp.key] = dp.label;
-  } else {
-    daypartLabels.morning = 'Morning';
-    daypartLabels.afternoon = 'Afternoon';
-    daypartLabels.evening = 'Evening';
-  }
-
   const block = document.createElement('div');
   block.className = 'schedule-summary';
 
@@ -2029,32 +2152,102 @@ function showScheduleSummary() {
     html += `<div class="schedule-narrative">${escHtml(scheduleNarrative)}</div>`;
   }
 
-  for (const dpKey of orderedKeys) {
-    const dpLabel = daypartLabels[dpKey] || dpKey;
-    const recs = currentRecommendations.filter(
-      r => r.daypart === dpKey && selectedIds.has(r.playlistId)
-    );
+  // Weekday/weekend toggle
+  if (weekendRecommendations && weekendRecommendations.length > 0) {
+    html += `<div class="schedule-toggle">
+      <button class="${currentScheduleType === 'weekday' ? 'active' : ''}" onclick="switchScheduleType('weekday')">Weekday</button>
+      <button class="${currentScheduleType === 'weekend' ? 'active' : ''}" onclick="switchScheduleType('weekend')">Weekend</button>
+    </div>`;
+  }
 
-    html += `<div class="schedule-daypart">`;
-    html += `<div class="schedule-daypart-label">${dpLabel}</div>`;
+  const recsToShow = currentScheduleType === 'weekend' && weekendRecommendations
+    ? weekendRecommendations : currentRecommendations;
+  const daypartsToShow = currentScheduleType === 'weekend' && weekendDayparts
+    ? weekendDayparts : currentDayparts;
 
-    if (recs.length === 0) {
-      html += `<div class="schedule-empty">${t.schedule_empty}</div>`;
-    } else {
-      for (const rec of recs) {
-        const ml = getMatchLabel(rec.matchScore);
-        html += `
-          <div class="schedule-entry" data-id="${rec.playlistId}">
-            <div class="schedule-entry-info">
-              <div class="schedule-entry-name">${escHtml(rec.name)} <span class="match-badge ${ml.tier}" style="font-size:11px;padding:2px 8px;">${ml.label}</span></div>
-              <div class="schedule-entry-reason">${escHtml(rec.reason)}</div>
-            </div>
-            <button type="button" class="schedule-remove-btn" onclick="removeFromSchedule(this, '${rec.playlistId}')">${t.schedule_remove}</button>
-          </div>
-        `;
+  if (isMultiZone) {
+    // Multi-zone: group by zone, then daypart
+    for (const zoneName of zoneNames) {
+      const zoneDps = daypartsToShow[zoneName] || [];
+      const orderedKeys = zoneDps.length > 0 ? zoneDps.map(dp => dp.key) : ['morning', 'afternoon', 'evening'];
+      const daypartLabels = {};
+      if (zoneDps.length > 0) {
+        for (const dp of zoneDps) daypartLabels[dp.key] = dp.label;
+      } else {
+        daypartLabels.morning = 'Morning'; daypartLabels.afternoon = 'Afternoon'; daypartLabels.evening = 'Evening';
+      }
+
+      html += `<div class="zone-header" style="margin-top:12px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span>${escHtml(zoneName)}</span>
+      </div>`;
+
+      for (const dpKey of orderedKeys) {
+        const dpLabel = daypartLabels[dpKey] || dpKey;
+        const recs = recsToShow.filter(
+          r => r.zone === zoneName && r.daypart === dpKey && selectedIds.has(r.playlistId)
+        );
+
+        html += `<div class="schedule-daypart">`;
+        html += `<div class="schedule-daypart-label">${dpLabel}</div>`;
+
+        if (recs.length === 0) {
+          html += `<div class="schedule-empty">${t.schedule_empty}</div>`;
+        } else {
+          for (const rec of recs) {
+            const ml = getMatchLabel(rec.matchScore);
+            html += `
+              <div class="schedule-entry" data-id="${rec.playlistId}">
+                <div class="schedule-entry-info">
+                  <div class="schedule-entry-name">${escHtml(rec.name)} <span class="match-badge ${ml.tier}" style="font-size:11px;padding:2px 8px;">${ml.label}</span></div>
+                  <div class="schedule-entry-reason">${escHtml(rec.reason)}</div>
+                </div>
+                <button type="button" class="schedule-remove-btn" onclick="removeFromSchedule(this, '${rec.playlistId}')">${t.schedule_remove}</button>
+              </div>
+            `;
+          }
+        }
+        html += `</div>`;
       }
     }
-    html += `</div>`;
+  } else {
+    // Single-zone: group by daypart only
+    const dpMeta = daypartsToShow;
+    const orderedKeys = dpMeta && Array.isArray(dpMeta) ? dpMeta.map(dp => dp.key) : ['morning', 'afternoon', 'evening'];
+    const daypartLabels = {};
+    if (dpMeta && Array.isArray(dpMeta)) {
+      for (const dp of dpMeta) daypartLabels[dp.key] = dp.label;
+    } else {
+      daypartLabels.morning = 'Morning'; daypartLabels.afternoon = 'Afternoon'; daypartLabels.evening = 'Evening';
+    }
+
+    for (const dpKey of orderedKeys) {
+      const dpLabel = daypartLabels[dpKey] || dpKey;
+      const recs = recsToShow.filter(
+        r => r.daypart === dpKey && selectedIds.has(r.playlistId)
+      );
+
+      html += `<div class="schedule-daypart">`;
+      html += `<div class="schedule-daypart-label">${dpLabel}</div>`;
+
+      if (recs.length === 0) {
+        html += `<div class="schedule-empty">${t.schedule_empty}</div>`;
+      } else {
+        for (const rec of recs) {
+          const ml = getMatchLabel(rec.matchScore);
+          html += `
+            <div class="schedule-entry" data-id="${rec.playlistId}">
+              <div class="schedule-entry-info">
+                <div class="schedule-entry-name">${escHtml(rec.name)} <span class="match-badge ${ml.tier}" style="font-size:11px;padding:2px 8px;">${ml.label}</span></div>
+                <div class="schedule-entry-reason">${escHtml(rec.reason)}</div>
+              </div>
+              <button type="button" class="schedule-remove-btn" onclick="removeFromSchedule(this, '${rec.playlistId}')">${t.schedule_remove}</button>
+            </div>
+          `;
+        }
+      }
+      html += `</div>`;
+    }
   }
 
   html += `
@@ -2070,6 +2263,11 @@ function showScheduleSummary() {
   block.innerHTML = html;
   chatArea.appendChild(block);
   scrollToBottom();
+}
+
+function switchScheduleType(type) {
+  currentScheduleType = type;
+  showScheduleSummary();
 }
 
 function removeFromSchedule(btn, playlistId) {
@@ -2232,6 +2430,11 @@ async function sendMessage(text) {
             currentDayparts = event.dayparts || null;
             extractedBrief = event.extractedBrief || null;
             designerNotes = event.designerNotes || '';
+            isMultiZone = event.multiZone || false;
+            zoneNames = event.zoneNames || [];
+            weekendRecommendations = event.weekendRecommendations || null;
+            weekendDayparts = event.weekendDayparts || null;
+            currentScheduleType = 'weekday';
             selectedIds.clear();
             scheduleNarrative = '';
             captureNarrative = true;
@@ -2245,7 +2448,11 @@ async function sendMessage(text) {
             const oldSchedule = document.querySelector('.schedule-summary');
             if (oldSchedule) oldSchedule.remove();
 
-            renderRecommendationsInChat(currentRecommendations, currentDayparts, designerNotes);
+            if (isMultiZone) {
+              renderMultiZoneRecommendations(currentRecommendations, currentDayparts, designerNotes);
+            } else {
+              renderRecommendationsInChat(currentRecommendations, currentDayparts, designerNotes);
+            }
             break;
 
           case 'structured_question':
@@ -2560,6 +2767,13 @@ document.getElementById('submitForm').addEventListener('submit', async (e) => {
   data.vibes = extractedBrief?.vibes || [];
   data.energy = extractedBrief?.energy;
   data.venueType = extractedBrief?.venueType || data.venueType;
+  data.multiZone = isMultiZone;
+  data.zoneNames = zoneNames;
+  if (weekendRecommendations) {
+    data.weekendRecommendations = weekendRecommendations;
+    data.weekendDayparts = weekendDayparts;
+    data.weekendLikedPlaylists = weekendRecommendations.filter(r => selectedIds.has(r.playlistId));
+  }
 
   try {
     const res = await fetch('/submit', {

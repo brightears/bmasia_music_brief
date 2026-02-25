@@ -486,31 +486,63 @@ function buildPlaylistEmailSections(aiResults) {
   if (!aiResults) return '';
   let html = '';
 
+  const hasZones = aiResults.likedPlaylists?.some(p => p.zone);
+
   if (aiResults.likedPlaylists && aiResults.likedPlaylists.length > 0) {
-    const likedRows = aiResults.likedPlaylists.map(p => `
-      <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;">
-          <a href="${esc(p.sybUrl)}" style="color:#4f46e5;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
-          <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
-        </td>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${esc(p.daypart)}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore}%</td>
-      </tr>`).join('');
+    let likedContent = '';
+
+    if (hasZones) {
+      // Group by zone
+      const zoneGroups = {};
+      for (const p of aiResults.likedPlaylists) {
+        const z = p.zone || 'General';
+        if (!zoneGroups[z]) zoneGroups[z] = [];
+        zoneGroups[z].push(p);
+      }
+      for (const [zoneName, playlists] of Object.entries(zoneGroups)) {
+        likedContent += `<p style="margin:12px 0 6px;font-weight:700;color:#EFA634;font-size:14px;">${esc(zoneName)}</p>`;
+        likedContent += `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-bottom:12px;">
+          <tr style="background:#f3f4f6;">
+            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Playlist</th>
+            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Daypart</th>
+            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Match</th>
+          </tr>
+          ${playlists.map(p => `<tr>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;">
+              <a href="${esc(p.sybUrl)}" style="color:#4f46e5;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
+              <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
+            </td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${esc(p.daypart)}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore}%</td>
+          </tr>`).join('')}
+        </table>`;
+      }
+    } else {
+      // Single zone — original layout
+      likedContent = `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+        <tr style="background:#f3f4f6;">
+          <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Playlist</th>
+          <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Daypart</th>
+          <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Match</th>
+        </tr>
+        ${aiResults.likedPlaylists.map(p => `<tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;">
+            <a href="${esc(p.sybUrl)}" style="color:#4f46e5;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
+            <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${esc(p.daypart)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore}%</td>
+        </tr>`).join('')}
+      </table>`;
+    }
 
     html += `
     <tr><td style="padding:0;">
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-        <tr><td style="padding:12px 16px;background:#059669;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Selected Playlists</td></tr>
+        <tr><td style="padding:12px 16px;background:#059669;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Selected Playlists${hasZones ? ' (Multi-Zone)' : ''}</td></tr>
         <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
           <p style="margin:0 0 12px;color:#059669;font-weight:600;">${aiResults.likedPlaylists.length} playlist(s) selected by the customer</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
-            <tr style="background:#f3f4f6;">
-              <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Playlist</th>
-              <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Daypart</th>
-              <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Match</th>
-            </tr>
-            ${likedRows}
-          </table>
+          ${likedContent}
         </td></tr>
       </table>
     </td></tr>`;
@@ -756,8 +788,9 @@ Phase 1 — UNDERSTAND (2-3 exchanges):
 4. Call research_venue with 3-4 search queries to learn about the venue, property, and area.
 4b. For SYB product only: call lookup_existing_client with the venue name. You can call this alongside research_venue. If the client is found in SYB, welcome them back and reference their zone names. If they have multiple zones, ask which ones we are working on. If not found, continue silently as a new client — do NOT mention the lookup.
 
-Phase 2 — DIG DEEPER (2-3 exchanges):
+Phase 2 — DIG DEEPER (2-4 exchanges):
 5. Share a design insight from your research (a conclusion, not facts — see "Using Venue Research" below). Then ask about operating hours as a standalone question.
+5b. MULTI-ZONE DETECTION: For hotels, large venues, or when research/SYB lookup shows multiple areas, ask: "Does your venue have different areas that need their own music identity?" If yes, ask which areas/zones they want to design for. For existing SYB clients, zone names come from the lookup — reference them. For each zone, you will need to understand its unique vibe and energy — ask about each zone one at a time. You do NOT need separate operating hours per zone unless they differ significantly.
 6. Ask ONE expert follow-up question based on what you have learned so far. Choose the most impactful one:
    - For bars/lounges: "Who are your typical guests — age range, local crowd or tourists, after-work drinks or nightlife destination?"
    - If they have DJs or live music (from research or conversation): "What style do your DJs usually play, and what times do they come on?"
@@ -766,9 +799,12 @@ Phase 2 — DIG DEEPER (2-3 exchanges):
    - For any venue: "Are there any artists, venues, or playlists whose sound you love? This tells me more than any description."
 7. Ask about vocal preference (structured question): "Do you prefer mostly instrumental music, a mix of vocals and instrumental, or mostly vocal tracks?" This is important — NEVER assume instrumental or vocal without asking.
 8. Ask about things to avoid (structured question, set allowSkip: true). This is optional — if the conversation already made avoidances clear, skip it.
+8b. WEEKDAY vs WEEKEND: For bars, clubs, restaurants, and venues where weekends have a different energy than weekdays, ask: "Should weekends have a different vibe — more energy, different style?" If yes, note the weekend adjustments. Skip this for venues that operate the same every day (spas, hotels, retail).
 
 Phase 3 — DESIGN:
 9. Call generate_recommendations with all gathered context. You MUST include genreHints based on your expert synthesis of the entire conversation and research. The genreHints field is the most important signal you send to the matching algorithm.
+   - For multi-zone venues: include the zones array with per-zone vibes, energy, genreHints (and hours if different).
+   - For weekday/weekend variation: include weekendMode with adjusted energy, vibes, and genreHints.
 
 ### Mode: "event" — Special Event Planning
 1. Ask for venue name and email on file (for verification)
@@ -942,6 +978,30 @@ const RECOMMEND_TOOL = {
         items: { type: 'string' },
         description: 'Genre/style keywords that best match the venue based on your expert analysis of the full conversation and research. Use specific terms likely to appear in playlist names/descriptions (e.g. ["deep house", "nu-disco", "cocktail", "lounge", "electronic"] for an upscale rooftop bar). These are the STRONGEST signal to the matching algorithm. Max 8 keywords.',
         maxItems: 8,
+      },
+      zones: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Zone name (e.g. "Lobby", "Bar", "Pool Deck")' },
+            hours: { type: 'string', description: 'Operating hours for this zone (if different from main venue)' },
+            energy: { type: 'number', minimum: 1, maximum: 10, description: 'Energy level for this zone' },
+            vibes: { type: 'array', items: { type: 'string' }, description: 'Vibes for this zone' },
+            genreHints: { type: 'array', items: { type: 'string' }, description: 'Genre hints for this zone' },
+          },
+          required: ['name', 'energy', 'vibes'],
+        },
+        description: 'Per-zone configuration for multi-zone venues. Omit for single-zone venues (uses top-level fields). Each zone gets its own playlist schedule.',
+      },
+      weekendMode: {
+        type: 'object',
+        properties: {
+          energy: { type: 'number', minimum: 1, maximum: 10, description: 'Weekend energy level override' },
+          vibes: { type: 'array', items: { type: 'string' }, description: 'Weekend vibe overrides' },
+          genreHints: { type: 'array', items: { type: 'string' }, description: 'Weekend genre hint overrides' },
+        },
+        description: 'Weekend override. If provided, generates a separate weekend schedule with adjusted energy/vibes.',
       },
     },
     required: ['venueType', 'vibes', 'energy'],
@@ -1158,7 +1218,7 @@ async function executeClientLookup(toolInput) {
 
 // Execute the recommendation tool server-side
 function executeRecommendationTool(toolInput, product = 'syb') {
-  const data = {
+  const baseData = {
     venueName: toolInput.venueName || 'Venue',
     venueType: toolInput.venueType || '',
     location: toolInput.location || '',
@@ -1176,12 +1236,78 @@ function executeRecommendationTool(toolInput, product = 'syb') {
     genreHints: toolInput.genreHints || [],
   };
 
-  const energy = parseInt(data.energy, 10) || 5;
-  const dayparts = generateDayparts(data.hours, energy);
-  const result = deterministicMatch(data, dayparts);
-  const enriched = enrichRecommendations(result);
+  const zones = toolInput.zones;
+  const isMultiZone = Array.isArray(zones) && zones.length > 0;
 
-  return { dayparts, ...enriched, extractedBrief: data, product };
+  // Helper: run pipeline for a single data set
+  function runPipeline(data) {
+    const energy = parseInt(data.energy, 10) || 5;
+    const dayparts = generateDayparts(data.hours, energy);
+    const result = deterministicMatch(data, dayparts);
+    const enriched = enrichRecommendations(result);
+    return { dayparts, ...enriched };
+  }
+
+  if (!isMultiZone) {
+    // Single-zone path (backward compatible)
+    const { dayparts, ...rest } = runPipeline(baseData);
+    return { dayparts, ...rest, extractedBrief: baseData, product, multiZone: false };
+  }
+
+  // Multi-zone path: run pipeline per zone
+  const allDayparts = {};
+  const allRecommendations = [];
+
+  for (const zone of zones) {
+    const zoneData = {
+      ...baseData,
+      hours: zone.hours || baseData.hours,
+      energy: zone.energy || baseData.energy,
+      vibes: zone.vibes || baseData.vibes,
+      genreHints: zone.genreHints || baseData.genreHints,
+    };
+
+    const { dayparts, recommendations, designerNotes } = runPipeline(zoneData);
+    allDayparts[zone.name] = dayparts;
+    for (const rec of recommendations) {
+      allRecommendations.push({ ...rec, zone: zone.name });
+    }
+  }
+
+  // Weekend mode: re-run all zones with adjusted energy/vibes
+  let weekendDayparts = null;
+  let weekendRecommendations = null;
+  if (toolInput.weekendMode) {
+    const wm = toolInput.weekendMode;
+    weekendDayparts = {};
+    weekendRecommendations = [];
+    for (const zone of zones) {
+      const weekendData = {
+        ...baseData,
+        hours: zone.hours || baseData.hours,
+        energy: wm.energy || zone.energy || baseData.energy,
+        vibes: wm.vibes || zone.vibes || baseData.vibes,
+        genreHints: wm.genreHints || zone.genreHints || baseData.genreHints,
+      };
+      const { dayparts, recommendations } = runPipeline(weekendData);
+      weekendDayparts[zone.name] = dayparts;
+      for (const rec of recommendations) {
+        weekendRecommendations.push({ ...rec, zone: zone.name, scheduleType: 'weekend' });
+      }
+    }
+  }
+
+  return {
+    dayparts: allDayparts,
+    recommendations: allRecommendations,
+    designerNotes: 'Multi-zone recommendations generated per zone.',
+    extractedBrief: baseData,
+    product,
+    multiZone: true,
+    zoneNames: zones.map(z => z.name),
+    weekendDayparts,
+    weekendRecommendations,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1353,13 +1479,28 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
             dayparts: toolResult.dayparts,
             designerNotes: toolResult.designerNotes,
             extractedBrief: toolResult.extractedBrief,
+            multiZone: toolResult.multiZone || false,
+            zoneNames: toolResult.zoneNames || [],
+            weekendDayparts: toolResult.weekendDayparts || null,
+            weekendRecommendations: toolResult.weekendRecommendations || null,
           });
 
           // Build tool result summary for Claude
-          const playlistSummary = toolResult.recommendations.map(r =>
-            `- ${r.name} (${r.daypart}, ${r.matchScore}% match)`
-          ).join('\n');
-          const daypartSummary = toolResult.dayparts.map(d => d.label).join(', ');
+          let playlistSummary, daypartSummary;
+          if (toolResult.multiZone) {
+            playlistSummary = toolResult.recommendations.map(r =>
+              `- [${r.zone}] ${r.name} (${r.daypart}, ${r.matchScore}% match)`
+            ).join('\n');
+            daypartSummary = toolResult.zoneNames.map(z => {
+              const dps = toolResult.dayparts[z] || [];
+              return `${z}: ${dps.map(d => d.label).join(', ')}`;
+            }).join(' | ');
+          } else {
+            playlistSummary = toolResult.recommendations.map(r =>
+              `- ${r.name} (${r.daypart}, ${r.matchScore}% match)`
+            ).join('\n');
+            daypartSummary = toolResult.dayparts.map(d => d.label).join(', ');
+          }
 
           const followUpMessages = [
             ...msgs,
@@ -1369,7 +1510,9 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
               content: [{
                 type: 'tool_result',
                 tool_use_id: toolUseBlock.id,
-                content: `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.dayparts.length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are displayed with preview links and "Add to brief" buttons. Present these results like a designer presenting their work — briefly explain your DESIGN RATIONALE: why this schedule flows the way it does and how it matches their venue concept. Describe the ENERGY ARC: how the music story flows from opening through peak to close. The customer should feel the journey, not just see a list. Do NOT list the playlists (they can see the cards). Keep it to 2-3 sentences.`,
+                content: toolResult.multiZone
+                  ? `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.zoneNames.length} zones (${daypartSummary}):\n${playlistSummary}${toolResult.weekendRecommendations ? `\n\nAlso generated ${toolResult.weekendRecommendations.length} weekend schedule recommendations.` : ''}\n\nThe playlist cards are displayed grouped by zone. Present these results like a designer presenting their work — briefly explain your DESIGN RATIONALE for each zone and how the zones work together as a cohesive venue experience. Describe the ENERGY ARC across zones. Do NOT list the playlists (they can see the cards). Keep it to 3-4 sentences.`
+                  : `Generated ${toolResult.recommendations.length} playlist recommendations across ${Array.isArray(toolResult.dayparts) ? toolResult.dayparts.length : Object.keys(toolResult.dayparts).length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are displayed with preview links and "Add to brief" buttons. Present these results like a designer presenting their work — briefly explain your DESIGN RATIONALE: why this schedule flows the way it does and how it matches their venue concept. Describe the ENERGY ARC: how the music story flows from opening through peak to close. The customer should feel the journey, not just see a list. Do NOT list the playlists (they can see the cards). Keep it to 2-3 sentences.`,
               }],
             },
           ];
