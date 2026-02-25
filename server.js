@@ -1371,10 +1371,39 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
       messages,
     });
 
+    // Helper: execute a single tool and return its result text
+    async function executeToolCall(toolBlock) {
+      if (toolBlock.name === 'lookup_existing_client') {
+        const lookupResult = await executeClientLookup(toolBlock.input);
+        if (lookupResult.found && lookupResult.source === 'syb') {
+          const zoneList = lookupResult.zones.map(z => z.name).join(', ');
+          let text = `Found existing SYB client: "${lookupResult.accountName}" with ${lookupResult.zoneCount} sound zone(s): ${zoneList}. This is a returning client — welcome them back warmly. Reference their zone names when discussing music design. If they have multiple zones, ask which ones we are working on today.`;
+          if (lookupResult.otherMatches) {
+            text += ` (Note: other possible matches: ${lookupResult.otherMatches.join(', ')})`;
+          }
+          return text;
+        } else if (lookupResult.found && lookupResult.source === 'database') {
+          const prev = lookupResult.previousBrief;
+          return `Found previous brief for "${prev.venueName}" (${prev.venueType || 'unknown type'}, ${prev.location || 'unknown location'}). Last brief: ${prev.lastBriefDate ? new Date(prev.lastBriefDate).toLocaleDateString() : 'unknown'}. This is a returning client — acknowledge them warmly but continue gathering fresh information for this brief.`;
+        } else {
+          return `No existing SYB account or previous brief found for "${lookupResult.venueName}". This appears to be a new client — continue normally.`;
+        }
+      }
+
+      if (toolBlock.name === 'research_venue') {
+        const researchResult = await executeVenueResearch(toolBlock.input);
+        return researchResult.success
+          ? `Research results for ${researchResult.venueName}:\n${researchResult.summary}\n\nDraw a DESIGN CONCLUSION from this research — what does it mean for their music direction? If trend data was found, use it to inform your genreHints later. Share your expert insight (1-2 sentences) that shows you understand their venue concept. Do NOT repeat facts the customer already told you. Then ask about operating hours as a standalone question.`
+          : `${researchResult.summary}\nContinue the conversation — ask about operating hours next.`;
+      }
+
+      return null; // Unknown tool — should not happen
+    }
+
     // Helper: handle a completed API response (tool use or text)
     async function handleResponse(resp, msgs) {
       if (resp.stop_reason === 'tool_use') {
-        const toolUseBlock = resp.content.find(b => b.type === 'tool_use');
+        const toolUseBlocks = resp.content.filter(b => b.type === 'tool_use');
         const textBlocks = resp.content.filter(b => b.type === 'text');
 
         // Stream any text before the tool call
@@ -1384,95 +1413,21 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
           }
         }
 
-        if (toolUseBlock.name === 'ask_structured_question') {
-          // Relay structured question to client — response ends here
+        // Check for structured question (always handled alone — ends the response)
+        const sqBlock = toolUseBlocks.find(b => b.name === 'ask_structured_question');
+        if (sqBlock) {
           sendSSE('structured_question', {
-            toolUseId: toolUseBlock.id,
+            toolUseId: sqBlock.id,
             assistantContent: resp.content,
-            ...toolUseBlock.input,
+            ...sqBlock.input,
           });
-          return; // Don't send 'done' yet — caller handles it
-        }
-
-        if (toolUseBlock.name === 'lookup_existing_client') {
-          const lookupResult = await executeClientLookup(toolUseBlock.input);
-
-          let resultText;
-          if (lookupResult.found && lookupResult.source === 'syb') {
-            const zoneList = lookupResult.zones.map(z => z.name).join(', ');
-            resultText = `Found existing SYB client: "${lookupResult.accountName}" with ${lookupResult.zoneCount} sound zone(s): ${zoneList}. This is a returning client — welcome them back warmly. Reference their zone names when discussing music design. If they have multiple zones, ask which ones we are working on today.`;
-            if (lookupResult.otherMatches) {
-              resultText += ` (Note: other possible matches: ${lookupResult.otherMatches.join(', ')})`;
-            }
-          } else if (lookupResult.found && lookupResult.source === 'database') {
-            const prev = lookupResult.previousBrief;
-            resultText = `Found previous brief for "${prev.venueName}" (${prev.venueType || 'unknown type'}, ${prev.location || 'unknown location'}). Last brief: ${prev.lastBriefDate ? new Date(prev.lastBriefDate).toLocaleDateString() : 'unknown'}. This is a returning client — acknowledge them warmly but continue gathering fresh information for this brief.`;
-          } else {
-            resultText = `No existing SYB account or previous brief found for "${lookupResult.venueName}". This appears to be a new client — continue normally.`;
-          }
-
-          const lookupMessages = [
-            ...msgs,
-            { role: 'assistant', content: resp.content },
-            {
-              role: 'user',
-              content: [{
-                type: 'tool_result',
-                tool_use_id: toolUseBlock.id,
-                content: resultText,
-              }],
-            },
-          ];
-
-          const lookupResp = await anthropic.messages.create({
-            model: AI_MODEL,
-            max_tokens: 1500,
-            system: systemPrompt,
-            tools: ALL_TOOLS,
-            messages: lookupMessages,
-          });
-
-          await handleResponse(lookupResp, lookupMessages);
           return;
         }
 
-        if (toolUseBlock.name === 'research_venue') {
-          // Execute venue research via Brave Search
-          const researchResult = await executeVenueResearch(toolUseBlock.input);
-
-          // Send result back to Claude so it can continue the conversation
-          const researchMessages = [
-            ...msgs,
-            { role: 'assistant', content: resp.content },
-            {
-              role: 'user',
-              content: [{
-                type: 'tool_result',
-                tool_use_id: toolUseBlock.id,
-                content: researchResult.success
-                  ? `Research results for ${researchResult.venueName}:\n${researchResult.summary}\n\nDraw a DESIGN CONCLUSION from this research — what does it mean for their music direction? If trend data was found, use it to inform your genreHints later. Share your expert insight (1-2 sentences) that shows you understand their venue concept. Do NOT repeat facts the customer already told you. Then ask about operating hours as a standalone question.`
-                  : `${researchResult.summary}\nContinue the conversation — ask about operating hours next.`,
-              }],
-            },
-          ];
-
-          // Claude continues with the research context
-          const researchResp = await anthropic.messages.create({
-            model: AI_MODEL,
-            max_tokens: 1500,
-            system: systemPrompt,
-            tools: ALL_TOOLS,
-            messages: researchMessages,
-          });
-
-          // Recursively handle the follow-up (could be text or another tool call)
-          await handleResponse(researchResp, researchMessages);
-          return;
-        }
-
-        if (toolUseBlock.name === 'generate_recommendations') {
-          // Execute the recommendation tool
-          const toolResult = executeRecommendationTool(toolUseBlock.input, product);
+        // Check for generate_recommendations (always handled alone)
+        const recBlock = toolUseBlocks.find(b => b.name === 'generate_recommendations');
+        if (recBlock) {
+          const toolResult = executeRecommendationTool(recBlock.input, product);
 
           sendSSE('recommendations', {
             recommendations: toolResult.recommendations,
@@ -1485,7 +1440,6 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
             weekendRecommendations: toolResult.weekendRecommendations || null,
           });
 
-          // Build tool result summary for Claude
           let playlistSummary, daypartSummary;
           if (toolResult.multiZone) {
             playlistSummary = toolResult.recommendations.map(r =>
@@ -1502,22 +1456,29 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
             daypartSummary = toolResult.dayparts.map(d => d.label).join(', ');
           }
 
-          const followUpMessages = [
-            ...msgs,
-            { role: 'assistant', content: resp.content },
-            {
-              role: 'user',
-              content: [{
+          // Build tool_results for ALL tool_use blocks (rec + any others called simultaneously)
+          const toolResults = [];
+          for (const block of toolUseBlocks) {
+            if (block.id === recBlock.id) {
+              toolResults.push({
                 type: 'tool_result',
-                tool_use_id: toolUseBlock.id,
+                tool_use_id: block.id,
                 content: toolResult.multiZone
                   ? `Generated ${toolResult.recommendations.length} playlist recommendations across ${toolResult.zoneNames.length} zones (${daypartSummary}):\n${playlistSummary}${toolResult.weekendRecommendations ? `\n\nAlso generated ${toolResult.weekendRecommendations.length} weekend schedule recommendations.` : ''}\n\nThe playlist cards are displayed grouped by zone. Present these results like a designer presenting their work — briefly explain your DESIGN RATIONALE for each zone and how the zones work together as a cohesive venue experience. Describe the ENERGY ARC across zones. Do NOT list the playlists (they can see the cards). Keep it to 3-4 sentences.`
                   : `Generated ${toolResult.recommendations.length} playlist recommendations across ${Array.isArray(toolResult.dayparts) ? toolResult.dayparts.length : Object.keys(toolResult.dayparts).length} dayparts (${daypartSummary}):\n${playlistSummary}\n\nThe playlist cards are displayed with preview links and "Add to brief" buttons. Present these results like a designer presenting their work — briefly explain your DESIGN RATIONALE: why this schedule flows the way it does and how it matches their venue concept. Describe the ENERGY ARC: how the music story flows from opening through peak to close. The customer should feel the journey, not just see a list. Do NOT list the playlists (they can see the cards). Keep it to 2-3 sentences.`,
-              }],
-            },
+              });
+            } else {
+              const result = await executeToolCall(block);
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result || 'Tool executed.' });
+            }
+          }
+
+          const followUpMessages = [
+            ...msgs,
+            { role: 'assistant', content: resp.content },
+            { role: 'user', content: toolResults },
           ];
 
-          // Second API call — Claude presents the results
           const stream = anthropic.messages.stream({
             model: AI_MODEL,
             max_tokens: 500,
@@ -1531,7 +1492,37 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
               sendSSE('text_delta', { content: event.delta.text });
             }
           }
+          return;
         }
+
+        // Handle lookup_existing_client and research_venue (may be called together)
+        // Execute ALL tool calls in parallel, collect results
+        const toolResults = await Promise.all(
+          toolUseBlocks.map(async (block) => {
+            const resultText = await executeToolCall(block);
+            return {
+              type: 'tool_result',
+              tool_use_id: block.id,
+              content: resultText || 'Tool executed.',
+            };
+          })
+        );
+
+        const nextMessages = [
+          ...msgs,
+          { role: 'assistant', content: resp.content },
+          { role: 'user', content: toolResults },
+        ];
+
+        const nextResp = await anthropic.messages.create({
+          model: AI_MODEL,
+          max_tokens: 1500,
+          system: systemPrompt,
+          tools: ALL_TOOLS,
+          messages: nextMessages,
+        });
+
+        await handleResponse(nextResp, nextMessages);
       } else {
         // No tool use — stream conversational response word by word
         for (const block of resp.content) {
