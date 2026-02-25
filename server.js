@@ -1794,8 +1794,8 @@ app.get('/api/test-syb-mutation', async (req, res) => {
       const mutResult = await sybQuery(`
         mutation($input: SoundZoneAssignSourceInput!) {
           soundZoneAssignSource(input: $input) {
-            soundZones { id name nowPlaying { title } }
-            source { ... on Playlist { id name } }
+            soundZones
+            source { ... on Playlist { id name } ... on Schedule { id name } }
           }
         }
       `, { input: { soundZones: [testZoneId], source: testSourceId } });
@@ -1815,33 +1815,40 @@ app.get('/api/test-syb-mutation', async (req, res) => {
   if (testSourceId) {
     try {
       const ownerId = DEMO_ACCOUNT_ID;
-      const schedResult = await sybQuery(`
-        mutation($input: CreateScheduleInput!) {
-          createSchedule(input: $input) {
-            id name description slots { id rrule start duration playlistIds }
-          }
+      // Try multiple rrule formats to find the right one
+      const schedResult = {};
+      const formats = [
+        { label: 'RRULE:FREQ=DAILY', rrule: 'RRULE:FREQ=DAILY' },
+        { label: 'FREQ=DAILY', rrule: 'FREQ=DAILY' },
+        { label: 'empty string', rrule: '' },
+      ];
+      for (const fmt of formats) {
+        try {
+          const r = await sybQuery(`
+            mutation($input: CreateScheduleInput!) {
+              createSchedule(input: $input) {
+                id name slots { id rrule start duration playlistIds }
+              }
+            }
+          `, {
+            input: {
+              ownerId,
+              name: 'BMAsia Test ' + fmt.label,
+              slots: [{
+                rrule: fmt.rrule,
+                start: '09:00',
+                duration: 240,
+                playlistIds: [testSourceId],
+              }],
+            },
+          });
+          schedResult[fmt.label] = { success: true, data: r };
+          break; // Stop on first success
+        } catch (e) {
+          schedResult[fmt.label] = { error: e.message };
         }
-      `, {
-        input: {
-          ownerId,
-          name: 'BMAsia Test Schedule (DELETE ME)',
-          description: 'Automated test — safe to delete',
-          slots: [{
-            rrule: 'FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR,SA,SU',
-            start: '09:00',
-            duration: 240,
-            playlistIds: [testSourceId],
-          }],
-        },
-      });
-      results.createSchedule = { success: true, data: schedResult };
-    } catch (e) {
-      results.createSchedule = {
-        success: false,
-        error: e.message,
-        hasAccess: !/unauthorized|forbidden|permission/i.test(e.message),
-      };
-    }
+      }
+      results.createSchedule = schedResult;
   }
 
   res.json(results);
