@@ -2581,6 +2581,21 @@ app.get('/follow-up/track/:trackingId', async (req, res) => {
 });
 
 // Health check
+// TEMPORARY: debug endpoint for pipeline testing (remove after verification)
+app.get('/debug/latest-token', async (req, res) => {
+  if (!pool) return res.json({ error: 'no db' });
+  try {
+    const { rows } = await pool.query(`
+      SELECT at.token, at.brief_id, at.expires_at, at.used_at, b.venue_name, b.status
+      FROM approval_tokens at JOIN briefs b ON at.brief_id = b.id
+      ORDER BY at.created_at DESC LIMIT 3
+    `);
+    const { rows: fups } = await pool.query('SELECT * FROM follow_ups ORDER BY created_at DESC LIMIT 5');
+    const { rows: entries } = await pool.query('SELECT * FROM schedule_entries ORDER BY created_at DESC LIMIT 5');
+    res.json({ tokens: rows, followUps: fups, scheduleEntries: entries });
+  } catch (err) { res.json({ error: err.message }); }
+});
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.listen(PORT, () => {
