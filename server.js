@@ -1774,28 +1774,20 @@ app.get('/api/test-syb-mutation', async (req, res) => {
     };
   } catch (e) { results.playlistIdMatch = { error: e.message }; }
 
-  // Test 3: Find BMAsia Demo zones (under the "BMAsia" account, not "01 BMAsia Main Playlists")
+  // Test 3: Use "BMAsia Unlimited DEMO" account — has a paired Test Player zone
+  const DEMO_ACCOUNT_ID = 'QWNjb3VudCwsMThjdHE4b2t4czAv';
+  const DEMO_ZONE_ID = 'U291bmRab25lLCwxYzN3NGR0cXkyby9Mb2NhdGlvbiwsMWwzNHpkc3RibHMvQWNjb3VudCwsMThjdHE4b2t4czAv';
   try {
-    const accounts = await sybSearchAccount('BMAsia');
-    // Use exact "BMAsia" account which has Demo zones, or fall back to Unlimited DEMO
-    const targetAccount = accounts.find(a => a.businessName === 'BMAsia')
-      || accounts.find(a => /unlimited demo/i.test(a.businessName))
-      || accounts[0];
-    if (targetAccount) {
-      const zones = await sybGetZones(targetAccount.id);
-      results.testZones = {
-        account: targetAccount.businessName,
-        accountId: targetAccount.id,
-        allAccounts: accounts.map(a => a.businessName),
-        zones: zones.map(z => ({ id: z.id, name: z.name, location: z.location?.name })),
-      };
-    } else {
-      results.testZones = { error: 'No BMAsia account found' };
-    }
+    const zones = await sybGetZones(DEMO_ACCOUNT_ID);
+    results.testZones = {
+      account: 'BMAsia Unlimited DEMO',
+      accountId: DEMO_ACCOUNT_ID,
+      zones: zones.map(z => ({ id: z.id, name: z.name, location: z.location?.name })),
+    };
   } catch (e) { results.testZones = { error: e.message }; }
 
-  // Test 4: Attempt soundZoneAssignSource mutation on Demo zone
-  const testZoneId = results.testZones?.zones?.[0]?.id;
+  // Test 4: Attempt soundZoneAssignSource mutation on paired Test Player zone
+  const testZoneId = DEMO_ZONE_ID;
   const testSourceId = results.playlistIdMatch?.catalogSybId;
   if (testZoneId && testSourceId) {
     try {
@@ -1821,7 +1813,7 @@ app.get('/api/test-syb-mutation', async (req, res) => {
   // Test 5: Attempt createSchedule mutation (dry — no actual creation unless it works)
   if (testSourceId) {
     try {
-      const ownerId = results.testZones?.accountId;
+      const ownerId = DEMO_ACCOUNT_ID;
       const schedResult = await sybQuery(`
         mutation($input: CreateScheduleInput!) {
           createSchedule(input: $input) {
