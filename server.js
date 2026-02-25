@@ -1794,7 +1794,8 @@ app.get('/api/test-syb-mutation', async (req, res) => {
       const mutResult = await sybQuery(`
         mutation($input: SoundZoneAssignSourceInput!) {
           soundZoneAssignSource(input: $input) {
-            soundZone { id name }
+            soundZones { id name nowPlaying { title } }
+            source { ... on Playlist { id name } }
           }
         }
       `, { input: { soundZones: [testZoneId], source: testSourceId } });
@@ -1817,7 +1818,7 @@ app.get('/api/test-syb-mutation', async (req, res) => {
       const schedResult = await sybQuery(`
         mutation($input: CreateScheduleInput!) {
           createSchedule(input: $input) {
-            id name slots { id start duration playlistIds }
+            id name description slots { id rrule start duration playlistIds }
           }
         }
       `, {
@@ -1825,9 +1826,8 @@ app.get('/api/test-syb-mutation', async (req, res) => {
           ownerId,
           name: 'BMAsia Test Schedule (DELETE ME)',
           description: 'Automated test — safe to delete',
-          presentAs: 'daily',
           slots: [{
-            rrule: 'FREQ=DAILY',
+            rrule: 'FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR,SA,SU',
             start: '09:00',
             duration: 240,
             playlistIds: [testSourceId],
