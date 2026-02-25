@@ -20,6 +20,47 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-6';
 const anthropic = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
 
+// ---------------------------------------------------------------------------
+// PostgreSQL (optional — graceful fallback if DATABASE_URL not set)
+// ---------------------------------------------------------------------------
+const { Pool } = require('pg');
+const pool = process.env.DATABASE_URL
+  ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 5 })
+  : null;
+
+// Auto-create tables on startup
+if (pool) {
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS briefs (
+      id SERIAL PRIMARY KEY,
+      venue_name VARCHAR(255) NOT NULL,
+      venue_type VARCHAR(50),
+      location TEXT,
+      contact_name VARCHAR(255),
+      contact_email VARCHAR(255),
+      product VARCHAR(20) DEFAULT 'syb',
+      liked_playlist_ids TEXT[],
+      conversation_summary TEXT,
+      raw_data JSONB,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS venues (
+      id SERIAL PRIMARY KEY,
+      venue_name VARCHAR(255) UNIQUE NOT NULL,
+      location TEXT,
+      venue_type VARCHAR(50),
+      syb_account_id VARCHAR(255),
+      latest_brief_id INTEGER REFERENCES briefs(id),
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_venues_name ON venues(venue_name);
+    CREATE INDEX IF NOT EXISTS idx_briefs_venue ON briefs(venue_name);
+    CREATE INDEX IF NOT EXISTS idx_briefs_email ON briefs(contact_email);
+  `).then(() => console.log('Database tables ready'))
+    .catch(err => console.error('Database init error:', err.message));
+}
+
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
@@ -712,7 +753,8 @@ Phase 1 — UNDERSTAND (2-3 exchanges):
 1. Ask what type of venue (structured question, unless already clear from context)
 2. Ask about the experience they want to create — use an open-ended question like "Paint me a picture — when a guest walks in, what should they feel?" This is your richest signal. Do NOT use a structured question here.
 3. Ask venue name and location naturally. If they give both (e.g. "Horizon at the Hilton Pattaya"), acknowledge and move on.
-4. Call research_venue with 2-3 search queries to learn about the venue, property, and area.
+4. Call research_venue with 3-4 search queries to learn about the venue, property, and area.
+4b. For SYB product only: call lookup_existing_client with the venue name. You can call this alongside research_venue. If the client is found in SYB, welcome them back and reference their zone names. If they have multiple zones, ask which ones we are working on. If not found, continue silently as a new client — do NOT mention the lookup.
 
 Phase 2 — DIG DEEPER (2-3 exchanges):
 5. Share a design insight from your research (a conclusion, not facts — see "Using Venue Research" below). Then ask about operating hours as a standalone question.
@@ -830,6 +872,12 @@ Use research to conclude:
 - What the F&B concept tells you about the vibe (cocktail-forward = sophisticated, craft beer = casual)
 
 If research returns no useful results, continue the conversation without mentioning it.
+
+## Existing Client Lookup (Tool: lookup_existing_client)
+For the SYB product only, after learning the venue name, call lookup_existing_client to check if they are an existing SYB client. Do NOT use this tool for Beat Breeze customers.
+- If found as SYB client: Welcome them back warmly. You will receive their zone names — use this to ask which zones they want to work on.
+- If found from previous brief: Acknowledge them as a returning client and reference their previous brief context.
+- If not found: Continue as a new client. Do NOT mention the lookup or that they were not found.
 
 ## After Generating Recommendations
 Present the results like a designer presenting their work:
@@ -952,7 +1000,19 @@ const RESEARCH_VENUE_TOOL = {
   },
 };
 
-const ALL_TOOLS = [RECOMMEND_TOOL, STRUCTURED_QUESTION_TOOL, RESEARCH_VENUE_TOOL];
+const CLIENT_LOOKUP_TOOL = {
+  name: 'lookup_existing_client',
+  description: 'Check if a venue is an existing Soundtrack Your Brand (SYB) client. Call this AFTER learning the venue name, alongside or before research_venue. Only available for the SYB product — skip for Beat Breeze. Returns account info and sound zone names if found.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      venueName: { type: 'string', description: 'Name of the venue to look up' },
+    },
+    required: ['venueName'],
+  },
+};
+
+const ALL_TOOLS = [RECOMMEND_TOOL, STRUCTURED_QUESTION_TOOL, RESEARCH_VENUE_TOOL, CLIENT_LOOKUP_TOOL];
 
 // ---------------------------------------------------------------------------
 // Brave Search — venue research
@@ -1001,6 +1061,99 @@ async function executeVenueResearch(toolInput) {
     location: toolInput.location || '',
     summary: summary.trim() || 'No results found.',
   };
+}
+
+// ---------------------------------------------------------------------------
+// SYB GraphQL API — existing client lookup
+// ---------------------------------------------------------------------------
+const SYB_API = 'https://api.soundtrackyourbrand.com/v2';
+
+async function sybQuery(query, variables = {}) {
+  if (!process.env.SOUNDTRACK_API_TOKEN) return null;
+  const res = await fetch(SYB_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${process.env.SOUNDTRACK_API_TOKEN}`,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json();
+  if (json.errors) throw new Error(json.errors[0].message);
+  return json.data;
+}
+
+async function sybSearchAccount(name) {
+  const data = await sybQuery(`
+    query { me { ... on User { accounts(first: 200) { edges { node { id businessName } } } }
+                 ... on PublicAPIClient { accounts(first: 200) { edges { node { id businessName } } } } } }
+  `);
+  const accounts = data?.me?.accounts?.edges?.map(e => e.node) || [];
+  return accounts.filter(a => a.businessName.toLowerCase().includes(name.toLowerCase()));
+}
+
+async function sybGetZones(accountId) {
+  const data = await sybQuery(`
+    query($id: ID!) { account(id: $id) { soundZones(first: 100) {
+      edges { node { id name location { id name } } } } } }
+  `, { id: accountId });
+  return data?.account?.soundZones?.edges?.map(e => e.node) || [];
+}
+
+async function executeClientLookup(toolInput) {
+  const venueName = toolInput.venueName || '';
+  const result = { venueName, found: false, source: null };
+
+  // 1. Try SYB API lookup
+  if (process.env.SOUNDTRACK_API_TOKEN && venueName) {
+    try {
+      const matches = await sybSearchAccount(venueName);
+      if (matches.length > 0) {
+        const account = matches[0];
+        const zones = await sybGetZones(account.id);
+        result.found = true;
+        result.source = 'syb';
+        result.accountName = account.businessName;
+        result.accountId = account.id;
+        result.zones = zones.map(z => ({ name: z.name, id: z.id, location: z.location?.name || '' }));
+        result.zoneCount = zones.length;
+        if (matches.length > 1) {
+          result.otherMatches = matches.slice(1, 4).map(m => m.businessName);
+        }
+      }
+    } catch (err) {
+      console.error('SYB lookup error:', err.message);
+    }
+  }
+
+  // 2. Fall back to local venues table for previous brief history
+  if (!result.found && pool) {
+    try {
+      const { rows } = await pool.query(
+        `SELECT v.venue_name, v.venue_type, v.location, v.syb_account_id,
+                b.created_at as last_brief_date, b.product
+         FROM venues v LEFT JOIN briefs b ON v.latest_brief_id = b.id
+         WHERE LOWER(v.venue_name) LIKE LOWER($1)
+         ORDER BY v.updated_at DESC LIMIT 1`,
+        [`%${venueName}%`]
+      );
+      if (rows.length > 0) {
+        result.found = true;
+        result.source = 'database';
+        result.previousBrief = {
+          venueName: rows[0].venue_name,
+          venueType: rows[0].venue_type,
+          location: rows[0].location,
+          lastBriefDate: rows[0].last_brief_date,
+          product: rows[0].product,
+        };
+      }
+    } catch (err) {
+      console.error('DB venue lookup error:', err.message);
+    }
+  }
+
+  return result;
 }
 
 // Execute the recommendation tool server-side
@@ -1113,6 +1266,48 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
             ...toolUseBlock.input,
           });
           return; // Don't send 'done' yet — caller handles it
+        }
+
+        if (toolUseBlock.name === 'lookup_existing_client') {
+          const lookupResult = await executeClientLookup(toolUseBlock.input);
+
+          let resultText;
+          if (lookupResult.found && lookupResult.source === 'syb') {
+            const zoneList = lookupResult.zones.map(z => z.name).join(', ');
+            resultText = `Found existing SYB client: "${lookupResult.accountName}" with ${lookupResult.zoneCount} sound zone(s): ${zoneList}. This is a returning client — welcome them back warmly. Reference their zone names when discussing music design. If they have multiple zones, ask which ones we are working on today.`;
+            if (lookupResult.otherMatches) {
+              resultText += ` (Note: other possible matches: ${lookupResult.otherMatches.join(', ')})`;
+            }
+          } else if (lookupResult.found && lookupResult.source === 'database') {
+            const prev = lookupResult.previousBrief;
+            resultText = `Found previous brief for "${prev.venueName}" (${prev.venueType || 'unknown type'}, ${prev.location || 'unknown location'}). Last brief: ${prev.lastBriefDate ? new Date(prev.lastBriefDate).toLocaleDateString() : 'unknown'}. This is a returning client — acknowledge them warmly but continue gathering fresh information for this brief.`;
+          } else {
+            resultText = `No existing SYB account or previous brief found for "${lookupResult.venueName}". This appears to be a new client — continue normally.`;
+          }
+
+          const lookupMessages = [
+            ...msgs,
+            { role: 'assistant', content: resp.content },
+            {
+              role: 'user',
+              content: [{
+                type: 'tool_result',
+                tool_use_id: toolUseBlock.id,
+                content: resultText,
+              }],
+            },
+          ];
+
+          const lookupResp = await anthropic.messages.create({
+            model: AI_MODEL,
+            max_tokens: 1500,
+            system: systemPrompt,
+            tools: ALL_TOOLS,
+            messages: lookupMessages,
+          });
+
+          await handleResponse(lookupResp, lookupMessages);
+          return;
         }
 
         if (toolUseBlock.name === 'research_venue') {
@@ -1365,6 +1560,43 @@ app.post('/submit', submitLimiter, async (req, res) => {
       subject,
       html,
     });
+
+    // Store brief in PostgreSQL (non-fatal — email is the primary delivery)
+    if (pool) {
+      try {
+        const likedIds = aiResults.likedPlaylists.map(p => p.name || p);
+        const briefResult = await pool.query(
+          `INSERT INTO briefs (venue_name, venue_type, location, contact_name, contact_email, product, liked_playlist_ids, conversation_summary, raw_data)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+          [
+            data.venueName,
+            data.venueType || null,
+            data.location || null,
+            data.contactName || null,
+            data.contactEmail || null,
+            data.product || 'syb',
+            likedIds,
+            conversationSummary || null,
+            JSON.stringify({ brief, aiResults, extractedBrief }),
+          ]
+        );
+        const briefId = briefResult.rows[0].id;
+
+        // Upsert venue profile
+        await pool.query(
+          `INSERT INTO venues (venue_name, location, venue_type, latest_brief_id, updated_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           ON CONFLICT (venue_name) DO UPDATE SET
+             location = COALESCE(EXCLUDED.location, venues.location),
+             venue_type = COALESCE(EXCLUDED.venue_type, venues.venue_type),
+             latest_brief_id = EXCLUDED.latest_brief_id,
+             updated_at = NOW()`,
+          [data.venueName, data.location || null, data.venueType || null, briefId]
+        );
+      } catch (dbErr) {
+        console.error('DB brief storage error (non-fatal):', dbErr.message);
+      }
+    }
 
     res.json({ success: true });
   } catch (err) {
