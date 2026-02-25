@@ -1774,16 +1774,20 @@ app.get('/api/test-syb-mutation', async (req, res) => {
     };
   } catch (e) { results.playlistIdMatch = { error: e.message }; }
 
-  // Test 3: Find BMAsia Demo zones
+  // Test 3: Find BMAsia Demo zones (under the "BMAsia" account, not "01 BMAsia Main Playlists")
   try {
     const accounts = await sybSearchAccount('BMAsia');
-    const demoAccount = accounts.find(a => /demo|playground/i.test(a.businessName)) || accounts[0];
-    if (demoAccount) {
-      const zones = await sybGetZones(demoAccount.id);
+    // Use exact "BMAsia" account which has Demo zones, or fall back to Unlimited DEMO
+    const targetAccount = accounts.find(a => a.businessName === 'BMAsia')
+      || accounts.find(a => /unlimited demo/i.test(a.businessName))
+      || accounts[0];
+    if (targetAccount) {
+      const zones = await sybGetZones(targetAccount.id);
       results.testZones = {
-        account: demoAccount.businessName,
-        accountId: demoAccount.id,
-        zones: zones.map(z => ({ id: z.id, name: z.name })),
+        account: targetAccount.businessName,
+        accountId: targetAccount.id,
+        allAccounts: accounts.map(a => a.businessName),
+        zones: zones.map(z => ({ id: z.id, name: z.name, location: z.location?.name })),
       };
     } else {
       results.testZones = { error: 'No BMAsia account found' };
@@ -1831,6 +1835,7 @@ app.get('/api/test-syb-mutation', async (req, res) => {
           description: 'Automated test — safe to delete',
           presentAs: 'daily',
           slots: [{
+            rrule: 'FREQ=DAILY',
             start: '09:00',
             duration: 240,
             playlistIds: [testSourceId],
