@@ -1397,6 +1397,23 @@ const chatLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Retry wrapper for Anthropic API calls (handles 529 overloaded errors)
+async function anthropicRetry(fn, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err.status === 529 && attempt < maxRetries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000); // 1s, 2s, 4s, 8s
+        console.log(`[Retry] Anthropic 529 overloaded, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 app.post('/api/chat', chatLimiter, async (req, res) => {
   const { message, history, mode, language, product, pendingToolUse } = req.body;
 
@@ -1437,13 +1454,13 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
     const systemPrompt = buildChatSystemPrompt(language, product);
 
     // First API call — may result in tool use or direct text
-    const response = await anthropic.messages.create({
+    const response = await anthropicRetry(() => anthropic.messages.create({
       model: AI_MODEL,
       max_tokens: 1500,
       system: systemPrompt,
       tools: ALL_TOOLS,
       messages,
-    });
+    }));
 
     // Helper: execute a single tool and return its result text
     async function executeToolCall(toolBlock) {
@@ -1588,13 +1605,13 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
           { role: 'user', content: toolResults },
         ];
 
-        const nextResp = await anthropic.messages.create({
+        const nextResp = await anthropicRetry(() => anthropic.messages.create({
           model: AI_MODEL,
           max_tokens: 1500,
           system: systemPrompt,
           tools: ALL_TOOLS,
           messages: nextMessages,
-        });
+        }));
 
         await handleResponse(nextResp, nextMessages);
       } else {
@@ -1624,13 +1641,13 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
       });
 
       // API call with tool result — Claude continues the conversation
-      const toolResponse = await anthropic.messages.create({
+      const toolResponse = await anthropicRetry(() => anthropic.messages.create({
         model: AI_MODEL,
         max_tokens: 1500,
         system: systemPrompt,
         tools: ALL_TOOLS,
         messages,
-      });
+      }));
 
       await handleResponse(toolResponse, messages);
     } else {
@@ -1660,12 +1677,12 @@ app.post('/api/recommend', recommendLimiter, async (req, res) => {
     let result;
     if (anthropic) {
       try {
-        const response = await anthropic.messages.create({
+        const response = await anthropicRetry(() => anthropic.messages.create({
           model: AI_MODEL,
           max_tokens: 1500,
           system: buildSystemPrompt(dayparts),
           messages: [{ role: 'user', content: buildUserMessage(data) }],
-        });
+        }));
         const text = response.content[0].text.trim();
         const jsonStr = text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
         result = JSON.parse(jsonStr);
