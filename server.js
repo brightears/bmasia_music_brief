@@ -573,7 +573,7 @@ function buildPlaylistEmailSections(aiResults) {
               <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
             </td>
             <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${esc(p.daypart)}</td>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore}%</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore != null ? p.matchScore + '%' : ''}</td>
           </tr>`).join('')}
         </table>`;
       }
@@ -591,7 +591,7 @@ function buildPlaylistEmailSections(aiResults) {
             <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
           </td>
           <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${esc(p.daypart)}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore}%</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore != null ? p.matchScore + '%' : ''}</td>
         </tr>`).join('')}
       </table>`;
     }
@@ -619,7 +619,7 @@ function buildPlaylistEmailSections(aiResults) {
             <a href="${esc(p.sybUrl || '#')}" style="color:#4f46e5;text-decoration:none;font-size:13px;">${esc(p.name || p.playlistId)}</a>
           </td>
           <td style="padding:6px 12px;border-bottom:1px solid #eee;text-transform:capitalize;font-size:13px;">${esc(p.daypart)}</td>
-          <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:13px;">${p.matchScore}%</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:13px;">${p.matchScore != null ? p.matchScore + '%' : ''}</td>
         </tr>`;
     }).join('');
 
@@ -784,10 +784,6 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
       </td></tr>
     </table>
   </td></tr>` : ''}
-
-  ${section('Raw Data (for AI reprocessing)', `
-    <pre style="margin:0;font-size:11px;color:#6b7280;white-space:pre-wrap;word-break:break-all;background:#f9fafb;padding:12px;border-radius:4px;">${esc(JSON.stringify(data, null, 2))}</pre>
-  `)}
 
   </table>
   </td></tr>
@@ -2260,7 +2256,7 @@ function renderApprovalPage({ token, brief, likedPlaylists, daypartOrder, daypar
       if (pls.length === 0) continue;
       scheduleHtml += `<div class="dp-header">${esc(dp?.label || dpKey)} ${dp?.timeRange ? `<span class="dp-time">${esc(dp.timeRange)}</span>` : ''}</div>`;
       for (const p of pls) {
-        scheduleHtml += `<div class="playlist-row">${esc(p.name)} <span class="match">${p.matchScore}%</span></div>`;
+        scheduleHtml += `<div class="playlist-row">${esc(p.name)}${p.matchScore != null ? ` <span class="match">${p.matchScore}%</span>` : ''}</div>`;
       }
     }
   }
@@ -2287,7 +2283,7 @@ function renderApprovalPage({ token, brief, likedPlaylists, daypartOrder, daypar
         if (pls.length === 0) continue;
         weekendHtml += `<div class="dp-header">${esc(dp?.label || dpKey)} ${dp?.timeRange ? `<span class="dp-time">${esc(dp.timeRange)}</span>` : ''}</div>`;
         for (const p of pls) {
-          weekendHtml += `<div class="playlist-row">${esc(p.name)} <span class="match">${p.matchScore}%</span></div>`;
+          weekendHtml += `<div class="playlist-row">${esc(p.name)}${p.matchScore != null ? ` <span class="match">${p.matchScore}%</span>` : ''}</div>`;
         }
       }
     }
