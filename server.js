@@ -1886,6 +1886,7 @@ app.post('/submit', submitLimiter, async (req, res) => {
           );
           const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
           approvalUrl = `${baseUrl}/approve/${token}`;
+          console.log(`[Submit] Brief #${briefId} stored for "${data.venueName}" — approval: ${approvalUrl}`);
 
           // Create follow-up entries
           const trackingId7 = crypto.randomBytes(32).toString('hex');
@@ -1913,6 +1914,7 @@ app.post('/submit', submitLimiter, async (req, res) => {
       subject,
       html,
     });
+    console.log(`[Submit] Email sent for brief #${briefId} "${data.venueName}" to ${RECIPIENT_EMAIL}`);
 
     res.json({ success: true, briefId });
   } catch (err) {
