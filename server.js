@@ -2662,39 +2662,62 @@ app.get('/test-create-schedule', async (req, res) => {
       console.log('[Test] assignSchedule result:', JSON.stringify(r2, null, 2));
     }
 
-    // Test RRULE format variants
-    const rruleFormats = [
-      'FREQ=WEEKLY;BYDAY=MO',                          // single day
-      'RRULE:FREQ=WEEKLY;BYDAY=MO',                    // with RRULE: prefix
-      'FREQ=DAILY',                                     // daily frequency
-      'BYDAY=MO,TU,WE,TH,FR,SA,SU',                   // just BYDAY
-      'FREQ=WEEKLY;BYDAY=MO;BYDAY=TU;BYDAY=WE',       // separate BYDAY
-      'DTSTART:T100000\nRRULE:FREQ=WEEKLY;BYDAY=MO',   // with DTSTART
+    // Test: Full daily schedule (7 slots per daypart, one per day)
+    const DAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+    const dayparts = [
+      { start: '110000', duration: 10800000, playlist: PLAYLIST_1, name: 'Morning (11:00-14:00)' },  // 3h
+      { start: '140000', duration: 14400000, playlist: PLAYLIST_2, name: 'Afternoon (14:00-18:00)' }, // 4h
     ];
 
-    for (let i = 0; i < rruleFormats.length; i++) {
-      const testVars = {
-        input: {
-          ownerId: DEMO_ACCOUNT,
-          name: `RRULE Test ${i + 1} - ${Date.now()}`,
-          slots: [{
-            rrule: rruleFormats[i],
-            start: '100000',
-            duration: 7200000,
-            playlistIds: [PLAYLIST_1]
-          }]
+    // Build slots: one per day per daypart
+    const slots = [];
+    for (const dp of dayparts) {
+      for (const day of DAYS) {
+        slots.push({
+          rrule: `FREQ=WEEKLY;BYDAY=${day}`,
+          start: dp.start,
+          duration: dp.duration,
+          playlistIds: [dp.playlist]
+        });
+      }
+    }
+
+    const fullVars = {
+      input: {
+        ownerId: DEMO_ACCOUNT,
+        name: 'Full Day Schedule Test - ' + new Date().toISOString().slice(0, 16),
+        presentAs: 'daily',
+        slots
+      }
+    };
+
+    const rFull = await rawSybQuery(`
+      mutation($input: CreateScheduleInput!) {
+        createSchedule(input: $input) { id name slots { id rrule start duration playlistIds } }
+      }
+    `, fullVars);
+    results.full_schedule = {
+      slotCount: slots.length,
+      success: !rFull.errors,
+      data: rFull.data?.createSchedule || null,
+      errors: rFull.errors || null
+    };
+
+    // If full schedule created, assign to zone
+    const fullId = rFull.data?.createSchedule?.id;
+    if (fullId) {
+      const rAssign = await rawSybQuery(`
+        mutation($input: SoundZoneAssignSourceInput!) {
+          soundZoneAssignSource(input: $input) {
+            soundZones
+            source { ... on Schedule { id name } }
+          }
         }
-      };
-      const r = await rawSybQuery(`
-        mutation($input: CreateScheduleInput!) {
-          createSchedule(input: $input) { id name slots { id rrule start duration playlistIds } }
-        }
-      `, testVars);
-      results[`rrule_test_${i + 1}`] = {
-        format: rruleFormats[i],
-        success: !r.errors,
-        data: r.data?.createSchedule || null,
-        errors: r.errors || null
+      `, { input: { soundZones: [DEMO_ZONE], source: fullId } });
+      results.assign_to_zone = {
+        success: !rAssign.errors,
+        data: rAssign.data || null,
+        errors: rAssign.errors || null
       };
     }
 
