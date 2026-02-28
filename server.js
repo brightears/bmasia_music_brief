@@ -2662,61 +2662,40 @@ app.get('/test-create-schedule', async (req, res) => {
       console.log('[Test] assignSchedule result:', JSON.stringify(r2, null, 2));
     }
 
-    // If test1 failed, try alternate formats
-    if (r1.errors) {
-      // Try without rrule dots, different start format
-      const altVars = {
+    // Test RRULE format variants
+    const rruleFormats = [
+      'FREQ=WEEKLY;BYDAY=MO',                          // single day
+      'RRULE:FREQ=WEEKLY;BYDAY=MO',                    // with RRULE: prefix
+      'FREQ=DAILY',                                     // daily frequency
+      'BYDAY=MO,TU,WE,TH,FR,SA,SU',                   // just BYDAY
+      'FREQ=WEEKLY;BYDAY=MO;BYDAY=TU;BYDAY=WE',       // separate BYDAY
+      'DTSTART:T100000\nRRULE:FREQ=WEEKLY;BYDAY=MO',   // with DTSTART
+    ];
+
+    for (let i = 0; i < rruleFormats.length; i++) {
+      const testVars = {
         input: {
           ownerId: DEMO_ACCOUNT,
-          name: 'API Test Alt ' + Date.now(),
+          name: `RRULE Test ${i + 1} - ${Date.now()}`,
           slots: [{
-            rrule: 'FREQ=WEEKLY;BYDAY=MO',
-            start: '10:00:00',
+            rrule: rruleFormats[i],
+            start: '100000',
             duration: 7200000,
             playlistIds: [PLAYLIST_1]
           }]
         }
       };
-      const r3 = await rawSybQuery(`
+      const r = await rawSybQuery(`
         mutation($input: CreateScheduleInput!) {
           createSchedule(input: $input) { id name slots { id rrule start duration playlistIds } }
         }
-      `, altVars);
-      results.test3_alt_time_format = r3;
-
-      // Try with HH:MM format
-      const altVars2 = {
-        input: {
-          ownerId: DEMO_ACCOUNT,
-          name: 'API Test Alt2 ' + Date.now(),
-          slots: [{
-            rrule: 'FREQ=WEEKLY;BYDAY=MO',
-            start: '1000',
-            duration: 7200000,
-            playlistIds: [PLAYLIST_1]
-          }]
-        }
+      `, testVars);
+      results[`rrule_test_${i + 1}`] = {
+        format: rruleFormats[i],
+        success: !r.errors,
+        data: r.data?.createSchedule || null,
+        errors: r.errors || null
       };
-      const r4 = await rawSybQuery(`
-        mutation($input: CreateScheduleInput!) {
-          createSchedule(input: $input) { id name slots { id rrule start duration playlistIds } }
-        }
-      `, altVars2);
-      results.test4_short_time = r4;
-
-      // Try with no slots at all (just create empty schedule)
-      const altVars3 = {
-        input: {
-          ownerId: DEMO_ACCOUNT,
-          name: 'API Test Empty ' + Date.now(),
-        }
-      };
-      const r5 = await rawSybQuery(`
-        mutation($input: CreateScheduleInput!) {
-          createSchedule(input: $input) { id name }
-        }
-      `, altVars3);
-      results.test5_empty_schedule = r5;
     }
 
     res.json(results);
