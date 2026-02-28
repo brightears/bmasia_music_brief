@@ -2591,91 +2591,137 @@ app.get('/follow-up/track/:trackingId', async (req, res) => {
   }
 });
 
-// TEMPORARY: Test createSchedule API
+// TEMPORARY: Test createSchedule API (raw fetch to capture full error details)
 app.get('/test-create-schedule', async (req, res) => {
   try {
-    const DEMO_ACCOUNT = 'QWNjb3VudCwsMThjdHE4b2t4czAv'; // BMAsia Unlimited DEMO
+    const DEMO_ACCOUNT = 'QWNjb3VudCwsMThjdHE4b2t4czAv';
     const DEMO_ZONE = 'U291bmRab25lLCwxYzN3NGR0cXkyby9Mb2NhdGlvbiwsMWwzNHpkc3RibHMvQWNjb3VudCwsMThjdHE4b2t4czAv';
-    const PLAYLIST_1 = 'Q29sbGVjdGlvbiwsMW1iMmtpc3YyMHcvU3lzdGVtLHN5c3RlbSwwLw..'; // Grand Hotel Jazz
-    const PLAYLIST_2 = 'Q29sbGVjdGlvbiwsMXIyNXl3bGI0ZTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw..'; // Piano In The Lobby
+    const PLAYLIST_1 = 'Q29sbGVjdGlvbiwsMW1iMmtpc3YyMHcvU3lzdGVtLHN5c3RlbSwwLw..';
+    const PLAYLIST_2 = 'Q29sbGVjdGlvbiwsMXIyNXl3bGI0ZTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw..';
+
+    async function rawSybQuery(query, variables = {}) {
+      const r = await fetch(SYB_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${process.env.SOUNDTRACK_API_TOKEN}`,
+        },
+        body: JSON.stringify({ query, variables }),
+      });
+      return r.json(); // return raw, don't throw
+    }
 
     const results = {};
 
-    // Step 1: Create a schedule with two time slots
-    console.log('[Test] Creating schedule on BMAsia Unlimited DEMO...');
-    const createMutation = `
-      mutation($input: CreateScheduleInput!) {
-        createSchedule(input: $input) {
-          id
-          name
-          slots { id rrule start duration playlistIds }
-        }
-      }
-    `;
+    // Test 1: Simple schedule with one slot
     const createVars = {
       input: {
         ownerId: DEMO_ACCOUNT,
-        name: 'API Test Schedule - ' + new Date().toISOString().slice(0, 16),
-        description: 'Test schedule created via createSchedule API',
-        presentAs: 'daily',
+        name: 'API Test ' + new Date().toISOString().slice(0, 16),
         slots: [
           {
             rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU',
-            start: '100000',       // 10:00 AM
-            duration: 7200000,     // 2 hours in ms
+            start: '100000',
+            duration: 7200000,
             playlistIds: [PLAYLIST_1]
           },
           {
             rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU',
-            start: '120000',       // 12:00 PM
-            duration: 10800000,    // 3 hours in ms
+            start: '120000',
+            duration: 10800000,
             playlistIds: [PLAYLIST_2]
           }
         ]
       }
     };
 
-    try {
-      const createResult = await sybQuery(createMutation, createVars);
-      results.createSchedule = { success: true, data: createResult };
-      console.log('[Test] createSchedule SUCCESS:', JSON.stringify(createResult, null, 2));
+    console.log('[Test] Input:', JSON.stringify(createVars, null, 2));
 
-      // Step 2: Assign the schedule to the demo zone
-      const scheduleId = createResult.createSchedule?.id;
-      if (scheduleId) {
-        console.log('[Test] Assigning schedule to zone...');
-        const assignMutation = `
-          mutation($input: SoundZoneAssignSourceInput!) {
-            soundZoneAssignSource(input: $input) {
-              soundZones
-              source { ... on Schedule { id name } ... on Playlist { id name } }
-            }
-          }
-        `;
-        const assignVars = {
-          input: {
-            soundZones: [DEMO_ZONE],
-            source: scheduleId
-          }
-        };
-
-        try {
-          const assignResult = await sybQuery(assignMutation, assignVars);
-          results.assignSchedule = { success: true, data: assignResult };
-          console.log('[Test] assignSchedule SUCCESS:', JSON.stringify(assignResult, null, 2));
-        } catch (assignErr) {
-          results.assignSchedule = { success: false, error: assignErr.message };
-          console.log('[Test] assignSchedule FAILED:', assignErr.message);
+    const r1 = await rawSybQuery(`
+      mutation($input: CreateScheduleInput!) {
+        createSchedule(input: $input) {
+          id name slots { id rrule start duration playlistIds }
         }
       }
-    } catch (createErr) {
-      results.createSchedule = { success: false, error: createErr.message };
-      console.log('[Test] createSchedule FAILED:', createErr.message);
+    `, createVars);
+    results.test1_create = r1;
+    console.log('[Test] createSchedule result:', JSON.stringify(r1, null, 2));
+
+    // If test1 succeeded, try assigning to zone
+    const scheduleId = r1.data?.createSchedule?.id;
+    if (scheduleId) {
+      const r2 = await rawSybQuery(`
+        mutation($input: SoundZoneAssignSourceInput!) {
+          soundZoneAssignSource(input: $input) {
+            soundZones
+            source { ... on Schedule { id name } ... on Playlist { id name } }
+          }
+        }
+      `, { input: { soundZones: [DEMO_ZONE], source: scheduleId } });
+      results.test2_assign = r2;
+      console.log('[Test] assignSchedule result:', JSON.stringify(r2, null, 2));
+    }
+
+    // If test1 failed, try alternate formats
+    if (r1.errors) {
+      // Try without rrule dots, different start format
+      const altVars = {
+        input: {
+          ownerId: DEMO_ACCOUNT,
+          name: 'API Test Alt ' + Date.now(),
+          slots: [{
+            rrule: 'FREQ=WEEKLY;BYDAY=MO',
+            start: '10:00:00',
+            duration: 7200000,
+            playlistIds: [PLAYLIST_1]
+          }]
+        }
+      };
+      const r3 = await rawSybQuery(`
+        mutation($input: CreateScheduleInput!) {
+          createSchedule(input: $input) { id name slots { id rrule start duration playlistIds } }
+        }
+      `, altVars);
+      results.test3_alt_time_format = r3;
+
+      // Try with HH:MM format
+      const altVars2 = {
+        input: {
+          ownerId: DEMO_ACCOUNT,
+          name: 'API Test Alt2 ' + Date.now(),
+          slots: [{
+            rrule: 'FREQ=WEEKLY;BYDAY=MO',
+            start: '1000',
+            duration: 7200000,
+            playlistIds: [PLAYLIST_1]
+          }]
+        }
+      };
+      const r4 = await rawSybQuery(`
+        mutation($input: CreateScheduleInput!) {
+          createSchedule(input: $input) { id name slots { id rrule start duration playlistIds } }
+        }
+      `, altVars2);
+      results.test4_short_time = r4;
+
+      // Try with no slots at all (just create empty schedule)
+      const altVars3 = {
+        input: {
+          ownerId: DEMO_ACCOUNT,
+          name: 'API Test Empty ' + Date.now(),
+        }
+      };
+      const r5 = await rawSybQuery(`
+        mutation($input: CreateScheduleInput!) {
+          createSchedule(input: $input) { id name }
+        }
+      `, altVars3);
+      results.test5_empty_schedule = r5;
     }
 
     res.json(results);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message, stack: err.stack });
   }
 });
 
