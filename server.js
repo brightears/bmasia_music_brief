@@ -719,11 +719,10 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
   ${data._conversationSummary ? `
   <tr><td style="padding:0;">
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-      <tr><td style="padding:12px 16px;background:#1a1a2e;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">AI Consultation Summary</td></tr>
+      <tr><td style="padding:12px 16px;background:#1a1a2e;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Consultation Summary</td></tr>
       <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
         <div style="border-left:4px solid #EFA634;padding:12px 16px;background:#fffbf0;border-radius:0 4px 4px 0;">
-          <p style="margin:0 0 8px;color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Complete AI consultation with the customer:</p>
-          <p style="margin:0;color:#374151;line-height:1.7;white-space:pre-wrap;font-size:14px;">${esc(data._conversationSummary)}</p>
+          <p style="margin:0;color:#374151;line-height:1.7;font-size:14px;">${esc(data._conversationSummary)}</p>
         </div>
       </td></tr>
     </table>
@@ -1374,6 +1373,28 @@ async function anthropicRetry(fn, maxRetries = 3) {
   }
 }
 
+async function summarizeConversation(transcript) {
+  if (!anthropic || !transcript) return transcript;
+  try {
+    const result = await anthropicRetry(() => anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      system: `You are summarizing a customer consultation for a music design team.
+Write a concise 3-5 sentence summary capturing:
+- Venue concept and identity (type, location, positioning)
+- Target audience and atmosphere goals
+- Key music requirements (genres, energy, vocals, things to avoid)
+- Any notable decisions (weekend vs weekday differences, specific creative direction)
+Write in third person, professional tone. No bullet points — flowing sentences.`,
+      messages: [{ role: 'user', content: transcript }]
+    }));
+    return result.content[0].text;
+  } catch (err) {
+    console.log('[Submit] Conversation summary generation failed, using raw transcript:', err.message);
+    return transcript;
+  }
+}
+
 app.post('/api/chat', chatLimiter, async (req, res) => {
   const { message, history, mode, language, product, pendingToolUse } = req.body;
 
@@ -1729,9 +1750,9 @@ app.post('/submit', submitLimiter, async (req, res) => {
       brief.daypartOrder = dpOrder;
     }
 
-    // Add conversation summary to data for email
+    // Generate concise AI summary for email (raw transcript still stored in DB)
     if (conversationSummary) {
-      data._conversationSummary = conversationSummary;
+      data._conversationSummary = await summarizeConversation(conversationSummary);
     }
 
     // Store brief in PostgreSQL FIRST (need brief ID for approval token)
