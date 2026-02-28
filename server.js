@@ -1385,10 +1385,10 @@ Write a concise 3-5 sentence summary capturing:
 - Target audience and atmosphere goals
 - Key music requirements (genres, energy, vocals, things to avoid)
 - Any notable decisions (weekend vs weekday differences, specific creative direction)
-Write in third person, professional tone. No bullet points — flowing sentences.`,
+Write in third person, professional tone. No bullet points — flowing sentences. No markdown formatting, no bold, no headers.`,
       messages: [{ role: 'user', content: transcript }]
     }));
-    return result.content[0].text;
+    return result.content[0].text.replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1').replace(/^#+\s*/gm, '').trim();
   } catch (err) {
     console.log('[Submit] Conversation summary generation failed, using raw transcript:', err.message);
     return transcript;
