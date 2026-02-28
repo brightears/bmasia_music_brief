@@ -542,108 +542,69 @@ function enrichRecommendations(aiResult) {
 // ---------------------------------------------------------------------------
 // Email HTML builder
 // ---------------------------------------------------------------------------
-function buildPlaylistEmailSections(aiResults) {
-  if (!aiResults) return '';
-  let html = '';
+function buildPlaylistEmailSections(aiResults, brief) {
+  if (!aiResults?.likedPlaylists?.length) return '';
 
-  const hasZones = aiResults.likedPlaylists?.some(p => p.zone);
+  const hasZones = aiResults.likedPlaylists.some(p => p.zone);
 
-  if (aiResults.likedPlaylists && aiResults.likedPlaylists.length > 0) {
-    let likedContent = '';
-
-    if (hasZones) {
-      // Group by zone
-      const zoneGroups = {};
-      for (const p of aiResults.likedPlaylists) {
-        const z = p.zone || 'General';
-        if (!zoneGroups[z]) zoneGroups[z] = [];
-        zoneGroups[z].push(p);
-      }
-      for (const [zoneName, playlists] of Object.entries(zoneGroups)) {
-        likedContent += `<p style="margin:12px 0 6px;font-weight:700;color:#EFA634;font-size:14px;">${esc(zoneName)}</p>`;
-        likedContent += `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-bottom:12px;">
-          <tr style="background:#f3f4f6;">
-            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Playlist</th>
-            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Daypart</th>
-            <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Match</th>
-          </tr>
-          ${playlists.map(p => `<tr>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee;">
-              <a href="${esc(p.sybUrl)}" style="color:#4f46e5;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
-              <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
-            </td>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${esc(p.daypart)}</td>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore != null ? p.matchScore + '%' : ''}</td>
-          </tr>`).join('')}
-        </table>`;
-      }
-    } else {
-      // Single zone — original layout
-      likedContent = `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
-        <tr style="background:#f3f4f6;">
-          <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Playlist</th>
-          <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Daypart</th>
-          <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Match</th>
-        </tr>
-        ${aiResults.likedPlaylists.map(p => `<tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;">
-            <a href="${esc(p.sybUrl)}" style="color:#4f46e5;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
-            <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;text-transform:capitalize;">${esc(p.daypart)}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#059669;">${p.matchScore != null ? p.matchScore + '%' : ''}</td>
-        </tr>`).join('')}
-      </table>`;
+  // Build a daypart key → timeRange lookup from brief
+  const timeRanges = {};
+  if (brief?.dayparts) {
+    for (const key of (brief.daypartOrder || Object.keys(brief.dayparts))) {
+      const dp = brief.dayparts[key];
+      if (dp?.timeRange) timeRanges[key] = dp.timeRange;
+      if (dp?.label) timeRanges[dp.label] = dp.timeRange;
     }
-
-    html += `
-    <tr><td style="padding:0;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-        <tr><td style="padding:12px 16px;background:#059669;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Selected Playlists${hasZones ? ' (Multi-Zone)' : ''}</td></tr>
-        <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
-          <p style="margin:0 0 12px;color:#059669;font-weight:600;">${aiResults.likedPlaylists.length} playlist(s) selected by the customer</p>
-          ${likedContent}
-        </td></tr>
-      </table>
-    </td></tr>`;
   }
 
-  if (aiResults.allRecommendations && aiResults.allRecommendations.length > 0) {
-    const selIds = new Set((aiResults.likedPlaylists || []).map(p => p.playlistId));
-    const allRows = aiResults.allRecommendations.map(p => {
-      const sel = selIds.has(p.playlistId);
-      return `
-        <tr${sel ? ' style="background:#f0fdf4;"' : ''}>
-          <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:14px;">${sel ? '&#10003;' : '&mdash;'}</td>
-          <td style="padding:6px 12px;border-bottom:1px solid #eee;">
-            <a href="${esc(p.sybUrl || '#')}" style="color:#4f46e5;text-decoration:none;font-size:13px;">${esc(p.name || p.playlistId)}</a>
-          </td>
-          <td style="padding:6px 12px;border-bottom:1px solid #eee;text-transform:capitalize;font-size:13px;">${esc(p.daypart)}</td>
-          <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:13px;">${p.matchScore != null ? p.matchScore + '%' : ''}</td>
-        </tr>`;
-    }).join('');
+  const daypartCell = (p) => {
+    const label = esc(p.daypart);
+    // Try to find the time range for this daypart
+    const range = timeRanges[p.daypartKey] || timeRanges[p.daypart] || '';
+    if (range) return `<span style="font-weight:600;">${label}</span><br><span style="color:#9ca3af;font-size:12px;">${esc(range)}</span>`;
+    return `<span style="font-weight:600;">${label}</span>`;
+  };
 
-    html += `
-    <tr><td style="padding:0;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-        <tr><td style="padding:12px 16px;background:#1a1a2e;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">All AI Recommendations</td></tr>
-        <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
-          <p style="margin:0 0 12px;color:#666;font-size:13px;">Full AI-suggested list. Items with &#10003; were selected by the customer.</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
-            <tr style="background:#f3f4f6;">
-              <th style="padding:8px 12px;text-align:left;font-size:12px;color:#374151;width:40px;"></th>
-              <th style="padding:8px 12px;text-align:left;font-size:12px;color:#374151;">Playlist</th>
-              <th style="padding:8px 12px;text-align:left;font-size:12px;color:#374151;">Daypart</th>
-              <th style="padding:8px 12px;text-align:left;font-size:12px;color:#374151;">Match</th>
-            </tr>
-            ${allRows}
-          </table>
-        </td></tr>
-      </table>
-    </td></tr>`;
+  const playlistTable = (playlists) => `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-bottom:12px;">
+    <tr style="background:#f3f4f6;">
+      <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Playlist</th>
+      <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Daypart</th>
+    </tr>
+    ${playlists.map(p => `<tr>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee;">
+        <a href="${esc(p.sybUrl)}" style="color:#EFA634;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
+        <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
+      </td>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee;vertical-align:top;">${daypartCell(p)}</td>
+    </tr>`).join('')}
+  </table>`;
+
+  let likedContent = '';
+  if (hasZones) {
+    const zoneGroups = {};
+    for (const p of aiResults.likedPlaylists) {
+      const z = p.zone || 'General';
+      if (!zoneGroups[z]) zoneGroups[z] = [];
+      zoneGroups[z].push(p);
+    }
+    for (const [zoneName, playlists] of Object.entries(zoneGroups)) {
+      likedContent += `<p style="margin:12px 0 6px;font-weight:700;color:#EFA634;font-size:14px;">${esc(zoneName)}</p>`;
+      likedContent += playlistTable(playlists);
+    }
+  } else {
+    likedContent = playlistTable(aiResults.likedPlaylists);
   }
 
-  return html;
+  return `
+  <tr><td style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr><td style="padding:12px 16px;background:#059669;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Selected Playlists${hasZones ? ' (Multi-Zone)' : ''}</td></tr>
+      <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
+        <p style="margin:0 0 12px;color:#059669;font-weight:600;">${aiResults.likedPlaylists.length} playlist(s) selected by the customer</p>
+        ${likedContent}
+      </td></tr>
+    </table>
+  </td></tr>`;
 }
 
 function buildEmailHtml(data, brief, aiResults, approvalUrl) {
@@ -658,13 +619,6 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
     'coworking': 'Co-working Space', 'other': 'Other',
   };
 
-  const daypartRow = (label, dp) => `
-    <tr>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#1a1a2e;">${label}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${dp.energy}/10</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${dp.genres.join(', ')}</td>
-    </tr>`;
-
   const section = (title, content) => `
     <tr><td style="padding:0;">
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
@@ -675,6 +629,50 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
 
   const row = (label, value) => value ? `<tr><td style="padding:6px 0;color:#666;width:40%;vertical-align:top;">${label}</td><td style="padding:6px 0;font-weight:500;">${value}</td></tr>` : '';
 
+  const pill = (text) => `<span style="display:inline-block;padding:4px 12px;background:#EFA634;color:#1a1a2e;font-size:12px;font-weight:600;border-radius:12px;margin:2px 4px 2px 0;">${esc(text.charAt(0).toUpperCase() + text.slice(1))}</span>`;
+
+  // --- Build venue info lines (only non-empty) ---
+  const venueType = venueLabels[data.venueType] || esc(data.venueType);
+  const venueMeta = [venueType, esc(data.location)].filter(Boolean).join(' &bull; ');
+  const contactParts = [esc(data.contactName), esc(data.contactEmail), esc(data.contactPhone)].filter(Boolean);
+
+  // --- Build Music Direction rows (only non-empty) ---
+  const musicRows = [];
+  if (vibes.length) musicRows.push(`<tr><td style="padding:8px 0;color:#666;width:35%;vertical-align:top;">Vibes</td><td style="padding:6px 0;">${vibes.map(pill).join('')}</td></tr>`);
+  if (data.energy) musicRows.push(row('Energy', `${data.energy}/10`));
+  if (data.vocals) musicRows.push(row('Vocals', esc(data.vocals)));
+  if (data.avoidList) musicRows.push(row('Avoid / Exclude', esc(data.avoidList)));
+  if (data.guestProfile) musicRows.push(row('Guest Profile', esc(data.guestProfile)));
+  if (data.ageRange) musicRows.push(row('Age Range', esc(data.ageRange)));
+  if (data.nationality) musicRows.push(row('Nationality', esc(data.nationality)));
+  if (data.referenceVenues) musicRows.push(row('Reference Venues', esc(data.referenceVenues)));
+  if (data.musicLanguages) musicRows.push(row('Languages', esc(data.musicLanguages)));
+  if (data.moodChanges) musicRows.push(row('Mood Changes', esc(data.moodChanges)));
+  if (data.vibeDescription) musicRows.push(row('Vibe Description', esc(data.vibeDescription)));
+
+  // --- Genre table ---
+  const daypartRow = (label, dp) => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#1a1a2e;">${label}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${dp.energy}/10</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${dp.genres.join(', ')}</td>
+    </tr>`;
+
+  const genreSection = brief?.topGenres ? `
+    <p style="margin:0 0 8px;"><strong>Top Genres:</strong> ${brief.topGenres.join(', ')}</p>
+    <p style="margin:0 0 16px;"><strong>BPM:</strong> ${brief.bpmRanges.join(', ')}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+      <tr style="background:#f3f4f6;">
+        <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Daypart</th>
+        <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Energy</th>
+        <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Genres</th>
+      </tr>
+      ${(brief.daypartOrder || Object.keys(brief.dayparts)).map(key => {
+        const dp = brief.dayparts[key];
+        return daypartRow(dp.label || key.charAt(0).toUpperCase() + key.slice(1), dp);
+      }).join('')}
+    </table>` : '';
+
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
@@ -682,7 +680,7 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
-  <!-- Header -->
+  <!-- 1. Header -->
   <tr><td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
     <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Music Atmosphere Brief</h1>
     <p style="margin:8px 0 0;color:#a5b4fc;font-size:13px;">${product} &bull; ${now}</p>
@@ -691,46 +689,54 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
   <tr><td style="padding:24px 16px;background:#f9fafb;">
   <table width="100%" cellpadding="0" cellspacing="0">
 
-  ${section('Venue Overview', `
-    <table width="100%" cellpadding="0" cellspacing="0">
-      ${row('Venue Name', esc(data.venueName))}
-      ${row('Venue Type', venueLabels[data.venueType] || esc(data.venueType))}
-      ${row('Location', esc(data.location))}
-      ${row('Number of Zones', esc(data.zones))}
-      ${row('Operating Hours', esc(data.hours))}
-      ${row('Contact Name', esc(data.contactName))}
-      ${row('Contact Email', esc(data.contactEmail))}
-      ${row('Contact Phone', esc(data.contactPhone))}
+  <!-- 2. Venue Overview + Approve CTA -->
+  <tr><td style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr><td style="padding:12px 16px;background:#1a1a2e;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Venue Overview</td></tr>
+      <tr><td style="padding:20px 16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
+        <h2 style="margin:0 0 4px;color:#1a1a2e;font-size:20px;">${esc(data.venueName)}</h2>
+        ${venueMeta ? `<p style="margin:0 0 12px;color:#666;font-size:14px;">${venueMeta}</p>` : ''}
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+          ${row('Operating Hours', esc(data.hours))}
+          ${row('Zones', esc(data.zones))}
+          ${contactParts.length ? `<tr><td style="padding:6px 0;color:#666;width:40%;vertical-align:top;">Contact</td><td style="padding:6px 0;font-weight:500;">${contactParts.join(' &bull; ')}</td></tr>` : ''}
+        </table>
+        ${approvalUrl ? `
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr><td align="center" style="padding:8px 0 4px;">
+            <a href="${esc(approvalUrl)}" style="display:inline-block;padding:14px 32px;background:#EFA634;color:#1a1a2e;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;">Approve &amp; Schedule</a>
+          </td></tr>
+          <tr><td align="center"><p style="margin:4px 0 0;color:#9ca3af;font-size:12px;">Review schedule, map SYB zones, and activate. Link expires in 7 days.</p></td></tr>
+        </table>` : ''}
+      </td></tr>
     </table>
-  `)}
+  </td></tr>
 
-  ${section('Atmosphere & Vibes', `
-    <table width="100%" cellpadding="0" cellspacing="0">
-      ${row('Selected Vibes', vibes.map(v => v.charAt(0).toUpperCase() + v.slice(1)).join(', '))}
-      ${row('Energy Level', `${data.energy}/10`)}
-      ${row('Reference Venues', esc(data.referenceVenues))}
-      ${row('Vibe Description', esc(data.vibeDescription))}
+  <!-- 3. Conversation Summary -->
+  ${data._conversationSummary ? `
+  <tr><td style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr><td style="padding:12px 16px;background:#1a1a2e;color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">AI Consultation Summary</td></tr>
+      <tr><td style="padding:16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
+        <div style="border-left:4px solid #EFA634;padding:12px 16px;background:#fffbf0;border-radius:0 4px 4px 0;">
+          <p style="margin:0 0 8px;color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Complete AI consultation with the customer:</p>
+          <p style="margin:0;color:#374151;line-height:1.7;white-space:pre-wrap;font-size:14px;">${esc(data._conversationSummary)}</p>
+        </div>
+      </td></tr>
     </table>
-  `)}
+  </td></tr>` : ''}
 
-  ${section('Guest Demographics', `
-    <table width="100%" cellpadding="0" cellspacing="0">
-      ${row('Guest Profile', esc(data.guestProfile))}
-      ${row('Age Range', esc(data.ageRange))}
-      ${row('Primary Nationality', esc(data.nationality))}
-    </table>
-  `)}
+  <!-- 4. Selected Playlists -->
+  ${buildPlaylistEmailSections(aiResults, brief)}
 
-  ${section('Music Preferences', `
-    <table width="100%" cellpadding="0" cellspacing="0">
-      ${row('Vocals', esc(data.vocals))}
-      ${row('Languages', esc(data.musicLanguages))}
-      ${row('Avoid / Exclude', esc(data.avoidList))}
-      ${row('Mood Changes', esc(data.moodChanges))}
-    </table>
-  `)}
+  <!-- 5. Music Direction -->
+  ${musicRows.length || genreSection ? section('Music Direction', `
+    ${musicRows.length ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:${genreSection ? '20px' : '0'};">${musicRows.join('')}</table>` : ''}
+    ${genreSection}
+  `) : ''}
 
-  ${data.product === 'beatbreeze' ? section('Beat Breeze Details', `
+  <!-- 6. Beat Breeze (conditional) -->
+  ${data.product === 'beatbreeze' && (data.aiInterest || data.instruments || data.brandStory) ? section('Beat Breeze Details', `
     <table width="100%" cellpadding="0" cellspacing="0">
       ${row('AI Music Interest', esc(data.aiInterest))}
       ${row('Preferred Instruments', esc(data.instruments))}
@@ -738,58 +744,13 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
     </table>
   `) : ''}
 
-  ${data._conversationSummary ? section('AI Conversation Summary', `
-    <p style="margin:0;color:#374151;line-height:1.7;white-space:pre-wrap;">${esc(data._conversationSummary)}</p>
-  `) : ''}
-
-  ${buildPlaylistEmailSections(aiResults)}
-
-  ${section('Designer Brief &mdash; Genre Recommendations', `
-    <p style="margin:0 0 12px;color:#666;font-size:13px;">Auto-generated from customer vibe selections. Daypart energy: morning=base-2, afternoon=base, evening=base+1.</p>
-    <p style="margin:0 0 8px;"><strong>Top Genres:</strong> ${brief.topGenres.join(', ')}</p>
-    <p style="margin:0 0 16px;"><strong>BPM Ranges:</strong> ${brief.bpmRanges.join(', ')}</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
-      <tr style="background:#f3f4f6;">
-        <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Daypart</th>
-        <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Energy</th>
-        <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Recommended Genres</th>
-      </tr>
-      ${(brief.daypartOrder || Object.keys(brief.dayparts)).map(key => {
-        const dp = brief.dayparts[key];
-        return daypartRow(dp.label || key.charAt(0).toUpperCase() + key.slice(1), dp);
-      }).join('')}
-    </table>
-  `)}
-
-  ${section('Designer Action Items', `
-    <ul style="margin:0;padding:0 0 0 20px;color:#374151;line-height:1.8;">
-      <li>Review venue type and vibe selections</li>
-      <li>Build ${product === 'Beat Breeze' ? 'custom AI playlist' : 'curated playlist'} based on top genres</li>
-      <li>Set up daypart scheduling (${(brief.daypartOrder || Object.keys(brief.dayparts)).map(k => brief.dayparts[k].label || k).join(' / ')})</li>
-      <li>Apply BPM ranges per daypart</li>
-      <li>Check avoid-list and vocal/language preferences</li>
-      ${data.product === 'beatbreeze' ? '<li>Review brand story for AI music generation prompts</li>' : ''}
-      <li>Send draft playlist to customer for approval</li>
-    </ul>
-  `)}
-
-  ${approvalUrl ? `
-  <tr><td style="padding:0;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-      <tr><td style="padding:12px 16px;background:#EFA634;color:#1a1a2e;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;">Schedule Playlists on SYB</td></tr>
-      <tr><td style="padding:24px 16px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;text-align:center;">
-        <p style="margin:0 0 16px;color:#374151;font-size:14px;">Review the schedule, map SYB zones, and activate automatic playlist scheduling.</p>
-        <a href="${esc(approvalUrl)}" style="display:inline-block;padding:14px 32px;background:#EFA634;color:#1a1a2e;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;">Approve &amp; Schedule</a>
-        <p style="margin:12px 0 0;color:#9ca3af;font-size:12px;">Link expires in 7 days</p>
-      </td></tr>
-    </table>
-  </td></tr>` : ''}
-
   </table>
   </td></tr>
 
+  <!-- 7. Footer -->
   <tr><td style="padding:20px 24px;text-align:center;background:#1a1a2e;border-radius:0 0 12px 12px;">
-    <p style="margin:0;color:#a5b4fc;font-size:12px;">BMAsia Group &bull; Music Atmosphere Brief System</p>
+    <p style="margin:0;color:#a5b4fc;font-size:12px;">BMAsia Group</p>
+    ${approvalUrl ? `<p style="margin:8px 0 0;"><a href="${esc(approvalUrl)}" style="color:#EFA634;font-size:12px;text-decoration:none;">Approve &amp; Schedule &rarr;</a></p>` : ''}
   </td></tr>
 
 </table>
