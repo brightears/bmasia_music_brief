@@ -558,8 +558,11 @@ function buildPlaylistEmailSections(aiResults, brief) {
   }
 
   const daypartCell = (p) => {
+    // The daypart label often already contains the time range (e.g. "Opening (11:30 AM–3:30 PM)")
+    // Only append the brief's timeRange if the label doesn't already contain a time reference
     const label = esc(p.daypart);
-    // Try to find the time range for this daypart
+    const hasTimeInLabel = /\d{1,2}[:.]\d{2}/.test(p.daypart);
+    if (hasTimeInLabel) return `<span style="font-weight:600;">${label}</span>`;
     const range = timeRanges[p.daypartKey] || timeRanges[p.daypart] || '';
     if (range) return `<span style="font-weight:600;">${label}</span><br><span style="color:#9ca3af;font-size:12px;">${esc(range)}</span>`;
     return `<span style="font-weight:600;">${label}</span>`;
@@ -629,7 +632,7 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
 
   const row = (label, value) => value ? `<tr><td style="padding:6px 0;color:#666;width:40%;vertical-align:top;">${label}</td><td style="padding:6px 0;font-weight:500;">${value}</td></tr>` : '';
 
-  const pill = (text) => `<span style="display:inline-block;padding:4px 12px;background:#EFA634;color:#1a1a2e;font-size:12px;font-weight:600;border-radius:12px;margin:2px 4px 2px 0;">${esc(text.charAt(0).toUpperCase() + text.slice(1))}</span>`;
+  const pill = (text) => `<span style="display:inline-block;padding:4px 12px;background:#EFA634;color:#1a1a2e;font-size:12px;font-weight:600;border-radius:12px;">${esc(text.charAt(0).toUpperCase() + text.slice(1))}</span>`;
 
   // --- Build venue info lines (only non-empty) ---
   const venueType = venueLabels[data.venueType] || esc(data.venueType);
@@ -638,7 +641,7 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
 
   // --- Build Music Direction rows (only non-empty) ---
   const musicRows = [];
-  if (vibes.length) musicRows.push(`<tr><td style="padding:8px 0;color:#666;width:35%;vertical-align:top;">Vibes</td><td style="padding:6px 0;">${vibes.map(pill).join('')}</td></tr>`);
+  if (vibes.length) musicRows.push(`<tr><td style="padding:8px 0;color:#666;width:35%;vertical-align:top;">Vibes</td><td style="padding:6px 0;">${vibes.map(pill).join(' &nbsp; ')}</td></tr>`);
   if (data.energy) musicRows.push(row('Energy', `${data.energy}/10`));
   if (data.vocals) musicRows.push(row('Vocals', esc(data.vocals)));
   if (data.avoidList) musicRows.push(row('Avoid / Exclude', esc(data.avoidList)));
