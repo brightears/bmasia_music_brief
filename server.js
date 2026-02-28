@@ -2591,6 +2591,94 @@ app.get('/follow-up/track/:trackingId', async (req, res) => {
   }
 });
 
+// TEMPORARY: Test createSchedule API
+app.get('/test-create-schedule', async (req, res) => {
+  try {
+    const DEMO_ACCOUNT = 'QWNjb3VudCwsMThjdHE4b2t4czAv'; // BMAsia Unlimited DEMO
+    const DEMO_ZONE = 'U291bmRab25lLCwxYzN3NGR0cXkyby9Mb2NhdGlvbiwsMWwzNHpkc3RibHMvQWNjb3VudCwsMThjdHE4b2t4czAv';
+    const PLAYLIST_1 = 'Q29sbGVjdGlvbiwsMW1iMmtpc3YyMHcvU3lzdGVtLHN5c3RlbSwwLw..'; // Grand Hotel Jazz
+    const PLAYLIST_2 = 'Q29sbGVjdGlvbiwsMXIyNXl3bGI0ZTgvQ29tcG9zZXIsY3VyYXRvci1taXhlci1jb21wb3NlciwwLw..'; // Piano In The Lobby
+
+    const results = {};
+
+    // Step 1: Create a schedule with two time slots
+    console.log('[Test] Creating schedule on BMAsia Unlimited DEMO...');
+    const createMutation = `
+      mutation($input: CreateScheduleInput!) {
+        createSchedule(input: $input) {
+          id
+          name
+          slots { id rrule start duration playlistIds }
+        }
+      }
+    `;
+    const createVars = {
+      input: {
+        ownerId: DEMO_ACCOUNT,
+        name: 'API Test Schedule - ' + new Date().toISOString().slice(0, 16),
+        description: 'Test schedule created via createSchedule API',
+        presentAs: 'daily',
+        slots: [
+          {
+            rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU',
+            start: '100000',       // 10:00 AM
+            duration: 7200000,     // 2 hours in ms
+            playlistIds: [PLAYLIST_1]
+          },
+          {
+            rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU',
+            start: '120000',       // 12:00 PM
+            duration: 10800000,    // 3 hours in ms
+            playlistIds: [PLAYLIST_2]
+          }
+        ]
+      }
+    };
+
+    try {
+      const createResult = await sybQuery(createMutation, createVars);
+      results.createSchedule = { success: true, data: createResult };
+      console.log('[Test] createSchedule SUCCESS:', JSON.stringify(createResult, null, 2));
+
+      // Step 2: Assign the schedule to the demo zone
+      const scheduleId = createResult.createSchedule?.id;
+      if (scheduleId) {
+        console.log('[Test] Assigning schedule to zone...');
+        const assignMutation = `
+          mutation($input: SoundZoneAssignSourceInput!) {
+            soundZoneAssignSource(input: $input) {
+              soundZones
+              source { ... on Schedule { id name } ... on Playlist { id name } }
+            }
+          }
+        `;
+        const assignVars = {
+          input: {
+            soundZones: [DEMO_ZONE],
+            source: scheduleId
+          }
+        };
+
+        try {
+          const assignResult = await sybQuery(assignMutation, assignVars);
+          results.assignSchedule = { success: true, data: assignResult };
+          console.log('[Test] assignSchedule SUCCESS:', JSON.stringify(assignResult, null, 2));
+        } catch (assignErr) {
+          results.assignSchedule = { success: false, error: assignErr.message };
+          console.log('[Test] assignSchedule FAILED:', assignErr.message);
+        }
+      }
+    } catch (createErr) {
+      results.createSchedule = { success: false, error: createErr.message };
+      console.log('[Test] createSchedule FAILED:', createErr.message);
+    }
+
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
