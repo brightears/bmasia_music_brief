@@ -2824,6 +2824,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e) => {
   data.vibes = extractedBrief?.vibes || [];
   data.energy = extractedBrief?.energy;
   data.venueType = extractedBrief?.venueType || data.venueType;
+  data.sybAccountId = extractedBrief?.sybAccountId || null;
   data.multiZone = isMultiZone;
   data.zoneNames = zoneNames;
   if (weekendRecommendations) {
@@ -2844,7 +2845,11 @@ document.getElementById('submitForm').addEventListener('submit', async (e) => {
     if (res.ok && result.success) {
       showToast(i18n[currentLang].toast_success, 'success');
       closeSubmission();
-      addAIMessage("Your brief has been sent to the design team! They'll review your selections and get back to you soon.");
+      if (result.scheduleCreated) {
+        addAIMessage(`Your schedule "${result.scheduleName}" has been created on your Soundtrack account. Our design team will activate it on your zones shortly.`);
+      } else {
+        addAIMessage("Your brief has been sent to the design team! They'll review your selections and get back to you soon.");
+      }
       // Add "Design another zone" option
       const block = document.createElement('div');
       block.className = 'post-submit-actions';

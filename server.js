@@ -62,6 +62,9 @@ if (pool) {
     -- New columns for scheduling pipeline (safe to re-run: IF NOT EXISTS / ADD IF NOT EXISTS)
     ALTER TABLE briefs ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'submitted';
     ALTER TABLE briefs ADD COLUMN IF NOT EXISTS schedule_data JSONB;
+    ALTER TABLE briefs ADD COLUMN IF NOT EXISTS syb_account_id VARCHAR(255);
+    ALTER TABLE briefs ADD COLUMN IF NOT EXISTS syb_schedule_id VARCHAR(255);
+    ALTER TABLE briefs ADD COLUMN IF NOT EXISTS automation_tier INTEGER;
     ALTER TABLE venues ADD COLUMN IF NOT EXISTS auto_schedule BOOLEAN DEFAULT FALSE;
     ALTER TABLE venues ADD COLUMN IF NOT EXISTS approved_brief_count INTEGER DEFAULT 0;
     ALTER TABLE venues ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Bangkok';
@@ -610,7 +613,7 @@ function buildPlaylistEmailSections(aiResults, brief) {
   </td></tr>`;
 }
 
-function buildEmailHtml(data, brief, aiResults, approvalUrl) {
+function buildEmailHtml(data, brief, aiResults, approvalUrl, sybScheduleResult = null) {
   const vibes = Array.isArray(data.vibes) ? data.vibes : [data.vibes].filter(Boolean);
   const product = data.product === 'beatbreeze' ? 'Beat Breeze' : 'Soundtrack Your Brand';
   const now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok', dateStyle: 'full', timeStyle: 'short' });
@@ -704,12 +707,19 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl) {
           ${row('Zones', esc(data.zones))}
           ${contactParts.length ? `<tr><td style="padding:6px 0;color:#666;width:40%;vertical-align:top;">Contact</td><td style="padding:6px 0;font-weight:500;">${contactParts.join(' &bull; ')}</td></tr>` : ''}
         </table>
+        ${sybScheduleResult ? `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0;">
+          <tr><td style="padding:8px 12px;background:#0d3320;border:1px solid #166534;border-radius:6px;">
+            <p style="margin:0;color:#4ade80;font-size:13px;font-weight:600;">Schedule Pre-Built on SYB Account</p>
+            <p style="margin:4px 0 0;color:#86efac;font-size:12px;">"${esc(sybScheduleResult.scheduleName)}" &mdash; ${sybScheduleResult.slotCount} time slots created. Map zones and click Activate.</p>
+          </td></tr>
+        </table>` : ''}
         ${approvalUrl ? `
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr><td align="center" style="padding:8px 0 4px;">
-            <a href="${esc(approvalUrl)}" style="display:inline-block;padding:14px 32px;background:#EFA634;color:#1a1a2e;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;">Approve &amp; Schedule</a>
+            <a href="${esc(approvalUrl)}" style="display:inline-block;padding:14px 32px;background:#EFA634;color:#1a1a2e;font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;">${sybScheduleResult ? 'Activate Schedule' : 'Approve &amp; Schedule'}</a>
           </td></tr>
-          <tr><td align="center"><p style="margin:4px 0 0;color:#9ca3af;font-size:12px;">Review schedule, map SYB zones, and activate. Link expires in 7 days.</p></td></tr>
+          <tr><td align="center"><p style="margin:4px 0 0;color:#9ca3af;font-size:12px;">${sybScheduleResult ? 'Map SYB zones and activate the pre-built schedule.' : 'Review schedule, map SYB zones, and activate.'} Link expires in 7 days.</p></td></tr>
         </table>` : ''}
       </td></tr>
     </table>
@@ -817,7 +827,11 @@ Phase 1 — UNDERSTAND (2-3 exchanges):
 2. Ask about the experience they want to create — use an open-ended question like "Paint me a picture — when a guest walks in, what should they feel?" This is your richest signal. Do NOT use a structured question here.
 3. Ask venue name and location naturally. If they give both (e.g. "Horizon at the Hilton Pattaya"), acknowledge and move on.
 4. Call research_venue with 3-4 search queries to learn about the venue, property, and area.
-4b. For SYB product only: call lookup_existing_client with the venue name. You can call this alongside research_venue. If the client is found in SYB, welcome them back and reference their zone names. If they have multiple zones, ask which ones we are working on. If not found, continue silently as a new client — do NOT mention the lookup.
+4b. For SYB product only: call lookup_existing_client with the venue name. You can call this alongside research_venue. The tool result will tell you how to handle the match:
+   - Single match: welcome them back, reference their zones, ask which zone we are designing for. The tool result includes a sybAccountId — remember it for generate_recommendations.
+   - Multiple matches (2-5): use ask_structured_question to let the customer choose their account. Once confirmed, use that sybAccountId.
+   - Too many matches (6+): ask the customer to check their Soundtrack app for the exact name.
+   - No match: continue silently as a new client — do NOT mention the lookup.
 
 Phase 2 — DIG DEEPER (2-4 exchanges):
 5. Share a design insight from your research (a conclusion, not facts — see "Using Venue Research" below). Then ask about operating hours as a standalone question.
@@ -836,6 +850,7 @@ Phase 3 — DESIGN:
 9. Call generate_recommendations with all gathered context. You MUST include genreHints based on your expert synthesis of the entire conversation and research. The genreHints field is the most important signal you send to the matching algorithm.
    - For multi-zone venues: include the zones array with per-zone vibes, energy, genreHints (and hours if different).
    - For weekday/weekend variation: include weekendMode with adjusted energy, vibes, and genreHints.
+   - IMPORTANT: If you have a confirmed sybAccountId from lookup_existing_client, include it in the generate_recommendations call along with sybMatchCount and zoneName. This enables automatic schedule creation on their SYB account.
 
 ### Mode: "event" — Special Event Planning
 1. Ask for venue name and email on file (for verification)
@@ -1036,6 +1051,9 @@ const RECOMMEND_TOOL = {
         },
         description: 'Weekend override. If provided, generates a separate weekend schedule with adjusted energy/vibes.',
       },
+      sybAccountId: { type: 'string', description: 'SYB account ID from lookup_existing_client (if confirmed). Pass this through so the schedule can be auto-created on the client account.' },
+      sybMatchCount: { type: 'number', description: 'Number of SYB account matches from lookup (1 = auto-confirmed, 2-5 = customer chose, 0 = new client).' },
+      zoneName: { type: 'string', description: 'The specific zone the customer confirmed they want music designed for (e.g. "Lobby", "Pool Deck"). From the zones listed in lookup_existing_client result.' },
     },
     required: ['venueType', 'vibes', 'energy'],
   },
@@ -1193,6 +1211,53 @@ async function sybGetZones(accountId) {
   return data?.account?.soundZones?.edges?.map(e => e.node) || [];
 }
 
+// SYB account cache — paginate through all 900+ accounts, refresh every 30 min
+let sybAccountCache = { accounts: [], lastRefresh: 0 };
+const SYB_CACHE_TTL = 30 * 60 * 1000;
+
+async function refreshSybAccountCache() {
+  try {
+    let all = [];
+    let cursor = null;
+    let hasMore = true;
+    while (hasMore) {
+      const afterClause = cursor ? `, after: "${cursor}"` : '';
+      const data = await sybQuery(`query { me { ... on PublicAPIClient {
+        accounts(first: 200${afterClause}) {
+          edges { node { id businessName } cursor }
+          pageInfo { hasNextPage endCursor }
+        }
+      } } }`);
+      const edges = data?.me?.accounts?.edges || [];
+      all = all.concat(edges.map(e => e.node));
+      hasMore = data?.me?.accounts?.pageInfo?.hasNextPage || false;
+      cursor = data?.me?.accounts?.pageInfo?.endCursor || null;
+      if (edges.length === 0) break;
+    }
+    sybAccountCache = { accounts: all, lastRefresh: Date.now() };
+    console.log(`[SYB] Cached ${all.length} accounts`);
+  } catch (err) {
+    console.error('[SYB] Account cache refresh failed:', err.message);
+  }
+}
+
+async function sybSearchAccountCached(name) {
+  if (Date.now() - sybAccountCache.lastRefresh > SYB_CACHE_TTL || sybAccountCache.accounts.length === 0) {
+    await refreshSybAccountCache();
+  }
+  const q = name.toLowerCase();
+  return sybAccountCache.accounts
+    .filter(a => a.businessName.toLowerCase().includes(q))
+    .sort((a, b) => {
+      const aExact = a.businessName.toLowerCase() === q ? 0 : 1;
+      const bExact = b.businessName.toLowerCase() === q ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
+      const aPrefix = a.businessName.toLowerCase().startsWith(q) ? 0 : 1;
+      const bPrefix = b.businessName.toLowerCase().startsWith(q) ? 0 : 1;
+      return aPrefix - bPrefix;
+    });
+}
+
 async function executeClientLookup(toolInput) {
   const venueName = toolInput.venueName || '';
   const result = { venueName, found: false, source: null };
@@ -1200,7 +1265,7 @@ async function executeClientLookup(toolInput) {
   // 1. Try SYB API lookup
   if (process.env.SOUNDTRACK_API_TOKEN && venueName) {
     try {
-      const matches = await sybSearchAccount(venueName);
+      const matches = await sybSearchAccountCached(venueName);
       if (matches.length > 0) {
         const account = matches[0];
         const zones = await sybGetZones(account.id);
@@ -1208,9 +1273,22 @@ async function executeClientLookup(toolInput) {
         result.source = 'syb';
         result.accountName = account.businessName;
         result.accountId = account.id;
+        result.matchCount = matches.length;
         result.zones = zones.map(z => ({ name: z.name, id: z.id, location: z.location?.name || '' }));
         result.zoneCount = zones.length;
-        if (matches.length > 1) {
+
+        // For multi-match (2-5): include top matches with zones for AI disambiguation
+        if (matches.length > 1 && matches.length <= 5) {
+          result.accountOptions = [];
+          for (const acc of matches.slice(0, 5)) {
+            const accZones = await sybGetZones(acc.id);
+            result.accountOptions.push({
+              accountId: acc.id,
+              accountName: acc.businessName,
+              zones: accZones.map(z => z.name),
+            });
+          }
+        } else if (matches.length > 1) {
           result.otherMatches = matches.slice(1, 4).map(m => m.businessName);
         }
       }
@@ -1267,6 +1345,9 @@ function executeRecommendationTool(toolInput, product = 'syb') {
     nationality: toolInput.nationality || '',
     moodChanges: toolInput.moodChanges || '',
     genreHints: toolInput.genreHints || [],
+    sybAccountId: toolInput.sybAccountId || null,
+    sybMatchCount: toolInput.sybMatchCount || 0,
+    zoneName: toolInput.zoneName || null,
   };
 
   const zones = toolInput.zones;
@@ -1449,11 +1530,21 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
         const lookupResult = await executeClientLookup(toolBlock.input);
         if (lookupResult.found && lookupResult.source === 'syb') {
           const zoneList = lookupResult.zones.map(z => z.name).join(', ');
-          let text = `Found existing SYB client: "${lookupResult.accountName}" with ${lookupResult.zoneCount} sound zone(s): ${zoneList}. This is a returning client — welcome them back warmly. Reference their zone names when discussing music design. If they have multiple zones, ask which ones we are working on today.`;
-          if (lookupResult.otherMatches) {
-            text += ` (Note: other possible matches: ${lookupResult.otherMatches.join(', ')})`;
+          const matchCount = lookupResult.matchCount || 1;
+
+          if (matchCount === 1) {
+            // Single match — high confidence
+            return `Found existing SYB client: "${lookupResult.accountName}" with ${lookupResult.zoneCount} sound zone(s): ${zoneList}. This is a returning client — welcome them back warmly. Reference their zone names when discussing music design. If they have multiple zones, ask which ones we are working on today. Include sybAccountId: '${lookupResult.accountId}' and sybMatchCount: 1 in your extractedBrief.`;
+          } else if (matchCount <= 5 && lookupResult.accountOptions) {
+            // Multi-match — need disambiguation
+            const optionsList = lookupResult.accountOptions.map((opt, i) =>
+              `${i + 1}) ${opt.accountName} (zones: ${opt.zones.length > 0 ? opt.zones.join(', ') : 'none'})`
+            ).join('\n');
+            return `Multiple SYB accounts matched (${matchCount}). Use ask_structured_question to let the customer choose their account:\n${optionsList}\n\nFormat the question naturally: "I found a few accounts that could be yours on Soundtrack. Which one is yours?" with each account as an option showing name and zone names. Once the customer confirms, include the chosen sybAccountId in your extractedBrief. Account IDs: ${lookupResult.accountOptions.map(o => `"${o.accountName}": "${o.accountId}"`).join(', ')}`;
+          } else {
+            // Too many matches
+            return `Found ${matchCount} SYB accounts matching "${lookupResult.venueName}" — too many to list. Ask the customer to check their Soundtrack app — the account name appears at the top of the sidebar — and tell you the exact name. Then call lookup_existing_client again with the exact name. Do NOT include sybAccountId in extractedBrief until confirmed.`;
           }
-          return text;
         } else if (lookupResult.found && lookupResult.source === 'database') {
           const prev = lookupResult.previousBrief;
           return `Found previous brief for "${prev.venueName}" (${prev.venueType || 'unknown type'}, ${prev.location || 'unknown location'}). Last brief: ${prev.lastBriefDate ? new Date(prev.lastBriefDate).toLocaleDateString() : 'unknown'}. This is a returning client — acknowledge them warmly but continue gathering fresh information for this brief.`;
@@ -1884,10 +1975,66 @@ app.post('/submit', submitLimiter, async (req, res) => {
       }
     }
 
-    const html = buildEmailHtml(data, brief, aiResults, approvalUrl);
+    // Native SYB schedule creation (Phase 1: create + library, design team activates)
+    let sybScheduleResult = null;
+    if (data.product !== 'beatbreeze' && data.sybAccountId && briefId) {
+      try {
+        const scheduleInput = buildSybSchedule({
+          venueName: data.venueName,
+          zoneName: extractedBrief?.zoneName || 'Main',
+          accountId: data.sybAccountId,
+          briefId,
+          likedPlaylists: aiResults.likedPlaylists,
+          dayparts: brief.dayparts,
+        });
+
+        if (scheduleInput && scheduleInput.slots.length > 0) {
+          // Step 1: Create schedule
+          const createResult = await sybQuery(`
+            mutation($input: CreateScheduleInput!) {
+              createSchedule(input: $input) { id name slots { id } }
+            }
+          `, { input: scheduleInput });
+
+          const scheduleId = createResult?.createSchedule?.id;
+          if (scheduleId) {
+            // Step 2: Add to music library (makes it visible in SYB app)
+            try {
+              await sybQuery(`
+                mutation($input: AddToMusicLibraryInput!) {
+                  addToMusicLibrary(input: $input) { musicLibrary { schedules(first: 1) { edges { node { id } } } } }
+                }
+              `, { input: { parent: data.sybAccountId, source: scheduleId } });
+            } catch (libErr) {
+              console.log('[Submit] addToMusicLibrary failed (non-critical):', libErr.message);
+            }
+
+            sybScheduleResult = {
+              scheduleId,
+              scheduleName: scheduleInput.name,
+              slotCount: scheduleInput.slots.length,
+            };
+
+            // Store schedule ID and account ID on the brief
+            await pool.query(
+              'UPDATE briefs SET syb_account_id = $1, syb_schedule_id = $2, automation_tier = 1 WHERE id = $3',
+              [data.sybAccountId, scheduleId, briefId]
+            );
+
+            console.log(`[Submit] SYB schedule created: ${scheduleInput.name} (${scheduleInput.slots.length} slots)`);
+          }
+        }
+      } catch (err) {
+        console.log('[Submit] SYB schedule creation failed (falling back to manual):', err.message);
+      }
+    }
+
+    const html = buildEmailHtml(data, brief, aiResults, approvalUrl, sybScheduleResult);
 
     const product = data.product === 'beatbreeze' ? 'Beat Breeze' : 'SYB';
-    const subject = `Music Brief: ${data.venueName} (${product})`;
+    const subject = sybScheduleResult
+      ? `[Schedule Ready] Music Brief: ${data.venueName} (SYB)`
+      : `Music Brief: ${data.venueName} (${product})`;
 
     await transporter.sendMail({
       from: `"BMAsia Music Brief" <${GMAIL_USER}>`,
@@ -1897,7 +2044,12 @@ app.post('/submit', submitLimiter, async (req, res) => {
     });
     console.log(`[Submit] Email sent for brief #${briefId} "${data.venueName}" to ${RECIPIENT_EMAIL}`);
 
-    res.json({ success: true, briefId });
+    res.json({
+      success: true,
+      briefId,
+      scheduleCreated: !!sybScheduleResult,
+      scheduleName: sybScheduleResult?.scheduleName || null,
+    });
   } catch (err) {
     console.error('Submit error:', err);
     res.status(500).json({ error: 'Failed to send brief. Please try again.' });
@@ -1914,7 +2066,8 @@ app.get('/approve/:token', async (req, res) => {
     // Validate token
     const { rows: tokenRows } = await pool.query(
       `SELECT at.*, b.venue_name, b.venue_type, b.location, b.contact_name,
-              b.contact_email, b.product, b.schedule_data, b.raw_data, b.status as brief_status
+              b.contact_email, b.product, b.schedule_data, b.raw_data, b.status as brief_status,
+              b.syb_account_id, b.syb_schedule_id, b.automation_tier
        FROM approval_tokens at
        JOIN briefs b ON at.brief_id = b.id
        WHERE at.token = $1`,
@@ -1936,14 +2089,19 @@ app.get('/approve/:token', async (req, res) => {
     }
 
     // Fetch SYB zones for zone mapping
+    // If we have a confirmed account from the conversation, use that; otherwise search by name
     let sybZones = [];
-    let sybAccountId = null;
+    let sybAccountId = tokenData.syb_account_id || null;
     if (process.env.SOUNDTRACK_API_TOKEN) {
       try {
-        const accounts = await sybSearchAccount(tokenData.venue_name);
-        if (accounts.length > 0) {
-          sybAccountId = accounts[0].id;
+        if (sybAccountId) {
           sybZones = await sybGetZones(sybAccountId);
+        } else {
+          const accounts = await sybSearchAccountCached(tokenData.venue_name);
+          if (accounts.length > 0) {
+            sybAccountId = accounts[0].id;
+            sybZones = await sybGetZones(sybAccountId);
+          }
         }
       } catch (err) {
         console.error('SYB zone lookup for approval page:', err.message);
@@ -1976,6 +2134,7 @@ app.get('/approve/:token', async (req, res) => {
       existingMappings,
       weekendPlaylists: schedule.weekendLikedPlaylists || [],
       weekendDayparts: schedule.weekendDayparts || null,
+      sybScheduleId: tokenData.syb_schedule_id || null,
     }));
   } catch (err) {
     console.error('Approval page error:', err);
@@ -1992,7 +2151,7 @@ app.post('/approve/:token', express.urlencoded({ extended: true }), async (req, 
   try {
     // Validate token
     const { rows: tokenRows } = await pool.query(
-      `SELECT at.*, b.venue_name, b.schedule_data, b.id as brief_id
+      `SELECT at.*, b.venue_name, b.schedule_data, b.id as brief_id, b.syb_schedule_id
        FROM approval_tokens at
        JOIN briefs b ON at.brief_id = b.id
        WHERE at.token = $1 AND at.used_at IS NULL AND at.expires_at > NOW()`,
@@ -2043,65 +2202,86 @@ app.post('/approve/:token', express.urlencoded({ extended: true }), async (req, 
       );
     }
 
-    // Create schedule entries from liked playlists
+    // Check if this brief has a pre-built SYB schedule (Phase 1 automation)
+    const sybScheduleId = tokenData.syb_schedule_id || req.body.syb_schedule_id || null;
     let entriesCreated = 0;
-    for (const playlist of likedPlaylists) {
-      const zoneName = playlist.zone || 'Main';
-      const mapping = zoneMappings[zoneName];
-      if (!mapping) continue;
 
-      // Find the daypart time range for this playlist
-      const dpKey = playlist.daypart;
-      const dp = schedule.dayparts?.[dpKey];
-      const timeRange = dp?.timeRange || playlist.timeRange || '';
-      const startTime = parseStartTime(timeRange);
-      const endTime = parseEndTime(timeRange);
-      if (!startTime) continue;
+    if (sybScheduleId) {
+      // Pre-built schedule: assign it directly to mapped zones via SYB API
+      const zoneIds = Object.values(zoneMappings).map(m => m.sybZoneId);
+      try {
+        await sybQuery(`
+          mutation($input: SoundZoneAssignSourceInput!) {
+            soundZoneAssignSource(input: $input) {
+              soundZones
+              source { ... on Schedule { id name } }
+            }
+          }
+        `, { input: { soundZones: zoneIds, source: sybScheduleId } });
+        entriesCreated = zoneIds.length;
+        console.log(`[Activate] Assigned schedule ${sybScheduleId} to ${zoneIds.length} zone(s)`);
+      } catch (assignErr) {
+        console.error('[Activate] soundZoneAssignSource failed:', assignErr.message);
+        return res.status(500).send(renderApprovalError('Activation Failed', `Failed to assign schedule to zones: ${assignErr.message}. Please try again.`));
+      }
+    } else {
+      // Manual path: create schedule_entries for the background worker
+      for (const playlist of likedPlaylists) {
+        const zoneName = playlist.zone || 'Main';
+        const mapping = zoneMappings[zoneName];
+        if (!mapping) continue;
 
-      // Resolve sybId from playlist data or catalog
-      const sybId = playlist.sybId || findPlaylistSybId(playlist.name || playlist.playlistId);
-      if (!sybId) continue;
+        const dpKey = playlist.daypart;
+        const dp = schedule.dayparts?.[dpKey];
+        const timeRange = dp?.timeRange || playlist.timeRange || '';
+        const startTime = parseStartTime(timeRange);
+        const endTime = parseEndTime(timeRange);
+        if (!startTime) continue;
 
-      const days = playlist.scheduleType === 'weekend' ? 'weekend' : 'daily';
+        const sybId = playlist.sybId || findPlaylistSybId(playlist.name || playlist.playlistId);
+        if (!sybId) continue;
 
-      await pool.query(
-        `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days, timezone)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime, days, venueTz]
-      );
-      entriesCreated++;
-    }
+        const days = playlist.scheduleType === 'weekend' ? 'weekend' : 'daily';
 
-    // Also handle weekend playlists if present
-    const weekendPlaylists = schedule.weekendLikedPlaylists || [];
-    for (const playlist of weekendPlaylists) {
-      const zoneName = playlist.zone || 'Main';
-      const mapping = zoneMappings[zoneName];
-      if (!mapping) continue;
+        await pool.query(
+          `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days, timezone)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime, days, venueTz]
+        );
+        entriesCreated++;
+      }
 
-      const dpKey = playlist.daypart;
-      const dp = schedule.weekendDayparts?.[dpKey] || schedule.dayparts?.[dpKey];
-      const timeRange = dp?.timeRange || playlist.timeRange || '';
-      const startTime = parseStartTime(timeRange);
-      const endTime = parseEndTime(timeRange);
-      if (!startTime) continue;
+      // Also handle weekend playlists if present
+      const weekendPlaylists = schedule.weekendLikedPlaylists || [];
+      for (const playlist of weekendPlaylists) {
+        const zoneName = playlist.zone || 'Main';
+        const mapping = zoneMappings[zoneName];
+        if (!mapping) continue;
 
-      const sybId = playlist.sybId || findPlaylistSybId(playlist.name || playlist.playlistId);
-      if (!sybId) continue;
+        const dpKey = playlist.daypart;
+        const dp = schedule.weekendDayparts?.[dpKey] || schedule.dayparts?.[dpKey];
+        const timeRange = dp?.timeRange || playlist.timeRange || '';
+        const startTime = parseStartTime(timeRange);
+        const endTime = parseEndTime(timeRange);
+        if (!startTime) continue;
 
-      await pool.query(
-        `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days, timezone)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'weekend', $8)`,
-        [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime, venueTz]
-      );
-      entriesCreated++;
+        const sybId = playlist.sybId || findPlaylistSybId(playlist.name || playlist.playlistId);
+        if (!sybId) continue;
+
+        await pool.query(
+          `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days, timezone)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'weekend', $8)`,
+          [briefId, mapping.sybZoneId, zoneName, sybId, playlist.name, startTime, endTime, venueTz]
+        );
+        entriesCreated++;
+      }
     }
 
     // Mark token as used
     await pool.query('UPDATE approval_tokens SET used_at = NOW() WHERE id = $1', [tokenData.id]);
 
     // Update brief status
-    await pool.query('UPDATE briefs SET status = $1 WHERE id = $2', ['approved', briefId]);
+    await pool.query('UPDATE briefs SET status = $1 WHERE id = $2', [sybScheduleId ? 'scheduled' : 'approved', briefId]);
 
     // Increment venue approved count
     await pool.query(
@@ -2110,7 +2290,10 @@ app.post('/approve/:token', express.urlencoded({ extended: true }), async (req, 
       [tokenData.venue_name]
     );
 
-    res.send(renderApprovalSuccess(tokenData.venue_name, entriesCreated));
+    const successMsg = sybScheduleId
+      ? `Schedule activated and assigned to ${entriesCreated} zone(s). The player will start following the schedule immediately.`
+      : `${entriesCreated} schedule ${entriesCreated === 1 ? 'entry' : 'entries'} created. The background worker will assign playlists at the scheduled times.`;
+    res.send(renderApprovalSuccess(tokenData.venue_name, entriesCreated, sybScheduleId ? 'activated' : 'approved'));
   } catch (err) {
     console.error('Approval processing error:', err);
     res.status(500).send(renderApprovalError('Server Error', 'Failed to process approval. Please try again.'));
@@ -2150,6 +2333,90 @@ function findPlaylistSybId(playlistName) {
   return match?.sybId || null;
 }
 
+// ---------------------------------------------------------------------------
+// Native SYB schedule builder (Phase 1)
+// ---------------------------------------------------------------------------
+
+function parseStartTimeForSyb(timeRange) {
+  // "9:00 AM - 12:00 PM" → "090000"
+  const match = timeRange.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return null;
+  let h = parseInt(match[1]);
+  const m = match[2];
+  const ampm = match[3].toUpperCase();
+  if (ampm === 'PM' && h < 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return String(h).padStart(2, '0') + m + '00';
+}
+
+function parseTimeToMinutes(timeStr) {
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return null;
+  let h = parseInt(match[1]);
+  const m = parseInt(match[2]);
+  const ampm = match[3].toUpperCase();
+  if (ampm === 'PM' && h < 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return h * 60 + m;
+}
+
+function parseDurationMs(timeRange) {
+  // "9:00 AM - 12:00 PM" → 10800000 (3 hours in ms)
+  const parts = timeRange.split('-').map(s => s.trim());
+  if (parts.length !== 2) return null;
+  const startMin = parseTimeToMinutes(parts[0]);
+  const endMin = parseTimeToMinutes(parts[1]);
+  if (startMin === null || endMin === null) return null;
+  let diff = endMin - startMin;
+  if (diff <= 0) diff += 24 * 60; // crosses midnight
+  return diff * 60 * 1000;
+}
+
+function buildSybSchedule({ venueName, zoneName, accountId, briefId, likedPlaylists, dayparts }) {
+  const DAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+  const slots = [];
+  const daypartOrder = dayparts ? Object.keys(dayparts) : [];
+
+  for (const playlist of likedPlaylists) {
+    const sybId = playlist.sybId || findPlaylistSybId(playlist.name);
+    if (!sybId) continue;
+
+    // Find matching daypart for time range
+    const dpKey = playlist.daypart;
+    const dp = dpKey && dayparts ? dayparts[dpKey] : null;
+    const timeRange = dp?.timeRange || playlist.timeRange;
+    if (!timeRange) continue;
+
+    const startTime = parseStartTimeForSyb(timeRange);
+    const durationMs = parseDurationMs(timeRange);
+    if (!startTime || !durationMs) continue;
+
+    const days = playlist.scheduleType === 'weekend' ? ['SA', 'SU'] :
+                 playlist.scheduleType === 'weekday' ? ['MO', 'TU', 'WE', 'TH', 'FR'] : DAYS;
+
+    for (const day of days) {
+      slots.push({
+        rrule: `FREQ=WEEKLY;BYDAY=${day}`,
+        start: startTime,
+        duration: durationMs,
+        playlistIds: [sybId],
+      });
+    }
+  }
+
+  if (slots.length === 0) return null;
+
+  const scheduleName = `${venueName} ${zoneName || ''} — by BMAsia`.replace(/\s+/g, ' ').trim();
+
+  return {
+    ownerId: accountId,
+    name: scheduleName,
+    presentAs: 'daily',
+    description: `Music design by BMAsia (Brief #${briefId})`,
+    slots,
+  };
+}
+
 function renderApprovalError(title, message) {
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -2164,10 +2431,11 @@ function renderApprovalError(title, message) {
 </body></html>`;
 }
 
-function renderApprovalSuccess(venueName, entriesCreated) {
+function renderApprovalSuccess(venueName, entriesCreated, mode = 'approved') {
+  const isActivated = mode === 'activated';
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Schedule Activated - BMAsia Music Brief</title>
+<title>Schedule ${isActivated ? 'Activated' : 'Approved'} - BMAsia Music Brief</title>
 <style>
   body{margin:0;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f23;color:#e5e7eb;display:flex;justify-content:center;align-items:center;min-height:100vh;}
   .card{max-width:480px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:48px 32px;text-align:center;}
@@ -2177,16 +2445,16 @@ function renderApprovalSuccess(venueName, entriesCreated) {
   .venue{color:#e5e7eb;font-weight:600;}
 </style></head><body>
 <div class="card">
-  <h1>Schedule Activated</h1>
+  <h1>Schedule ${isActivated ? 'Activated' : 'Approved'}</h1>
   <p class="venue">${esc(venueName)}</p>
   <div class="count">${entriesCreated}</div>
-  <p>playlist schedule ${entriesCreated === 1 ? 'entry' : 'entries'} created</p>
-  <p style="margin-top:24px;color:#6b7280;font-size:13px;">The background worker will assign playlists to SYB zones at the scheduled times.</p>
+  <p>${isActivated ? `zone${entriesCreated === 1 ? '' : 's'} now playing the schedule` : `playlist schedule ${entriesCreated === 1 ? 'entry' : 'entries'} created`}</p>
+  <p style="margin-top:24px;color:#6b7280;font-size:13px;">${isActivated ? 'The SYB player will follow the schedule automatically. No further action needed.' : 'The background worker will assign playlists to SYB zones at the scheduled times.'}</p>
 </div>
 </body></html>`;
 }
 
-function renderApprovalPage({ token, brief, likedPlaylists, daypartOrder, dayparts, zoneNames, isMultiZone, sybZones, sybAccountId, existingMappings, weekendPlaylists, weekendDayparts }) {
+function renderApprovalPage({ token, brief, likedPlaylists, daypartOrder, dayparts, zoneNames, isMultiZone, sybZones, sybAccountId, existingMappings, weekendPlaylists, weekendDayparts, sybScheduleId }) {
   const existingMap = {};
   for (const m of existingMappings) {
     existingMap[m.brief_zone_name] = m;
@@ -2307,9 +2575,14 @@ function renderApprovalPage({ token, brief, likedPlaylists, daypartOrder, daypar
 </style></head><body>
 <div class="container">
   <div class="header">
-    <h1>Approve &amp; Schedule</h1>
-    <p>Review the music schedule and map SYB zones</p>
+    <h1>${sybScheduleId ? 'Activate Schedule' : 'Approve &amp; Schedule'}</h1>
+    <p>${sybScheduleId ? 'A schedule has been pre-built on the client\'s SYB account. Map zones and activate.' : 'Review the music schedule and map SYB zones'}</p>
   </div>
+
+  ${sybScheduleId ? `<div class="card" style="border-color:#166534;background:rgba(22,101,52,0.15);">
+    <h2 style="color:#4ade80;margin-bottom:8px;">Schedule Pre-Built</h2>
+    <p style="margin:0;color:#86efac;font-size:14px;">The schedule has been created on the client's SYB account and added to their music library. Map the zones below and click Activate to assign it.</p>
+  </div>` : ''}
 
   <div class="card">
     <h2>Brief Summary</h2>
@@ -2328,6 +2601,7 @@ function renderApprovalPage({ token, brief, likedPlaylists, daypartOrder, daypar
 
   <form method="POST" action="/approve/${esc(token)}">
     <input type="hidden" name="syb_account_id" value="${esc(sybAccountId || '')}">
+    <input type="hidden" name="syb_schedule_id" value="${esc(sybScheduleId || '')}">
 
     <div class="card">
       <h2>Map SYB Zones</h2>
@@ -2336,7 +2610,7 @@ function renderApprovalPage({ token, brief, likedPlaylists, daypartOrder, daypar
         : `<div class="no-zones">No SYB account found for "${esc(brief.venue_name)}". Enter zone IDs manually.</div>${zoneMappingHtml}`}
     </div>
 
-    <button type="submit" class="btn">Approve &amp; Activate Schedule</button>
+    <button type="submit" class="btn">${sybScheduleId ? 'Activate Schedule' : 'Approve &amp; Activate Schedule'}</button>
   </form>
 </div>
 <script>
@@ -2596,4 +2870,8 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.listen(PORT, () => {
   console.log(`BMAsia Music Brief running on http://localhost:${PORT}`);
+  // Pre-load SYB account cache
+  if (process.env.SOUNDTRACK_API_TOKEN) {
+    refreshSybAccountCache().catch(err => console.error('[SYB] Startup cache failed:', err.message));
+  }
 });
