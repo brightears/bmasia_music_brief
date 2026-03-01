@@ -2825,6 +2825,10 @@ document.getElementById('submitForm').addEventListener('submit', async (e) => {
   data.energy = extractedBrief?.energy;
   data.venueType = extractedBrief?.venueType || data.venueType;
   data.sybAccountId = extractedBrief?.sybAccountId || null;
+  data.mode = currentMode || 'new';
+  data.eventDate = extractedBrief?.eventDate || null;
+  data.eventTimeRange = extractedBrief?.eventTimeRange || null;
+  data.existingScheduleId = extractedBrief?.existingScheduleId || null;
   data.multiZone = isMultiZone;
   data.zoneNames = zoneNames;
   if (weekendRecommendations) {
@@ -2845,8 +2849,15 @@ document.getElementById('submitForm').addEventListener('submit', async (e) => {
     if (res.ok && result.success) {
       showToast(i18n[currentLang].toast_success, 'success');
       closeSubmission();
-      if (result.scheduleCreated) {
+      if (data.mode === 'event' && result.scheduleCreated) {
+        const dateFmt = data.eventDate ? new Date(data.eventDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'your event date';
+        addAIMessage(`Your event music has been scheduled for ${dateFmt}. The playlist will be activated automatically at the event start time, and your regular music will be restored afterward.`);
+      } else if (data.mode === 'update' && result.scheduleCreated) {
+        addAIMessage(`Your schedule "${result.scheduleName}" has been updated on your Soundtrack account. The changes are now live.`);
+      } else if (result.scheduleCreated) {
         addAIMessage(`Your schedule "${result.scheduleName}" has been created on your Soundtrack account. Our design team will activate it on your zones shortly.`);
+      } else if (data.mode === 'event') {
+        addAIMessage("Your event music brief has been sent to the design team! They'll set it up and schedule it for your event date.");
       } else {
         addAIMessage("Your brief has been sent to the design team! They'll review your selections and get back to you soon.");
       }

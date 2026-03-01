@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS schedule_entries (
   brief_id INTEGER REFERENCES briefs(id),
   zone_id VARCHAR(255) NOT NULL,          -- SYB zone ID (Base64 encoded)
   zone_name VARCHAR(255),                 -- human-readable zone name
-  playlist_syb_id VARCHAR(255) NOT NULL,  -- from syb-playlists.json sybId field
+  playlist_syb_id VARCHAR(255),            -- from syb-playlists.json sybId field (nullable for revert entries)
   playlist_name VARCHAR(255),
   start_time TIME NOT NULL,               -- e.g. '09:00'
   end_time TIME,                          -- e.g. '12:00' (for display only; worker triggers on start_time)
@@ -112,3 +112,7 @@ ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAU
 ALTER TABLE briefs ADD COLUMN IF NOT EXISTS syb_account_id VARCHAR(255);
 ALTER TABLE briefs ADD COLUMN IF NOT EXISTS syb_schedule_id VARCHAR(255);
 ALTER TABLE briefs ADD COLUMN IF NOT EXISTS automation_tier INTEGER;
+ALTER TABLE briefs ADD COLUMN IF NOT EXISTS mode VARCHAR(20);
+ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS event_date DATE;
+ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS entry_type VARCHAR(20) DEFAULT 'regular';
+ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS revert_entry_id INTEGER;

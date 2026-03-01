@@ -74,7 +74,7 @@ if (pool) {
       brief_id INTEGER REFERENCES briefs(id),
       zone_id VARCHAR(255) NOT NULL,
       zone_name VARCHAR(255),
-      playlist_syb_id VARCHAR(255) NOT NULL,
+      playlist_syb_id VARCHAR(255),
       playlist_name VARCHAR(255),
       start_time TIME NOT NULL,
       end_time TIME,
@@ -86,6 +86,11 @@ if (pool) {
       created_at TIMESTAMP DEFAULT NOW()
     );
     ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Bangkok';
+    ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS event_date DATE;
+    ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS entry_type VARCHAR(20) DEFAULT 'regular';
+    ALTER TABLE schedule_entries ADD COLUMN IF NOT EXISTS revert_entry_id INTEGER;
+    ALTER TABLE briefs ADD COLUMN IF NOT EXISTS mode VARCHAR(20);
+    ALTER TABLE schedule_entries ALTER COLUMN playlist_syb_id DROP NOT NULL;
 
     CREATE TABLE IF NOT EXISTS approval_tokens (
       id SERIAL PRIMARY KEY,
@@ -688,8 +693,10 @@ function buildEmailHtml(data, brief, aiResults, approvalUrl, sybScheduleResult =
 
   <!-- 1. Header -->
   <tr><td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
-    <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Music Atmosphere Brief</h1>
+    <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">${data.mode === 'event' ? 'Event Music Brief' : data.mode === 'update' ? 'Music Update Brief' : 'Music Atmosphere Brief'}</h1>
     <p style="margin:8px 0 0;color:#a5b4fc;font-size:13px;">${product} &bull; ${now}</p>
+    ${data.mode === 'event' && data.eventDate ? `<p style="margin:8px 0 0;color:#EFA634;font-size:15px;font-weight:600;">Event Date: ${new Date(data.eventDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}${data.eventTimeRange ? ' &bull; ' + esc(data.eventTimeRange) : ''}</p>` : ''}
+    ${data.mode === 'update' && data.existingScheduleId ? `<p style="margin:8px 0 0;color:#EFA634;font-size:13px;font-weight:500;">Updating existing BMAsia schedule</p>` : ''}
   </td></tr>
 
   <tr><td style="padding:24px 16px;background:#f9fafb;">
@@ -855,14 +862,23 @@ Phase 3 — DESIGN:
 
 ### Mode: "event" — Special Event Planning
 1. Ask for venue name and email on file (for verification)
-2. Ask about the event: occasion, date, desired atmosphere
-3. Ask about duration and any specific music requirements
-4. Call generate_recommendations with genreHints
+2. For SYB product: call lookup_existing_client with the venue name (same as mode "new", step 4b). If they are an existing client, reference their account and zones.
+3. Ask about the event: occasion, specific date (YYYY-MM-DD), desired atmosphere
+4. Ask about time range (e.g., "6 PM to 11 PM") and any specific music requirements
+5. Ask 1-2 expert follow-up questions about the event atmosphere, then vocal preference
+6. Call generate_recommendations with genreHints
+   - Include sybAccountId, zoneName if confirmed
+   - Include eventDate (ISO format YYYY-MM-DD) and eventTimeRange (e.g. "6:00 PM - 11:00 PM") in extractedBrief
+   - The system will pre-schedule the music for the event date and auto-revert to regular music afterward
 
 ### Mode: "update" — Update Existing Music
 1. Ask for venue name and email on file (for verification)
-2. Ask what they'd like to change and why
-3. Call generate_recommendations with genreHints reflecting the adjustment
+2. For SYB product: call lookup_existing_client with the venue name. If they are an existing SYB client with BMAsia schedules, tell them which schedules you found and ask which one they want to update. Include the chosen schedule ID as existingScheduleId in extractedBrief.
+3. Ask what they'd like to change and why (specific dayparts, vibes, energy level, new genres)
+4. Ask 1-2 expert follow-up questions, then vocal preference
+5. Call generate_recommendations with genreHints reflecting the adjustment
+   - Include sybAccountId, zoneName, existingScheduleId in extractedBrief
+   - The system will update the existing schedule instead of creating a new one
 
 ## Vibe Extraction
 Extract structured vibes from the customer's natural language:
@@ -1055,6 +1071,9 @@ const RECOMMEND_TOOL = {
       sybAccountId: { type: 'string', description: 'SYB account ID from lookup_existing_client (if confirmed). Pass this through so the schedule can be auto-created on the client account.' },
       sybMatchCount: { type: 'number', description: 'Number of SYB account matches from lookup (1 = auto-confirmed, 2-5 = customer chose, 0 = new client).' },
       zoneName: { type: 'string', description: 'The specific zone the customer confirmed they want music designed for (e.g. "Lobby", "Pool Deck"). From the zones listed in lookup_existing_client result.' },
+      eventDate: { type: 'string', description: 'Event date in ISO format (YYYY-MM-DD). Only for event mode.' },
+      eventTimeRange: { type: 'string', description: 'Event time range (e.g. "6:00 PM - 11:00 PM"). Only for event mode.' },
+      existingScheduleId: { type: 'string', description: 'Existing SYB schedule ID to update (for update mode). Uses updateSchedule mutation instead of createSchedule.' },
     },
     required: ['venueType', 'vibes', 'energy'],
   },
@@ -1278,6 +1297,28 @@ async function executeClientLookup(toolInput) {
         result.zones = zones.map(z => ({ name: z.name, id: z.id, location: z.location?.name || '' }));
         result.zoneCount = zones.length;
 
+        // Query music library for existing BMAsia schedules (single match only)
+        if (matches.length === 1) {
+          try {
+            const libData = await sybQuery(`
+              query($id: ID!) {
+                account(id: $id) {
+                  musicLibrary {
+                    schedules(first: 50) {
+                      edges { node { id name } }
+                    }
+                  }
+                }
+              }
+            `, { id: account.id });
+            const allSchedules = libData?.account?.musicLibrary?.schedules?.edges?.map(e => e.node) || [];
+            result.existingSchedules = allSchedules.filter(s => s.name.includes('by BMAsia'));
+          } catch (libErr) {
+            console.log('[Lookup] Music library query failed (non-critical):', libErr.message);
+            result.existingSchedules = [];
+          }
+        }
+
         // For multi-match (2-5): include top matches with zones for AI disambiguation
         if (matches.length > 1 && matches.length <= 5) {
           result.accountOptions = [];
@@ -1349,6 +1390,9 @@ function executeRecommendationTool(toolInput, product = 'syb') {
     sybAccountId: toolInput.sybAccountId || null,
     sybMatchCount: toolInput.sybMatchCount || 0,
     zoneName: toolInput.zoneName || null,
+    eventDate: toolInput.eventDate || null,
+    eventTimeRange: toolInput.eventTimeRange || null,
+    existingScheduleId: toolInput.existingScheduleId || null,
   };
 
   const zones = toolInput.zones;
@@ -1535,7 +1579,12 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
 
           if (matchCount === 1) {
             // Single match — high confidence
-            return `Found existing SYB client: "${lookupResult.accountName}" with ${lookupResult.zoneCount} sound zone(s): ${zoneList}. This is a returning client — welcome them back warmly. Reference their zone names when discussing music design. If they have multiple zones, ask which ones we are working on today. Include sybAccountId: '${lookupResult.accountId}' and sybMatchCount: 1 in your extractedBrief.`;
+            let scheduleInfo = '';
+            if (lookupResult.existingSchedules && lookupResult.existingSchedules.length > 0) {
+              const schedList = lookupResult.existingSchedules.map(s => `"${s.name}" (ID: ${s.id})`).join(', ');
+              scheduleInfo = `\n\nExisting BMAsia schedules on this account: ${schedList}. For "update" mode: tell the customer which schedules you found and ask which one to update. Include the chosen schedule ID as existingScheduleId in extractedBrief. For "event" mode: note the existing schedule — after the event, music will revert to their regular schedule.`;
+            }
+            return `Found existing SYB client: "${lookupResult.accountName}" with ${lookupResult.zoneCount} sound zone(s): ${zoneList}. This is a returning client — welcome them back warmly. Reference their zone names when discussing music design. If they have multiple zones, ask which ones we are working on today. Include sybAccountId: '${lookupResult.accountId}' and sybMatchCount: 1 in your extractedBrief.${scheduleInfo}`;
           } else if (matchCount <= 5 && lookupResult.accountOptions) {
             // Multi-match — need disambiguation
             const optionsList = lookupResult.accountOptions.map((opt, i) =>
@@ -1859,14 +1908,17 @@ app.post('/submit', submitLimiter, async (req, res) => {
       weekendDayparts: data.weekendDayparts || null,
       weekendRecommendations: data.weekendRecommendations || null,
       weekendLikedPlaylists: data.weekendLikedPlaylists || [],
+      eventDate: data.eventDate || null,
+      eventTimeRange: data.eventTimeRange || null,
+      existingScheduleId: data.existingScheduleId || null,
     };
 
     if (pool) {
       try {
         const likedIds = aiResults.likedPlaylists.map(p => p.name || p);
         const briefResult = await pool.query(
-          `INSERT INTO briefs (venue_name, venue_type, location, contact_name, contact_email, product, liked_playlist_ids, conversation_summary, raw_data, schedule_data)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+          `INSERT INTO briefs (venue_name, venue_type, location, contact_name, contact_email, product, liked_playlist_ids, conversation_summary, raw_data, schedule_data, mode)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
           [
             data.venueName,
             data.venueType || null,
@@ -1878,6 +1930,7 @@ app.post('/submit', submitLimiter, async (req, res) => {
             conversationSummary || null,
             JSON.stringify({ brief, aiResults, extractedBrief }),
             JSON.stringify(scheduleData),
+            data.mode || 'new',
           ]
         );
         briefId = briefResult.rows[0].id;
@@ -2004,30 +2057,51 @@ app.post('/submit', submitLimiter, async (req, res) => {
         });
 
         if (scheduleInput && scheduleInput.slots.length > 0) {
-          // Step 1: Create schedule
-          const createResult = await sybQuery(`
-            mutation($input: CreateScheduleInput!) {
-              createSchedule(input: $input) { id name slots { id } }
-            }
-          `, { input: scheduleInput });
+          let scheduleId = null;
 
-          const scheduleId = createResult?.createSchedule?.id;
+          // Update mode: modify existing schedule
+          if (data.existingScheduleId) {
+            const { ownerId, ...updateFields } = scheduleInput;
+            const updateResult = await sybQuery(`
+              mutation($input: UpdateScheduleInput!) {
+                updateSchedule(input: $input) { id name slots { id } }
+              }
+            `, { input: { id: data.existingScheduleId, ...updateFields } });
+            scheduleId = updateResult?.updateSchedule?.id;
+            if (scheduleId) {
+              console.log(`[Submit] SYB schedule updated: ${scheduleInput.name} (${scheduleInput.slots.length} slots)`);
+            }
+          } else {
+            // Create new schedule
+            const createResult = await sybQuery(`
+              mutation($input: CreateScheduleInput!) {
+                createSchedule(input: $input) { id name slots { id } }
+              }
+            `, { input: scheduleInput });
+            scheduleId = createResult?.createSchedule?.id;
+
+            if (scheduleId) {
+              // Add to music library (makes it visible in SYB app)
+              try {
+                await sybQuery(`
+                  mutation($input: AddToMusicLibraryInput!) {
+                    addToMusicLibrary(input: $input) { musicLibrary { schedules(first: 1) { edges { node { id } } } } }
+                  }
+                `, { input: { parent: data.sybAccountId, source: scheduleId } });
+              } catch (libErr) {
+                console.log('[Submit] addToMusicLibrary failed (non-critical):', libErr.message);
+              }
+              console.log(`[Submit] SYB schedule created: ${scheduleInput.name} (${scheduleInput.slots.length} slots)`);
+            }
+          }
+
           if (scheduleId) {
-            // Step 2: Add to music library (makes it visible in SYB app)
-            try {
-              await sybQuery(`
-                mutation($input: AddToMusicLibraryInput!) {
-                  addToMusicLibrary(input: $input) { musicLibrary { schedules(first: 1) { edges { node { id } } } } }
-                }
-              `, { input: { parent: data.sybAccountId, source: scheduleId } });
-            } catch (libErr) {
-              console.log('[Submit] addToMusicLibrary failed (non-critical):', libErr.message);
-            }
-
             sybScheduleResult = {
               scheduleId,
               scheduleName: scheduleInput.name,
               slotCount: scheduleInput.slots.length,
+              isUpdate: !!data.existingScheduleId,
+              eventDate: data.eventDate || null,
             };
 
             // Store schedule ID and account ID on the brief
@@ -2036,7 +2110,53 @@ app.post('/submit', submitLimiter, async (req, res) => {
               [data.sybAccountId, scheduleId, briefId]
             );
 
-            console.log(`[Submit] SYB schedule created: ${scheduleInput.name} (${scheduleInput.slots.length} slots)`);
+            // Event mode: create schedule_entries for date-specific assignment + auto-revert
+            if (data.mode === 'event' && data.eventDate && pool) {
+              try {
+                const eventTimeRange = data.eventTimeRange || extractedBrief?.eventTimeRange;
+                const startTime = eventTimeRange ? parseStartTime(eventTimeRange) : null;
+                const endTime = eventTimeRange ? parseEndTime(eventTimeRange) : null;
+                const tz = 'Asia/Bangkok'; // default; could be extracted from conversation
+
+                if (startTime) {
+                  // Check if auto-schedule (trusted venue with saved zone mappings)
+                  const { rows: mappings } = await pool.query(
+                    'SELECT * FROM venue_zone_mappings WHERE venue_name = $1', [data.venueName]
+                  );
+                  const venueRow = (await pool.query('SELECT auto_schedule FROM venues WHERE venue_name = $1', [data.venueName])).rows[0];
+                  const canAutoSchedule = venueRow?.auto_schedule && mappings.length > 0;
+
+                  if (canAutoSchedule) {
+                    for (const mapping of mappings) {
+                      // Create event entry (assigns schedule on event date)
+                      const eventEntry = await pool.query(
+                        `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days, timezone, event_date, entry_type)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, 'daily', $8, $9, 'event') RETURNING id`,
+                        [briefId, mapping.syb_zone_id, mapping.brief_zone_name, scheduleId, scheduleInput.name, startTime, endTime, tz, data.eventDate]
+                      );
+                      const eventEntryId = eventEntry.rows[0].id;
+
+                      // Create revert entry (restores previous music after event)
+                      if (endTime) {
+                        const revertEntry = await pool.query(
+                          `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, days, timezone, event_date, entry_type, status)
+                           VALUES ($1, $2, $3, NULL, 'Revert to previous', $4, 'daily', $5, $6, 'revert', 'active') RETURNING id`,
+                          [briefId, mapping.syb_zone_id, mapping.brief_zone_name, endTime, tz, data.eventDate]
+                        );
+                        // Link event entry to its revert entry
+                        await pool.query('UPDATE schedule_entries SET revert_entry_id = $1 WHERE id = $2', [revertEntry.rows[0].id, eventEntryId]);
+                      }
+                    }
+                    console.log(`[Submit] Event entries created for ${data.eventDate} (auto-schedule, ${mappings.length} zone(s))`);
+                  } else {
+                    // Store event info in schedule_data for manual approval
+                    console.log(`[Submit] Event brief for ${data.eventDate} — approval needed for zone mapping`);
+                  }
+                }
+              } catch (eventErr) {
+                console.log('[Submit] Event entry creation failed (non-critical):', eventErr.message);
+              }
+            }
           }
         }
       } catch (err) {
@@ -2047,9 +2167,17 @@ app.post('/submit', submitLimiter, async (req, res) => {
     const html = buildEmailHtml(data, brief, aiResults, approvalUrl, sybScheduleResult);
 
     const product = data.product === 'beatbreeze' ? 'Beat Breeze' : 'SYB';
-    const subject = sybScheduleResult
-      ? `[Schedule Ready] Music Brief: ${data.venueName} (SYB)`
-      : `Music Brief: ${data.venueName} (${product})`;
+    let subject;
+    if (data.mode === 'event' && data.eventDate) {
+      const eventDateFmt = new Date(data.eventDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      subject = `[Event${sybScheduleResult ? ' Scheduled' : ''}] Music Brief: ${data.venueName} — ${eventDateFmt}`;
+    } else if (data.mode === 'update') {
+      subject = `[Update${sybScheduleResult ? 'd' : ''}] Music Brief: ${data.venueName} (${product})`;
+    } else {
+      subject = sybScheduleResult
+        ? `[Schedule Ready] Music Brief: ${data.venueName} (SYB)`
+        : `Music Brief: ${data.venueName} (${product})`;
+    }
 
     await transporter.sendMail({
       from: `"BMAsia Music Brief" <${GMAIL_USER}>`,
@@ -2166,7 +2294,7 @@ app.post('/approve/:token', express.urlencoded({ extended: true }), async (req, 
   try {
     // Validate token
     const { rows: tokenRows } = await pool.query(
-      `SELECT at.*, b.venue_name, b.schedule_data, b.id as brief_id, b.syb_schedule_id
+      `SELECT at.*, b.venue_name, b.schedule_data, b.id as brief_id, b.syb_schedule_id, b.mode
        FROM approval_tokens at
        JOIN briefs b ON at.brief_id = b.id
        WHERE at.token = $1 AND at.used_at IS NULL AND at.expires_at > NOW()`,
@@ -2221,8 +2349,39 @@ app.post('/approve/:token', express.urlencoded({ extended: true }), async (req, 
     const sybScheduleId = tokenData.syb_schedule_id || req.body.syb_schedule_id || null;
     let entriesCreated = 0;
 
-    if (sybScheduleId) {
-      // Pre-built schedule: assign it directly to mapped zones via SYB API
+    const isEventBrief = schedule.eventDate && schedule.eventDate !== '';
+
+    if (sybScheduleId && isEventBrief) {
+      // Event brief with pre-built schedule: create date-specific entries for the worker
+      const eventDate = schedule.eventDate;
+      const eventTimeRange = schedule.eventTimeRange || '';
+      const startTime = eventTimeRange ? parseStartTime(eventTimeRange) : null;
+      const endTime = eventTimeRange ? parseEndTime(eventTimeRange) : null;
+
+      if (startTime) {
+        for (const [zoneName, mapping] of Object.entries(zoneMappings)) {
+          const eventEntry = await pool.query(
+            `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, end_time, days, timezone, event_date, entry_type)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'daily', $8, $9, 'event') RETURNING id`,
+            [briefId, mapping.sybZoneId, zoneName, sybScheduleId, 'Event schedule', startTime, endTime, venueTz, eventDate]
+          );
+          entriesCreated++;
+
+          // Create revert entry
+          if (endTime) {
+            const revertEntry = await pool.query(
+              `INSERT INTO schedule_entries (brief_id, zone_id, zone_name, playlist_syb_id, playlist_name, start_time, days, timezone, event_date, entry_type, status)
+               VALUES ($1, $2, $3, NULL, 'Revert to previous', $4, 'daily', $5, $6, 'revert', 'active') RETURNING id`,
+              [briefId, mapping.sybZoneId, zoneName, endTime, venueTz, eventDate]
+            );
+            await pool.query('UPDATE schedule_entries SET revert_entry_id = $1 WHERE id = $2', [revertEntry.rows[0].id, eventEntry.rows[0].id]);
+            entriesCreated++;
+          }
+        }
+        console.log(`[Activate] Event entries created for ${eventDate} (${Object.keys(zoneMappings).length} zone(s))`);
+      }
+    } else if (sybScheduleId) {
+      // Pre-built schedule (non-event): assign it directly to mapped zones via SYB API
       const zoneIds = Object.values(zoneMappings).map(m => m.sybZoneId);
       try {
         await sybQuery(`
@@ -2665,13 +2824,22 @@ async function sybAssignSource(zoneId, playlistSybId) {
 }
 
 async function assignPlaylist(entry) {
+  // Skip entries without a playlist (e.g. revert entries where source capture failed)
+  if (!entry.playlist_syb_id) {
+    console.log(`[Worker] Skipping entry ${entry.id} — no playlist_syb_id (${entry.entry_type || 'regular'})`);
+    if (entry.event_date) {
+      await pool.query('UPDATE schedule_entries SET status = $1 WHERE id = $2', ['completed', entry.id]);
+    }
+    return;
+  }
+
   try {
     await sybAssignSource(entry.zone_id, entry.playlist_syb_id);
     await pool.query(
       'UPDATE schedule_entries SET last_assigned_at = NOW(), retry_count = 0 WHERE id = $1',
       [entry.id]
     );
-    console.log(`[Worker] Assigned "${entry.playlist_name}" to zone "${entry.zone_name}" (entry ${entry.id})`);
+    console.log(`[Worker] Assigned "${entry.playlist_name}" to zone "${entry.zone_name}" (entry ${entry.id}, ${entry.entry_type || 'regular'})`);
   } catch (err) {
     const retries = (entry.retry_count || 0) + 1;
     console.error(`[Worker] Failed to assign entry ${entry.id} (retry ${retries}/3):`, err.message);
@@ -2680,6 +2848,53 @@ async function assignPlaylist(entry) {
     } else {
       await pool.query('UPDATE schedule_entries SET retry_count = $1 WHERE id = $2', [retries, entry.id]);
     }
+  }
+}
+
+// Before assigning an event playlist, capture what the zone is currently playing
+// and store it on the revert entry so it can restore the original music later
+async function captureZoneSourceForRevert(entry) {
+  try {
+    // Check if revert entry already has a target
+    const revertCheck = await pool.query('SELECT playlist_syb_id FROM schedule_entries WHERE id = $1', [entry.revert_entry_id]);
+    if (revertCheck.rows.length > 0 && revertCheck.rows[0].playlist_syb_id) {
+      return; // Already has a revert target (set during submit/approval)
+    }
+
+    // Query the zone's current source before we overwrite it
+    const zoneData = await sybQuery(`
+      query($id: ID!) {
+        soundZone(id: $id) {
+          playFrom {
+            ... on Playlist { id name }
+            ... on Schedule { id name }
+          }
+        }
+      }
+    `, { id: entry.zone_id });
+
+    const currentSource = zoneData?.soundZone?.playFrom?.id;
+    if (currentSource) {
+      await pool.query('UPDATE schedule_entries SET playlist_syb_id = $1, playlist_name = $2 WHERE id = $3',
+        [currentSource, zoneData.soundZone.playFrom.name || 'Previous source', entry.revert_entry_id]);
+      console.log(`[Worker] Captured zone source "${zoneData.soundZone.playFrom.name}" for revert entry ${entry.revert_entry_id}`);
+    } else {
+      console.log(`[Worker] Zone ${entry.zone_id} has no current source — revert entry ${entry.revert_entry_id} will be skipped`);
+    }
+  } catch (err) {
+    console.log('[Worker] Failed to capture zone source for revert (non-critical):', err.message);
+  }
+}
+
+// Handle post-assignment logic for event entries (mark completed after one-time trigger)
+async function handleEventPostAssignment(entry) {
+  if (!entry.event_date) return; // Only for event entries
+
+  try {
+    await pool.query('UPDATE schedule_entries SET status = $1 WHERE id = $2', ['completed', entry.id]);
+    console.log(`[Worker] Event entry ${entry.id} marked completed (${entry.entry_type}, event_date: ${entry.event_date})`);
+  } catch (err) {
+    console.error('[Worker] Failed to mark event entry completed:', err.message);
   }
 }
 
@@ -2692,15 +2907,18 @@ async function scheduleWorker() {
     // local time in the venue's timezone, not UTC.
 
     // Find entries due now (within 2-minute window to handle polling gaps)
+    // event_date filter: recurring entries (NULL) always eligible; event entries only on their date
     const { rows } = await pool.query(`
       SELECT * FROM schedule_entries
       WHERE status = 'active'
         AND start_time BETWEEN
           (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::time - interval '1 minute'
           AND (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::time + interval '1 minute'
+        AND (event_date IS NULL OR event_date = (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::date)
         AND (days = 'daily'
              OR (days = 'weekday' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) BETWEEN 1 AND 5)
-             OR (days = 'weekend' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) IN (0, 6)))
+             OR (days = 'weekend' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) IN (0, 6))
+             OR event_date IS NOT NULL)
         AND (last_assigned_at IS NULL
              OR last_assigned_at < (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::date)
     `);
@@ -2711,17 +2929,24 @@ async function scheduleWorker() {
     }
 
     for (const entry of rows) {
+      if (entry.event_date && entry.entry_type === 'event' && entry.revert_entry_id) {
+        await captureZoneSourceForRevert(entry);
+      }
       await assignPlaylist(entry);
+      await handleEventPostAssignment(entry);
     }
 
     // Check for overdue entries (Render cold start recovery)
+    // Same event_date filter as above
     const { rows: overdue } = await pool.query(`
       SELECT * FROM schedule_entries
       WHERE status = 'active'
         AND start_time < (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::time
+        AND (event_date IS NULL OR event_date = (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::date)
         AND (days = 'daily'
              OR (days = 'weekday' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) BETWEEN 1 AND 5)
-             OR (days = 'weekend' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) IN (0, 6)))
+             OR (days = 'weekend' AND EXTRACT(DOW FROM NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok')) IN (0, 6))
+             OR event_date IS NOT NULL)
         AND (last_assigned_at IS NULL
              OR last_assigned_at < (NOW() AT TIME ZONE COALESCE(timezone, 'Asia/Bangkok'))::date)
       ORDER BY start_time DESC
@@ -2737,7 +2962,11 @@ async function scheduleWorker() {
 
     for (const entry of Object.values(latestPerZone)) {
       console.log(`[Worker] Catching up overdue entry ${entry.id}: "${entry.playlist_name}" (was due at ${entry.start_time})`);
+      if (entry.event_date && entry.entry_type === 'event' && entry.revert_entry_id) {
+        await captureZoneSourceForRevert(entry);
+      }
       await assignPlaylist(entry);
+      await handleEventPostAssignment(entry);
     }
 
     // Process pending follow-up emails
