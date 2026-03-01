@@ -851,6 +851,7 @@ Phase 3 — DESIGN:
    - For multi-zone venues: include the zones array with per-zone vibes, energy, genreHints (and hours if different).
    - For weekday/weekend variation: include weekendMode with adjusted energy, vibes, and genreHints.
    - IMPORTANT: If you have a confirmed sybAccountId from lookup_existing_client, include it in the generate_recommendations call along with sybMatchCount and zoneName. This enables automatic schedule creation on their SYB account.
+   - When the customer confirms their account from a multi-match lookup, double-check that you use the exact sybAccountId from the ACCOUNT ID MAPPING provided in the tool result. Do NOT guess or approximate the ID.
 
 ### Mode: "event" — Special Event Planning
 1. Ask for venue name and email on file (for verification)
@@ -1540,7 +1541,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
             const optionsList = lookupResult.accountOptions.map((opt, i) =>
               `${i + 1}) ${opt.accountName} (zones: ${opt.zones.length > 0 ? opt.zones.join(', ') : 'none'})`
             ).join('\n');
-            return `Multiple SYB accounts matched (${matchCount}). Use ask_structured_question to let the customer choose their account:\n${optionsList}\n\nFormat the question naturally: "I found a few accounts that could be yours on Soundtrack. Which one is yours?" with each account as an option showing name and zone names. Once the customer confirms, include the chosen sybAccountId in your extractedBrief. Account IDs: ${lookupResult.accountOptions.map(o => `"${o.accountName}": "${o.accountId}"`).join(', ')}`;
+            return `Multiple SYB accounts matched (${matchCount}). Use ask_structured_question to let the customer choose their account:\n${optionsList}\n\nFormat the question naturally: "I found a few accounts that could be yours on Soundtrack. Which one is yours?" with each account as an option showing name and zone names.\n\nACCOUNT ID MAPPING (use the ID of whichever account the customer selects):\n${lookupResult.accountOptions.map(o => `- "${o.accountName}" → sybAccountId: "${o.accountId}"`).join('\n')}\n\nAfter the customer selects, include the corresponding sybAccountId in your extractedBrief when calling generate_recommendations. This is critical — the wrong ID would create a schedule on the wrong account.`;
           } else {
             // Too many matches
             return `Found ${matchCount} SYB accounts matching "${lookupResult.venueName}" — too many to list. Ask the customer to check their Soundtrack app — the account name appears at the top of the sidebar — and tell you the exact name. Then call lookup_existing_client again with the exact name. Do NOT include sybAccountId in extractedBrief until confirmed.`;
@@ -1978,13 +1979,27 @@ app.post('/submit', submitLimiter, async (req, res) => {
     // Native SYB schedule creation (Phase 1: create + library, design team activates)
     let sybScheduleResult = null;
     if (data.product !== 'beatbreeze' && data.sybAccountId && briefId) {
+      // Validate sybAccountId exists in our account cache
+      if (sybAccountCache.accounts.length === 0) {
+        await refreshSybAccountCache();
+      }
+      const accountValid = sybAccountCache.accounts.some(a => a.id === data.sybAccountId);
+      if (!accountValid) {
+        console.log(`[Submit] sybAccountId "${data.sybAccountId}" not found in cache — skipping schedule creation`);
+        data.sybAccountId = null;
+      }
+    }
+    if (data.product !== 'beatbreeze' && data.sybAccountId && briefId) {
       try {
         const scheduleInput = buildSybSchedule({
           venueName: data.venueName,
           zoneName: extractedBrief?.zoneName || 'Main',
           accountId: data.sybAccountId,
           briefId,
-          likedPlaylists: aiResults.likedPlaylists,
+          likedPlaylists: [
+            ...(aiResults.likedPlaylists || []),
+            ...(data.weekendLikedPlaylists || []),
+          ],
           dayparts: brief.dayparts,
         });
 
