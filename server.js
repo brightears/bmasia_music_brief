@@ -2592,46 +2592,6 @@ app.get('/follow-up/track/:trackingId', async (req, res) => {
 });
 
 // Health check
-// TEMP: Diagnose schedule on demo account
-app.get('/test-schedule-check', async (req, res) => {
-  try {
-    const DEMO_ACCOUNT = 'QWNjb3VudCwsMThjdHE4b2t4czAv';
-    const SCHEDULE_ID = 'U2NoZWR1bGUsLDFqa29udm8wdXRjL0FjY291bnQsLDE4Y3RxOG9reHMwLw..';
-    const DEMO_ZONE = 'U291bmRab25lLCwxYzN3NGR0cXkyby9Mb2NhdGlvbiwsMWwzNHpkc3RibHMvQWNjb3VudCwsMThjdHE4b2t4czAv';
-
-    async function rawQ(query, variables = {}) {
-      const r = await fetch(SYB_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${process.env.SOUNDTRACK_API_TOKEN}` },
-        body: JSON.stringify({ query, variables }),
-      });
-      return r.json();
-    }
-
-    const results = {};
-
-    // 1. Check if schedule exists
-    const r1 = await rawQ(`query($id: ID!) { schedule(id: $id) { id name presentAs slots { id rrule start duration playlistIds } } }`, { id: SCHEDULE_ID });
-    results.schedule_exists = r1;
-
-    // 2. Check what's assigned to the zone
-    const r2 = await rawQ(`query($id: ID!) { soundZone(id: $id) { id name assignedSource { ... on Playlist { id name } ... on Schedule { id name } } } }`, { id: DEMO_ZONE });
-    results.zone_source = r2;
-
-    // 3. List schedules in account's music library
-    const r3 = await rawQ(`query($id: ID!) { account(id: $id) { musicLibrary { schedules(first: 20) { edges { node { id name } } } } } }`, { id: DEMO_ACCOUNT });
-    results.library_schedules = r3;
-
-    // 4. Try adding schedule to music library
-    const r4 = await rawQ(`mutation($input: AddToMusicLibraryInput!) { addToMusicLibrary(input: $input) { musicLibrary { schedules(first: 5) { edges { node { id name } } } } } }`, { input: { parent: DEMO_ACCOUNT, source: SCHEDULE_ID } });
-    results.add_to_library = r4;
-
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.listen(PORT, () => {
