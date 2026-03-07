@@ -3124,6 +3124,9 @@ async function manageSelfPing() {
 
 // Start worker on boot
 if (pool) {
+  // Run immediately on startup (catch overdue entries from cold start / deploy)
+  scheduleWorker();
+  manageSelfPing();
   setInterval(scheduleWorker, 60_000);
   setInterval(manageSelfPing, 5 * 60_000); // check every 5 min
   console.log('[Worker] Schedule worker started (60s interval)');
