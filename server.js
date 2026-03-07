@@ -275,15 +275,16 @@ function generateDayparts(hoursStr, baseEnergy) {
     : closeMin - openMin;
   const totalHours = totalMinutes / 60;
 
-  const segCount = totalHours <= 6 ? 2 : totalHours <= 12 ? 3 : 4;
+  const segCount = totalHours <= 3 ? 1 : totalHours <= 6 ? 2 : totalHours <= 12 ? 3 : 4;
   const segLen = Math.round(totalMinutes / segCount);
 
   const labels = {
+    1: ['Event'],
     2: ['Opening', 'Peak'],
     3: ['Opening', 'Peak Hours', 'Wind Down'],
     4: ['Opening', 'Build Up', 'Peak Hours', 'Wind Down'],
   };
-  const offsets = { 2: [-1, 1], 3: [-2, 0, 1], 4: [-2, -1, 1, 0] };
+  const offsets = { 1: [0], 2: [-1, 1], 3: [-2, 0, 1], 4: [-2, -1, 1, 0] };
 
   const dayparts = [];
   for (let i = 0; i < segCount; i++) {
@@ -457,9 +458,9 @@ function deterministicMatch(data, dayparts) {
     for (const hint of genreHints) {
       if (text.includes(hint.toLowerCase())) { score += 2; hintMatches++; }
     }
-    // Penalize playlists matching zero genre hints when hints are specific (3+)
+    // Penalize playlists matching zero genre hints when hints are present
     // This prevents unrelated cuisine/culture playlists from scoring via category alone
-    if (genreHints.length >= 3 && hintMatches === 0) score -= 2;
+    if (genreHints.length >= 2 && hintMatches === 0) score -= 5;
     if (avoidList) {
       // Extract individual genre/style keywords from avoid phrases
       // e.g. "no hip-hop or rap, no mainstream pop" → ["hip-hop", "rap", "pop"]
@@ -872,10 +873,11 @@ Phase 3 — DESIGN:
 5. Ask 1-2 expert follow-up questions about the event atmosphere, then vocal preference
 6. Call generate_recommendations with genreHints
    - CRITICAL: Pass the event time range as BOTH "hours" AND "eventTimeRange" — this ensures the correct daypart time slots are generated. For example, if the event is 10 AM to 3 PM, set hours: "10:00 AM - 3:00 PM" and eventTimeRange: "10:00 AM - 3:00 PM"
+   - For short events (3 hours or less), the system generates a single time slot — do NOT ask for or suggest multiple dayparts. The customer just needs a consistent set of playlists for the whole window.
    - Include sybAccountId, zoneName if confirmed
    - Include eventDate (ISO format YYYY-MM-DD) in extractedBrief
-   - The system will pre-schedule the music for the event date and auto-revert to regular music afterward
-   - genreHints MUST strictly match the event theme. If the customer wants Italian music, use only Italian-relevant genres (e.g. "italian", "mediterranean", "bossa nova", "lounge"). Do NOT include unrelated genres.
+   - The system will pre-schedule the music for the event date only (not all days) and auto-revert to regular music afterward
+   - genreHints MUST strictly match the event theme. If the customer wants Italian music, use only Italian-relevant genres (e.g. "italian", "mediterranean", "bossa nova", "lounge"). Do NOT include unrelated genres like Chinese, Indian, etc.
 7. If the customer asks to regenerate: do NOT call lookup_existing_client again — you already have the account info. Just call generate_recommendations with the corrected genreHints.
 
 ### Mode: "update" — Update Existing Music
@@ -2064,6 +2066,7 @@ app.post('/submit', submitLimiter, async (req, res) => {
             ...(data.weekendLikedPlaylists || []),
           ],
           dayparts: brief.dayparts,
+          eventDate: data.mode === 'event' ? data.eventDate : null,
         });
 
         if (scheduleInput && scheduleInput.slots.length > 0) {
@@ -2571,8 +2574,16 @@ function parseDurationMs(timeRange) {
   return diff * 60 * 1000;
 }
 
-function buildSybSchedule({ venueName, zoneName, accountId, briefId, likedPlaylists, dayparts }) {
-  const DAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+function buildSybSchedule({ venueName, zoneName, accountId, briefId, likedPlaylists, dayparts, eventDate }) {
+  const ALL_DAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+
+  // For events, only create slots for the specific day of the week
+  let eventDay = null;
+  if (eventDate) {
+    const d = new Date(eventDate + 'T00:00:00');
+    eventDay = ALL_DAYS[d.getDay() === 0 ? 6 : d.getDay() - 1]; // JS getDay: 0=Sun → SU(6), 1=Mon → MO(0)
+  }
+
   const slots = [];
   const daypartOrder = dayparts ? Object.keys(dayparts) : [];
 
@@ -2590,8 +2601,9 @@ function buildSybSchedule({ venueName, zoneName, accountId, briefId, likedPlayli
     const durationMs = parseDurationMs(timeRange);
     if (!startTime || !durationMs) continue;
 
-    const days = playlist.scheduleType === 'weekend' ? ['SA', 'SU'] :
-                 playlist.scheduleType === 'weekday' ? ['MO', 'TU', 'WE', 'TH', 'FR'] : DAYS;
+    const days = eventDay ? [eventDay] :
+                 playlist.scheduleType === 'weekend' ? ['SA', 'SU'] :
+                 playlist.scheduleType === 'weekday' ? ['MO', 'TU', 'WE', 'TH', 'FR'] : ALL_DAYS;
 
     for (const day of days) {
       slots.push({
@@ -2605,7 +2617,8 @@ function buildSybSchedule({ venueName, zoneName, accountId, briefId, likedPlayli
 
   if (slots.length === 0) return null;
 
-  const scheduleName = `${venueName} ${zoneName || ''} — by BMAsia`.replace(/\s+/g, ' ').trim();
+  const eventSuffix = eventDate ? ` (Event ${eventDate})` : '';
+  const scheduleName = `${venueName} ${zoneName || ''}${eventSuffix} — by BMAsia`.replace(/\s+/g, ' ').trim();
 
   return {
     ownerId: accountId,
