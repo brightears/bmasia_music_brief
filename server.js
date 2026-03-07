@@ -2522,26 +2522,41 @@ function findPlaylistSybId(playlistName) {
 // ---------------------------------------------------------------------------
 
 function parseStartTimeForSyb(timeRange) {
-  // "9:00 AM - 12:00 PM" → "090000"
-  const match = timeRange.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (!match) return null;
-  let h = parseInt(match[1]);
-  const m = match[2];
-  const ampm = match[3].toUpperCase();
-  if (ampm === 'PM' && h < 12) h += 12;
-  if (ampm === 'AM' && h === 12) h = 0;
-  return String(h).padStart(2, '0') + m + '00';
+  // "9:00 AM - 12:00 PM" → "090000" (AM/PM format)
+  // "10:00-12:30" → "100000" (24h format from generateDayparts)
+  const ampmMatch = timeRange.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (ampmMatch) {
+    let h = parseInt(ampmMatch[1]);
+    const m = ampmMatch[2];
+    const ampm = ampmMatch[3].toUpperCase();
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return String(h).padStart(2, '0') + m + '00';
+  }
+  // 24h format: "10:00-12:30" or "10:00"
+  const h24Match = timeRange.match(/(\d{1,2}):(\d{2})/);
+  if (h24Match) {
+    return String(parseInt(h24Match[1])).padStart(2, '0') + h24Match[2] + '00';
+  }
+  return null;
 }
 
 function parseTimeToMinutes(timeStr) {
-  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (!match) return null;
-  let h = parseInt(match[1]);
-  const m = parseInt(match[2]);
-  const ampm = match[3].toUpperCase();
-  if (ampm === 'PM' && h < 12) h += 12;
-  if (ampm === 'AM' && h === 12) h = 0;
-  return h * 60 + m;
+  const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (ampmMatch) {
+    let h = parseInt(ampmMatch[1]);
+    const m = parseInt(ampmMatch[2]);
+    const ampm = ampmMatch[3].toUpperCase();
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return h * 60 + m;
+  }
+  // 24h format
+  const h24Match = timeStr.match(/(\d{1,2}):(\d{2})/);
+  if (h24Match) {
+    return parseInt(h24Match[1]) * 60 + parseInt(h24Match[2]);
+  }
+  return null;
 }
 
 function parseDurationMs(timeRange) {
