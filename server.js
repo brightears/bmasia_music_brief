@@ -453,9 +453,13 @@ function deterministicMatch(data, dayparts) {
     for (const vibe of vibes) {
       for (const kw of (vibeKw[vibe] || [])) { if (text.includes(kw)) score += 0.5; }
     }
+    let hintMatches = 0;
     for (const hint of genreHints) {
-      if (text.includes(hint.toLowerCase())) score += 2;
+      if (text.includes(hint.toLowerCase())) { score += 2; hintMatches++; }
     }
+    // Penalize playlists matching zero genre hints when hints are specific (3+)
+    // This prevents unrelated cuisine/culture playlists from scoring via category alone
+    if (genreHints.length >= 3 && hintMatches === 0) score -= 2;
     if (avoidList) {
       // Extract individual genre/style keywords from avoid phrases
       // e.g. "no hip-hop or rap, no mainstream pop" → ["hip-hop", "rap", "pop"]
@@ -867,9 +871,12 @@ Phase 3 — DESIGN:
 4. Ask about time range (e.g., "6 PM to 11 PM") and any specific music requirements
 5. Ask 1-2 expert follow-up questions about the event atmosphere, then vocal preference
 6. Call generate_recommendations with genreHints
+   - CRITICAL: Pass the event time range as BOTH "hours" AND "eventTimeRange" — this ensures the correct daypart time slots are generated. For example, if the event is 10 AM to 3 PM, set hours: "10:00 AM - 3:00 PM" and eventTimeRange: "10:00 AM - 3:00 PM"
    - Include sybAccountId, zoneName if confirmed
-   - Include eventDate (ISO format YYYY-MM-DD) and eventTimeRange (e.g. "6:00 PM - 11:00 PM") in extractedBrief
+   - Include eventDate (ISO format YYYY-MM-DD) in extractedBrief
    - The system will pre-schedule the music for the event date and auto-revert to regular music afterward
+   - genreHints MUST strictly match the event theme. If the customer wants Italian music, use only Italian-relevant genres (e.g. "italian", "mediterranean", "bossa nova", "lounge"). Do NOT include unrelated genres.
+7. If the customer asks to regenerate: do NOT call lookup_existing_client again — you already have the account info. Just call generate_recommendations with the corrected genreHints.
 
 ### Mode: "update" — Update Existing Music
 1. Ask for venue name and email on file (for verification)
@@ -986,7 +993,8 @@ Present the results like a designer presenting their work:
 - Tell them to click "Preview on SYB" to listen to each playlist
 - Ask them to select the ones they like with "Add to brief"
 - Once happy, they can click "Review your music schedule" to see a summary before sending to the design team
-- If they want changes, adjust and regenerate
+- If they want changes, adjust genreHints and regenerate. Do NOT call lookup_existing_client again — you already have the account info from the first lookup. Just call generate_recommendations with corrected parameters.
+- CRITICAL: When regenerating for events, always pass the event time range as "hours" (e.g. hours: "10:00 AM - 3:00 PM"). This determines the daypart time slots. Do NOT pass the venue's regular operating hours.
 - Do NOT re-list the playlists — the customer can already see the cards
 
 ## Available Venue Types
@@ -1401,7 +1409,9 @@ function executeRecommendationTool(toolInput, product = 'syb') {
   // Helper: run pipeline for a single data set
   function runPipeline(data) {
     const energy = parseInt(data.energy, 10) || 5;
-    const dayparts = generateDayparts(data.hours, energy);
+    // For events, use eventTimeRange for daypart generation (overrides venue hours)
+    const hoursForDayparts = data.eventTimeRange || data.hours;
+    const dayparts = generateDayparts(hoursForDayparts, energy);
     const result = deterministicMatch(data, dayparts);
     const enriched = enrichRecommendations(result);
     return { dayparts, ...enriched };
