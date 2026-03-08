@@ -1573,53 +1573,24 @@ app.get('/api/test-block', async (req, res) => {
     if (!track) { return res.json({ error: 'No track found from search' }); }
     results.track = { id: track.id, title: track.title, artist: track.artists?.map(a => a.name).join(', ') };
 
-    // 2. Deep introspect BlockTrackInput.reasons field type
+    // 2. Block track with correct enum value (lowercase: bad_context, dislike, explicit, other, playback)
     try {
-      const schema = await sybPublicQuery(`{
-        __type(name: "BlockTrackInput") {
-          inputFields {
-            name
-            type {
-              name kind
-              ofType { name kind ofType { name kind ofType { name kind } } }
-            }
-          }
-        }
-      }`);
-      results.blockTrackInputSchema = schema?.__type?.inputFields;
+      const blockData = await sybQuery(`mutation($input: BlockTrackInput!) {
+        blockTrack(input: $input) { parent source }
+      }`, { input: { parent: testZoneId, source: track.id, reasons: ['other'] } });
+      results.blockTrack = { works: true, result: blockData?.blockTrack };
 
-      // Find the reasons field enum type
-      const reasonsField = schema?.__type?.inputFields?.find(f => f.name === 'reasons');
-      let enumTypeName = null;
-      let t = reasonsField?.type;
-      while (t) {
-        if (t.kind === 'ENUM') { enumTypeName = t.name; break; }
-        t = t.ofType;
-      }
-      results.reasonsEnumType = enumTypeName;
-
-      // If we found the enum, get its values
-      if (enumTypeName) {
-        const enumSchema = await sybPublicQuery(`{ __type(name: "${enumTypeName}") { enumValues { name description } } }`);
-        results.reasonsEnumValues = enumSchema?.__type?.enumValues;
-      }
-
-      // Also try without reasons at all (maybe it's optional?)
+      // 3. Immediately unblock
       try {
-        const blockData = await sybQuery(`mutation($input: BlockTrackInput!) {
-          blockTrack(input: $input) { parent source }
-        }`, { input: { parent: testZoneId, source: track.id } });
-        results.blockTrackNoReasons = { works: true, result: blockData?.blockTrack };
-        // Immediately unblock
-        await sybQuery(`mutation($input: UnblockTrackInput!) {
+        const unblockData = await sybQuery(`mutation($input: UnblockTrackInput!) {
           unblockTrack(input: $input) { parent source }
         }`, { input: { parent: testZoneId, source: track.id } });
-        results.unblockTrack = { works: true };
+        results.unblockTrack = { works: true, result: unblockData?.unblockTrack };
       } catch (err) {
-        results.blockTrackNoReasons = { works: false, error: err.message };
+        results.unblockTrack = { works: false, error: err.message };
       }
     } catch (err) {
-      results.blockTrackInputSchema = { error: err.message };
+      results.blockTrack = { works: false, error: err.message };
     }
   } catch (err) {
     results.searchError = err.message;
