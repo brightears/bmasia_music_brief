@@ -1605,6 +1605,109 @@ async function executeRecommendationTool(toolInput, product = 'syb') {
 // Routes
 // ---------------------------------------------------------------------------
 
+// TEMPORARY: SYB API capability test (remove after verification)
+app.get('/api/test-syb', async (req, res) => {
+  const results = {};
+  const token = process.env.SOUNDTRACK_API_TOKEN;
+  results.hasToken = !!token;
+
+  // 1. getMusicFromPrompt (auth required)
+  try {
+    const data = await sybQuery(`{
+      getMusicFromPrompt(query: "sophisticated jazz and bossa nova for hotel lobby evening", limit: 5) {
+        playlists { id name description }
+        trackingId
+      }
+    }`);
+    const pls = data?.getMusicFromPrompt?.playlists || [];
+    results.getMusicFromPrompt = { works: true, count: pls.length, playlists: pls.map(p => p.name) };
+  } catch (err) {
+    results.getMusicFromPrompt = { works: false, error: err.message };
+  }
+
+  // 2. getTracksFromPrompt (auth required)
+  try {
+    const data = await sybQuery(`{
+      getTracksFromPrompt(prompt: "relaxing bossa nova instrumental", first: 5) {
+        edges { node { id title artists { name } } }
+        total
+      }
+    }`);
+    const tracks = data?.getTracksFromPrompt?.edges?.map(e => e.node) || [];
+    results.getTracksFromPrompt = { works: true, count: tracks.length, total: data?.getTracksFromPrompt?.total, tracks: tracks.map(t => `${t.title} by ${t.artists?.map(a => a.name).join(', ')}`) };
+  } catch (err) {
+    results.getTracksFromPrompt = { works: false, error: err.message };
+  }
+
+  // 3. browseCategory playlists (may need auth)
+  try {
+    const data = await sybQuery(`{
+      browseCategory(id: "jazz") {
+        name
+        playlists(first: 5) { edges { node { ... on Playlist { id name } } } }
+      }
+    }`);
+    const pls = data?.browseCategory?.playlists?.edges?.map(e => e.node) || [];
+    results.browseCategoryPlaylists = { works: true, category: 'jazz', count: pls.length, playlists: pls.map(p => p.name) };
+  } catch (err) {
+    results.browseCategoryPlaylists = { works: false, error: err.message };
+  }
+
+  // 4. blockTrack schema check (don't actually block, just verify mutation exists)
+  try {
+    const data = await sybQuery(`{
+      __type(name: "BlockTrackInput") {
+        inputFields { name type { name ofType { name } } }
+      }
+    }`);
+    const fields = data?.__type?.inputFields?.map(f => f.name) || [];
+    results.blockTrack = { exists: true, inputFields: fields };
+  } catch (err) {
+    results.blockTrack = { exists: false, error: err.message };
+  }
+
+  // 5. createManualPlaylist schema check
+  try {
+    const data = await sybQuery(`{
+      __type(name: "CreateManualPlaylistInput") {
+        inputFields { name type { name ofType { name } } }
+      }
+    }`);
+    const fields = data?.__type?.inputFields?.map(f => f.name) || [];
+    results.createManualPlaylist = { exists: true, inputFields: fields };
+  } catch (err) {
+    results.createManualPlaylist = { exists: false, error: err.message };
+  }
+
+  // 6. soundZoneQueueTracks schema check
+  try {
+    const data = await sybQuery(`{
+      __type(name: "SoundZoneQueueTracksInput") {
+        inputFields { name type { name ofType { name } } }
+      }
+    }`);
+    const fields = data?.__type?.inputFields?.map(f => f.name) || [];
+    results.soundZoneQueueTracks = { exists: true, inputFields: fields };
+  } catch (err) {
+    results.soundZoneQueueTracks = { exists: false, error: err.message };
+  }
+
+  // 7. Quick search test (public, should always work)
+  try {
+    const data = await sybPublicQuery(`{
+      search(query: "deep house lounge", type: playlist, first: 3) {
+        edges { node { ... on Playlist { id name } } }
+      }
+    }`);
+    const pls = data?.search?.edges?.map(e => e.node) || [];
+    results.publicSearch = { works: true, count: pls.length, playlists: pls.map(p => p.name) };
+  } catch (err) {
+    results.publicSearch = { works: false, error: err.message };
+  }
+
+  res.json(results);
+});
+
 // Chat endpoint with SSE streaming
 const chatLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
