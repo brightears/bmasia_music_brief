@@ -1557,48 +1557,6 @@ async function executeRecommendationTool(toolInput, product = 'syb') {
 // Routes
 // ---------------------------------------------------------------------------
 
-// TEMPORARY: Test blockTrack mutation (remove after verification)
-app.get('/api/test-block', async (req, res) => {
-  const testZoneId = 'U291bmRab25lLCwxYzN3NGR0cXkyby9Mb2NhdGlvbiwsMWwzNHpkc3RibHMvQWNjb3VudCwsMThjdHE4b2t4czAv';
-  const results = {};
-
-  // 1. Find a track to test with (public search)
-  try {
-    const data = await sybPublicQuery(`{
-      search(query: "bossa nova", type: track, first: 1) {
-        edges { node { ... on Track { id title artists { name } } } }
-      }
-    }`);
-    const track = data?.search?.edges?.[0]?.node;
-    if (!track) { return res.json({ error: 'No track found from search' }); }
-    results.track = { id: track.id, title: track.title, artist: track.artists?.map(a => a.name).join(', ') };
-
-    // 2. Block track with correct enum value (lowercase: bad_context, dislike, explicit, other, playback)
-    try {
-      const blockData = await sybQuery(`mutation($input: BlockTrackInput!) {
-        blockTrack(input: $input) { parent source }
-      }`, { input: { parent: testZoneId, source: track.id, reasons: ['other'] } });
-      results.blockTrack = { works: true, result: blockData?.blockTrack };
-
-      // 3. Immediately unblock
-      try {
-        const unblockData = await sybQuery(`mutation($input: UnblockTrackInput!) {
-          unblockTrack(input: $input) { parent source }
-        }`, { input: { parent: testZoneId, source: track.id } });
-        results.unblockTrack = { works: true, result: unblockData?.unblockTrack };
-      } catch (err) {
-        results.unblockTrack = { works: false, error: err.message };
-      }
-    } catch (err) {
-      results.blockTrack = { works: false, error: err.message };
-    }
-  } catch (err) {
-    results.searchError = err.message;
-  }
-
-  res.json(results);
-});
-
 // Chat endpoint with SSE streaming
 const chatLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
