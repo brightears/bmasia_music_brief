@@ -411,7 +411,7 @@ function buildUserMessage(data) {
   return parts.join('\n');
 }
 
-function deterministicMatch(data, dayparts) {
+function deterministicMatch(data, dayparts, extraPlaylists = []) {
   const vibes = Array.isArray(data.vibes) ? data.vibes : [data.vibes].filter(Boolean);
   const energy = parseInt(data.energy, 10) || 5;
   const venueType = data.venueType || '';
@@ -446,10 +446,12 @@ function deterministicMatch(data, dayparts) {
   };
   const genreHints = data.genreHints || [];
 
-  const scored = PLAYLIST_CATALOG.map(p => {
+  // Score a single playlist against the matching criteria
+  function scorePlaylist(p) {
     let score = 0;
-    const text = `${p.name} ${p.description}`.toLowerCase();
-    const catMatches = targetCats.filter(c => p.categories.includes(c)).length;
+    const text = `${p.name} ${p.description || ''}`.toLowerCase();
+    const cats = p.categories || [];
+    const catMatches = targetCats.filter(c => cats.includes(c)).length;
     if (catMatches > 0) score += 2 + catMatches;
     for (const vibe of vibes) {
       for (const kw of (vibeKw[vibe] || [])) { if (text.includes(kw)) score += 0.5; }
@@ -458,12 +460,8 @@ function deterministicMatch(data, dayparts) {
     for (const hint of genreHints) {
       if (text.includes(hint.toLowerCase())) { score += 2; hintMatches++; }
     }
-    // Penalize playlists matching zero genre hints when hints are present
-    // This prevents unrelated cuisine/culture playlists from scoring via category alone
     if (genreHints.length >= 2 && hintMatches === 0) score -= 5;
     if (avoidList) {
-      // Extract individual genre/style keywords from avoid phrases
-      // e.g. "no hip-hop or rap, no mainstream pop" → ["hip-hop", "rap", "pop"]
       const avoidTerms = avoidList
         .replace(/\bno\b/gi, '')
         .replace(/\bhits\b/gi, '')
@@ -479,8 +477,17 @@ function deterministicMatch(data, dayparts) {
     }
     if (vocals === 'instrumental' && /instrumental|piano|ambient|nature/.test(text)) score += 1.5;
     if (vocals === 'mostly-instrumental' && /instrumental|piano|acoustic/.test(text)) score += 0.8;
+    // API-sourced playlists get a small relevance bonus (SYB search already filtered)
+    if (p.source === 'api' || p.source === 'api-prompt') score += 1;
     return { ...p, baseScore: score, text };
-  });
+  }
+
+  // Score catalog playlists + any extra API playlists
+  const catalogSybIds = new Set(PLAYLIST_CATALOG.map(p => p.sybId).filter(Boolean));
+  // Deduplicate API playlists that already exist in catalog (by sybId)
+  const uniqueExtras = extraPlaylists.filter(p => !catalogSybIds.has(p.sybId));
+  const allPlaylists = [...PLAYLIST_CATALOG, ...uniqueExtras];
+  const scored = allPlaylists.map(scorePlaylist);
 
   // Per-daypart scoring: adjust for energy, pick top N, dedup across dayparts
   const usedIds = new Set();
@@ -532,20 +539,24 @@ function deterministicMatch(data, dayparts) {
   };
 }
 
-function enrichRecommendations(aiResult) {
+function enrichRecommendations(aiResult, apiPlaylistMap = {}) {
   const catalogMap = Object.fromEntries(PLAYLIST_CATALOG.map(p => [p.id, p]));
   return {
     ...aiResult,
     recommendations: aiResult.recommendations.map(rec => {
-      const playlist = catalogMap[rec.playlistId];
+      // Try catalog first, then API playlist map
+      const playlist = catalogMap[rec.playlistId] || apiPlaylistMap[rec.playlistId];
       if (!playlist) return null;
+      const sybId = playlist.sybId || rec.playlistId;
       return {
         ...rec,
         name: playlist.name,
-        description: playlist.description,
-        categories: playlist.categories,
-        sybUrl: playlist.sybId
-          ? `https://app.soundtrack.io/music/${playlist.sybId}`
+        description: playlist.description || '',
+        categories: playlist.categories || [],
+        sybId: sybId,
+        source: playlist.source || 'catalog',
+        sybUrl: sybId
+          ? `https://app.soundtrack.io/music/${sybId}`
           : `https://app.soundtrack.io/search?q=${encodeURIComponent(playlist.name)}`,
       };
     }).filter(Boolean),
@@ -1205,9 +1216,85 @@ async function executeVenueResearch(toolInput) {
 }
 
 // ---------------------------------------------------------------------------
-// SYB GraphQL API — existing client lookup
+// SYB GraphQL API — existing client lookup + playlist search
 // ---------------------------------------------------------------------------
 const SYB_API = 'https://api.soundtrackyourbrand.com/v2';
+
+// Public query — no auth needed (for search, browseCategories)
+async function sybPublicQuery(query, variables = {}) {
+  try {
+    const res = await fetch(SYB_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables }),
+    });
+    const json = await res.json();
+    if (json.errors) throw new Error(json.errors[0].message);
+    return json.data;
+  } catch (err) {
+    console.log('[SYB Public] Query failed:', err.message);
+    return null;
+  }
+}
+
+// Search SYB for playlists matching genre keywords (public, no auth)
+async function sybSearchPlaylists(keywords, limit = 5) {
+  if (!Array.isArray(keywords) || keywords.length === 0) return [];
+  const queries = keywords.slice(0, 3); // Max 3 searches per call
+  const seen = new Set();
+  const results = [];
+
+  const searches = queries.map(async (kw) => {
+    const data = await sybPublicQuery(`{
+      search(query: ${JSON.stringify(kw)}, type: playlist, first: ${limit}) {
+        edges { node { ... on Playlist { id name description } } }
+      }
+    }`);
+    return data?.search?.edges?.map(e => e.node).filter(Boolean) || [];
+  });
+
+  const allResults = await Promise.all(searches);
+  for (const playlists of allResults) {
+    for (const p of playlists) {
+      if (!p.id || seen.has(p.id)) continue;
+      seen.add(p.id);
+      results.push({ id: p.id, sybId: p.id, name: p.name, description: p.description || '', categories: [], source: 'api' });
+    }
+  }
+  return results;
+}
+
+// getMusicFromPrompt — AI-generated playlist recommendations (requires auth)
+async function sybGetMusicFromPrompt(prompt, limit = 10) {
+  try {
+    const data = await sybQuery(`{
+      getMusicFromPrompt(query: ${JSON.stringify(prompt)}, limit: ${limit}) {
+        playlists { id name description }
+      }
+    }`);
+    return (data?.getMusicFromPrompt?.playlists || []).map(p => ({
+      id: p.id, sybId: p.id, name: p.name, description: p.description || '', categories: [], source: 'api-prompt',
+    }));
+  } catch (err) {
+    console.log('[SYB] getMusicFromPrompt failed:', err.message);
+    return [];
+  }
+}
+
+// Build a natural language prompt from recommendation data for getMusicFromPrompt
+function buildSybPrompt(data, daypart) {
+  const parts = [];
+  if (data.venueType) parts.push(data.venueType.replace(/-/g, ' '));
+  if (data.vibes?.length) parts.push(data.vibes.join(', '));
+  if (data.genreHints?.length) parts.push(data.genreHints.join(', '));
+  if (daypart?.label) parts.push(`for ${daypart.label.toLowerCase()}`);
+  const energyLevel = daypart?.energy || parseInt(data.energy, 10) || 5;
+  if (energyLevel <= 3) parts.push('calm, low energy');
+  else if (energyLevel >= 7) parts.push('energetic, high energy');
+  if (data.vocals === 'instrumental') parts.push('instrumental');
+  if (data.avoidList) parts.push(`avoid ${data.avoidList}`);
+  return parts.join(', ');
+}
 
 async function sybQuery(query, variables = {}) {
   if (!process.env.SOUNDTRACK_API_TOKEN) return null;
@@ -1380,7 +1467,7 @@ async function executeClientLookup(toolInput) {
 }
 
 // Execute the recommendation tool server-side
-function executeRecommendationTool(toolInput, product = 'syb') {
+async function executeRecommendationTool(toolInput, product = 'syb') {
   const baseData = {
     venueName: toolInput.venueName || 'Venue',
     venueType: toolInput.venueType || '',
@@ -1408,20 +1495,53 @@ function executeRecommendationTool(toolInput, product = 'syb') {
   const zones = toolInput.zones;
   const isMultiZone = Array.isArray(zones) && zones.length > 0;
 
+  // Fetch API playlists via search + getMusicFromPrompt (with timeout)
+  async function fetchApiPlaylists(data) {
+    const hints = data.genreHints || [];
+    if (hints.length === 0) return [];
+    try {
+      const apiCalls = [sybSearchPlaylists(hints.slice(0, 3), 5)];
+      // Also try getMusicFromPrompt if auth is available
+      if (process.env.SOUNDTRACK_API_TOKEN) {
+        const prompt = buildSybPrompt(data);
+        apiCalls.push(sybGetMusicFromPrompt(prompt, 8));
+      }
+      const timeout = new Promise(resolve => setTimeout(() => resolve([]), 3000));
+      const results = await Promise.race([Promise.all(apiCalls), timeout]);
+      // Flatten all API results into one array, deduplicate by sybId
+      const seen = new Set();
+      const merged = [];
+      for (const arr of (Array.isArray(results) ? results : [])) {
+        for (const p of (arr || [])) {
+          if (!p.sybId || seen.has(p.sybId)) continue;
+          seen.add(p.sybId);
+          merged.push(p);
+        }
+      }
+      if (merged.length > 0) console.log(`[SYB API] Found ${merged.length} extra playlists from search/prompt`);
+      return merged;
+    } catch (err) {
+      console.log('[SYB API] Playlist fetch failed (using static catalog only):', err.message);
+      return [];
+    }
+  }
+
   // Helper: run pipeline for a single data set
-  function runPipeline(data) {
+  async function runPipeline(data) {
     const energy = parseInt(data.energy, 10) || 5;
-    // For events, use eventTimeRange for daypart generation (overrides venue hours)
     const hoursForDayparts = data.eventTimeRange || data.hours;
     const dayparts = generateDayparts(hoursForDayparts, energy);
-    const result = deterministicMatch(data, dayparts);
-    const enriched = enrichRecommendations(result);
+    // Fetch API playlists in parallel with daypart generation
+    const apiPlaylists = await fetchApiPlaylists(data);
+    const result = deterministicMatch(data, dayparts, apiPlaylists);
+    // Build API playlist map for enrichment
+    const apiMap = Object.fromEntries(apiPlaylists.map(p => [p.id, p]));
+    const enriched = enrichRecommendations(result, apiMap);
     return { dayparts, ...enriched };
   }
 
   if (!isMultiZone) {
-    // Single-zone path (backward compatible)
-    const { dayparts, ...rest } = runPipeline(baseData);
+    const { dayparts, ...rest } = await runPipeline(baseData);
     return { dayparts, ...rest, extractedBrief: baseData, product, multiZone: false };
   }
 
@@ -1438,7 +1558,7 @@ function executeRecommendationTool(toolInput, product = 'syb') {
       genreHints: zone.genreHints || baseData.genreHints,
     };
 
-    const { dayparts, recommendations, designerNotes } = runPipeline(zoneData);
+    const { dayparts, recommendations, designerNotes } = await runPipeline(zoneData);
     allDayparts[zone.name] = dayparts;
     for (const rec of recommendations) {
       allRecommendations.push({ ...rec, zone: zone.name });
@@ -1460,7 +1580,7 @@ function executeRecommendationTool(toolInput, product = 'syb') {
         vibes: wm.vibes || zone.vibes || baseData.vibes,
         genreHints: wm.genreHints || zone.genreHints || baseData.genreHints,
       };
-      const { dayparts, recommendations } = runPipeline(weekendData);
+      const { dayparts, recommendations } = await runPipeline(weekendData);
       weekendDayparts[zone.name] = dayparts;
       for (const rec of recommendations) {
         weekendRecommendations.push({ ...rec, zone: zone.name, scheduleType: 'weekend' });
@@ -1652,7 +1772,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
         // Check for generate_recommendations (always handled alone)
         const recBlock = toolUseBlocks.find(b => b.name === 'generate_recommendations');
         if (recBlock) {
-          const toolResult = executeRecommendationTool(recBlock.input, product);
+          const toolResult = await executeRecommendationTool(recBlock.input, product);
 
           sendSSE('recommendations', {
             recommendations: toolResult.recommendations,
