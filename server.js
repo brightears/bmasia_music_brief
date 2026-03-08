@@ -1264,6 +1264,77 @@ async function sybSearchPlaylists(keywords, limit = 5) {
   return results;
 }
 
+// Block tracks matching avoid list keywords on specified zones
+// Returns array of blocked track IDs (for storage/cleanup)
+async function sybBlockTracksForAvoidList(avoidList, zoneIds) {
+  if (!avoidList || !zoneIds || zoneIds.length === 0) return [];
+  if (!process.env.SOUNDTRACK_API_TOKEN) return [];
+
+  // Parse avoid list into search keywords (same logic as deterministicMatch)
+  const terms = avoidList.toLowerCase()
+    .replace(/\bno\b/gi, '')
+    .replace(/\bhits\b/gi, '')
+    .replace(/\bmainstream\b/gi, '')
+    .split(/[,;]+|\b(?:and|or)\b/i)
+    .map(s => s ? s.trim().replace(/-/g, ' ') : '')
+    .filter(s => s && s.length > 2);
+
+  if (terms.length === 0) return [];
+
+  // Search for tracks matching each avoid keyword (max 3 keywords, 10 tracks each)
+  const seen = new Set();
+  const tracksToBlock = [];
+  const searchTerms = terms.slice(0, 3);
+
+  const searches = searchTerms.map(async (term) => {
+    const data = await sybPublicQuery(`{
+      search(query: ${JSON.stringify(term)}, type: track, first: 10) {
+        edges { node { ... on Track { id title } } }
+      }
+    }`);
+    return data?.search?.edges?.map(e => e.node).filter(Boolean) || [];
+  });
+
+  const allResults = await Promise.all(searches);
+  for (const tracks of allResults) {
+    for (const t of tracks) {
+      if (!t.id || seen.has(t.id)) continue;
+      seen.add(t.id);
+      tracksToBlock.push(t);
+    }
+  }
+
+  if (tracksToBlock.length === 0) return [];
+
+  // Cap at 30 tracks to avoid excessive API calls
+  const capped = tracksToBlock.slice(0, 30);
+  const blockedIds = [];
+
+  // Block each track on all zones (with 100ms delay between calls)
+  for (const track of capped) {
+    for (const zoneId of zoneIds) {
+      try {
+        await sybQuery(`mutation($input: BlockTrackInput!) {
+          blockTrack(input: $input) { parent source }
+        }`, { input: { parent: zoneId, source: track.id, reasons: ['other'] } });
+        blockedIds.push(track.id);
+      } catch (err) {
+        // Skip individual failures (track might already be blocked)
+        if (!err.message?.includes('already blocked')) {
+          console.log(`[SYB] blockTrack failed for ${track.title}: ${err.message}`);
+        }
+      }
+    }
+    // Small delay between tracks to avoid rate limits
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  if (blockedIds.length > 0) {
+    console.log(`[SYB] Blocked ${blockedIds.length} tracks across ${zoneIds.length} zone(s) for avoid list: "${terms.join(', ')}"`);
+  }
+  return [...new Set(blockedIds)]; // deduplicate
+}
+
 async function sybQuery(query, variables = {}) {
   if (!process.env.SOUNDTRACK_API_TOKEN) return null;
   const res = await fetch(SYB_API, {
@@ -2194,6 +2265,27 @@ app.post('/submit', submitLimiter, async (req, res) => {
               'UPDATE briefs SET syb_account_id = $1, syb_schedule_id = $2, automation_tier = 1 WHERE id = $3',
               [data.sybAccountId, scheduleId, briefId]
             );
+
+            // Block tracks matching avoid list on the venue's zones (non-critical)
+            if (data.avoidList && data.sybAccountId) {
+              try {
+                const zones = await sybGetZones(data.sybAccountId);
+                const zoneIds = zones.map(z => z.id);
+                if (zoneIds.length > 0) {
+                  const blockedTrackIds = await sybBlockTracksForAvoidList(data.avoidList, zoneIds);
+                  if (blockedTrackIds.length > 0) {
+                    sybScheduleResult.blockedTracks = blockedTrackIds.length;
+                    // Store blocked track IDs in schedule_data for potential cleanup
+                    await pool.query(
+                      `UPDATE briefs SET schedule_data = schedule_data || $1::jsonb WHERE id = $2`,
+                      [JSON.stringify({ blockedTrackIds }), briefId]
+                    );
+                  }
+                }
+              } catch (blockErr) {
+                console.log('[Submit] Track blocking failed (non-critical):', blockErr.message);
+              }
+            }
 
             // Event mode: create schedule_entries for date-specific assignment + auto-revert
             if (data.mode === 'event' && data.eventDate && pool) {
