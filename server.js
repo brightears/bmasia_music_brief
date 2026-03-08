@@ -1611,7 +1611,7 @@ app.get('/api/test-syb', async (req, res) => {
   const token = process.env.SOUNDTRACK_API_TOKEN;
   results.hasToken = !!token;
 
-  // 1. getMusicFromPrompt (auth required)
+  // 1a. getMusicFromPrompt — no context
   try {
     const data = await sybQuery(`{
       getMusicFromPrompt(query: "sophisticated jazz and bossa nova for hotel lobby evening", limit: 5) {
@@ -1620,12 +1620,27 @@ app.get('/api/test-syb', async (req, res) => {
       }
     }`);
     const pls = data?.getMusicFromPrompt?.playlists || [];
-    results.getMusicFromPrompt = { works: true, count: pls.length, playlists: pls.map(p => p.name) };
+    results.getMusicFromPrompt_noContext = { works: true, count: pls.length, playlists: pls.map(p => p.name) };
   } catch (err) {
-    results.getMusicFromPrompt = { works: false, error: err.message };
+    results.getMusicFromPrompt_noContext = { works: false, error: err.message };
   }
 
-  // 2. getTracksFromPrompt (auth required)
+  // 1b. getMusicFromPrompt — with account context (BMAsia Unlimited DEMO)
+  const testAccountId = 'QWNjb3VudCwsMThjdHE4b2t4czAv';
+  try {
+    const data = await sybQuery(`{
+      getMusicFromPrompt(query: "sophisticated jazz and bossa nova for hotel lobby evening", context: "${testAccountId}", limit: 5) {
+        playlists { id name description }
+        trackingId
+      }
+    }`);
+    const pls = data?.getMusicFromPrompt?.playlists || [];
+    results.getMusicFromPrompt_withAccount = { works: true, count: pls.length, playlists: pls.map(p => p.name) };
+  } catch (err) {
+    results.getMusicFromPrompt_withAccount = { works: false, error: err.message };
+  }
+
+  // 2a. getTracksFromPrompt — standard
   try {
     const data = await sybQuery(`{
       getTracksFromPrompt(prompt: "relaxing bossa nova instrumental", first: 5) {
@@ -1639,18 +1654,48 @@ app.get('/api/test-syb', async (req, res) => {
     results.getTracksFromPrompt = { works: false, error: err.message };
   }
 
-  // 3. browseCategory playlists (may need auth)
+  // 3a. browseCategory playlists with auth — try multiple category IDs
+  const catTests = ['jazz', 'lounge', 'hotel', 'restaurant'];
+  results.browseCategoryPlaylists = {};
+  for (const catId of catTests) {
+    try {
+      const data = await sybQuery(`{
+        browseCategory(id: "${catId}") {
+          id name slug type
+          playlists(first: 3) { edges { node { ... on Playlist { id name } } } }
+        }
+      }`);
+      const cat = data?.browseCategory;
+      const pls = cat?.playlists?.edges?.map(e => e.node) || [];
+      results.browseCategoryPlaylists[catId] = { found: !!cat, name: cat?.name, type: cat?.type, playlistCount: pls.length, playlists: pls.map(p => p.name) };
+    } catch (err) {
+      results.browseCategoryPlaylists[catId] = { error: err.message };
+    }
+  }
+
+  // 3b. browseCategories — get actual category IDs to try
   try {
-    const data = await sybQuery(`{
-      browseCategory(id: "jazz") {
-        name
-        playlists(first: 5) { edges { node { ... on Playlist { id name } } } }
+    const data = await sybPublicQuery(`{
+      browseCategories(first: 10) {
+        edges { node { id name slug type } }
       }
     }`);
-    const pls = data?.browseCategory?.playlists?.edges?.map(e => e.node) || [];
-    results.browseCategoryPlaylists = { works: true, category: 'jazz', count: pls.length, playlists: pls.map(p => p.name) };
+    const cats = data?.browseCategories?.edges?.map(e => e.node) || [];
+    results.browseCategorySample = cats.slice(0, 5);
+    // Try first real category ID with auth
+    if (cats.length > 0) {
+      const realId = cats[0].id;
+      const data2 = await sybQuery(`{
+        browseCategory(id: "${realId}") {
+          id name
+          playlists(first: 3) { edges { node { ... on Playlist { id name } } } }
+        }
+      }`);
+      const pls2 = data2?.browseCategory?.playlists?.edges?.map(e => e.node) || [];
+      results.browseCategoryWithRealId = { id: realId, name: data2?.browseCategory?.name, playlistCount: pls2.length, playlists: pls2.map(p => p.name) };
+    }
   } catch (err) {
-    results.browseCategoryPlaylists = { works: false, error: err.message };
+    results.browseCategorySample = { error: err.message };
   }
 
   // 4. blockTrack schema check (don't actually block, just verify mutation exists)
