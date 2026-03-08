@@ -1264,38 +1264,6 @@ async function sybSearchPlaylists(keywords, limit = 5) {
   return results;
 }
 
-// getMusicFromPrompt — AI-generated playlist recommendations (requires auth)
-async function sybGetMusicFromPrompt(prompt, limit = 10) {
-  try {
-    const data = await sybQuery(`{
-      getMusicFromPrompt(query: ${JSON.stringify(prompt)}, limit: ${limit}) {
-        playlists { id name description }
-      }
-    }`);
-    return (data?.getMusicFromPrompt?.playlists || []).map(p => ({
-      id: p.id, sybId: p.id, name: p.name, description: p.description || '', categories: [], source: 'api-prompt',
-    }));
-  } catch (err) {
-    console.log('[SYB] getMusicFromPrompt failed:', err.message);
-    return [];
-  }
-}
-
-// Build a natural language prompt from recommendation data for getMusicFromPrompt
-function buildSybPrompt(data, daypart) {
-  const parts = [];
-  if (data.venueType) parts.push(data.venueType.replace(/-/g, ' '));
-  if (data.vibes?.length) parts.push(data.vibes.join(', '));
-  if (data.genreHints?.length) parts.push(data.genreHints.join(', '));
-  if (daypart?.label) parts.push(`for ${daypart.label.toLowerCase()}`);
-  const energyLevel = daypart?.energy || parseInt(data.energy, 10) || 5;
-  if (energyLevel <= 3) parts.push('calm, low energy');
-  else if (energyLevel >= 7) parts.push('energetic, high energy');
-  if (data.vocals === 'instrumental') parts.push('instrumental');
-  if (data.avoidList) parts.push(`avoid ${data.avoidList}`);
-  return parts.join(', ');
-}
-
 async function sybQuery(query, variables = {}) {
   if (!process.env.SOUNDTRACK_API_TOKEN) return null;
   const res = await fetch(SYB_API, {
@@ -1495,31 +1463,15 @@ async function executeRecommendationTool(toolInput, product = 'syb') {
   const zones = toolInput.zones;
   const isMultiZone = Array.isArray(zones) && zones.length > 0;
 
-  // Fetch API playlists via search + getMusicFromPrompt (with timeout)
+  // Fetch API playlists via public search (no auth needed, 3s timeout)
   async function fetchApiPlaylists(data) {
     const hints = data.genreHints || [];
     if (hints.length === 0) return [];
     try {
-      const apiCalls = [sybSearchPlaylists(hints.slice(0, 3), 5)];
-      // Also try getMusicFromPrompt if auth is available
-      if (process.env.SOUNDTRACK_API_TOKEN) {
-        const prompt = buildSybPrompt(data);
-        apiCalls.push(sybGetMusicFromPrompt(prompt, 8));
-      }
       const timeout = new Promise(resolve => setTimeout(() => resolve([]), 3000));
-      const results = await Promise.race([Promise.all(apiCalls), timeout]);
-      // Flatten all API results into one array, deduplicate by sybId
-      const seen = new Set();
-      const merged = [];
-      for (const arr of (Array.isArray(results) ? results : [])) {
-        for (const p of (arr || [])) {
-          if (!p.sybId || seen.has(p.sybId)) continue;
-          seen.add(p.sybId);
-          merged.push(p);
-        }
-      }
-      if (merged.length > 0) console.log(`[SYB API] Found ${merged.length} extra playlists from search/prompt`);
-      return merged;
+      const results = await Promise.race([sybSearchPlaylists(hints.slice(0, 3), 5), timeout]);
+      if (results && results.length > 0) console.log(`[SYB API] Found ${results.length} extra playlists from search`);
+      return results || [];
     } catch (err) {
       console.log('[SYB API] Playlist fetch failed (using static catalog only):', err.message);
       return [];
@@ -1604,154 +1556,6 @@ async function executeRecommendationTool(toolInput, product = 'syb') {
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
-
-// TEMPORARY: SYB API capability test (remove after verification)
-app.get('/api/test-syb', async (req, res) => {
-  const results = {};
-  const token = process.env.SOUNDTRACK_API_TOKEN;
-  results.hasToken = !!token;
-
-  // 1a. getMusicFromPrompt — no context
-  try {
-    const data = await sybQuery(`{
-      getMusicFromPrompt(query: "sophisticated jazz and bossa nova for hotel lobby evening", limit: 5) {
-        playlists { id name description }
-        trackingId
-      }
-    }`);
-    const pls = data?.getMusicFromPrompt?.playlists || [];
-    results.getMusicFromPrompt_noContext = { works: true, count: pls.length, playlists: pls.map(p => p.name) };
-  } catch (err) {
-    results.getMusicFromPrompt_noContext = { works: false, error: err.message };
-  }
-
-  // 1b. getMusicFromPrompt — with account context (BMAsia Unlimited DEMO)
-  const testAccountId = 'QWNjb3VudCwsMThjdHE4b2t4czAv';
-  try {
-    const data = await sybQuery(`{
-      getMusicFromPrompt(query: "sophisticated jazz and bossa nova for hotel lobby evening", context: "${testAccountId}", limit: 5) {
-        playlists { id name description }
-        trackingId
-      }
-    }`);
-    const pls = data?.getMusicFromPrompt?.playlists || [];
-    results.getMusicFromPrompt_withAccount = { works: true, count: pls.length, playlists: pls.map(p => p.name) };
-  } catch (err) {
-    results.getMusicFromPrompt_withAccount = { works: false, error: err.message };
-  }
-
-  // 2a. getTracksFromPrompt — standard
-  try {
-    const data = await sybQuery(`{
-      getTracksFromPrompt(prompt: "relaxing bossa nova instrumental", first: 5) {
-        edges { node { id title artists { name } } }
-        total
-      }
-    }`);
-    const tracks = data?.getTracksFromPrompt?.edges?.map(e => e.node) || [];
-    results.getTracksFromPrompt = { works: true, count: tracks.length, total: data?.getTracksFromPrompt?.total, tracks: tracks.map(t => `${t.title} by ${t.artists?.map(a => a.name).join(', ')}`) };
-  } catch (err) {
-    results.getTracksFromPrompt = { works: false, error: err.message };
-  }
-
-  // 3a. browseCategory playlists with auth — try multiple category IDs
-  const catTests = ['jazz', 'lounge', 'hotel', 'restaurant'];
-  results.browseCategoryPlaylists = {};
-  for (const catId of catTests) {
-    try {
-      const data = await sybQuery(`{
-        browseCategory(id: "${catId}") {
-          id name slug type
-          playlists(first: 3) { edges { node { ... on Playlist { id name } } } }
-        }
-      }`);
-      const cat = data?.browseCategory;
-      const pls = cat?.playlists?.edges?.map(e => e.node) || [];
-      results.browseCategoryPlaylists[catId] = { found: !!cat, name: cat?.name, type: cat?.type, playlistCount: pls.length, playlists: pls.map(p => p.name) };
-    } catch (err) {
-      results.browseCategoryPlaylists[catId] = { error: err.message };
-    }
-  }
-
-  // 3b. browseCategories — get actual category IDs to try
-  try {
-    const data = await sybPublicQuery(`{
-      browseCategories(first: 10) {
-        edges { node { id name slug type } }
-      }
-    }`);
-    const cats = data?.browseCategories?.edges?.map(e => e.node) || [];
-    results.browseCategorySample = cats.slice(0, 5);
-    // Try first real category ID with auth
-    if (cats.length > 0) {
-      const realId = cats[0].id;
-      const data2 = await sybQuery(`{
-        browseCategory(id: "${realId}") {
-          id name
-          playlists(first: 3) { edges { node { ... on Playlist { id name } } } }
-        }
-      }`);
-      const pls2 = data2?.browseCategory?.playlists?.edges?.map(e => e.node) || [];
-      results.browseCategoryWithRealId = { id: realId, name: data2?.browseCategory?.name, playlistCount: pls2.length, playlists: pls2.map(p => p.name) };
-    }
-  } catch (err) {
-    results.browseCategorySample = { error: err.message };
-  }
-
-  // 4. blockTrack schema check (don't actually block, just verify mutation exists)
-  try {
-    const data = await sybQuery(`{
-      __type(name: "BlockTrackInput") {
-        inputFields { name type { name ofType { name } } }
-      }
-    }`);
-    const fields = data?.__type?.inputFields?.map(f => f.name) || [];
-    results.blockTrack = { exists: true, inputFields: fields };
-  } catch (err) {
-    results.blockTrack = { exists: false, error: err.message };
-  }
-
-  // 5. createManualPlaylist schema check
-  try {
-    const data = await sybQuery(`{
-      __type(name: "CreateManualPlaylistInput") {
-        inputFields { name type { name ofType { name } } }
-      }
-    }`);
-    const fields = data?.__type?.inputFields?.map(f => f.name) || [];
-    results.createManualPlaylist = { exists: true, inputFields: fields };
-  } catch (err) {
-    results.createManualPlaylist = { exists: false, error: err.message };
-  }
-
-  // 6. soundZoneQueueTracks schema check
-  try {
-    const data = await sybQuery(`{
-      __type(name: "SoundZoneQueueTracksInput") {
-        inputFields { name type { name ofType { name } } }
-      }
-    }`);
-    const fields = data?.__type?.inputFields?.map(f => f.name) || [];
-    results.soundZoneQueueTracks = { exists: true, inputFields: fields };
-  } catch (err) {
-    results.soundZoneQueueTracks = { exists: false, error: err.message };
-  }
-
-  // 7. Quick search test (public, should always work)
-  try {
-    const data = await sybPublicQuery(`{
-      search(query: "deep house lounge", type: playlist, first: 3) {
-        edges { node { ... on Playlist { id name } } }
-      }
-    }`);
-    const pls = data?.search?.edges?.map(e => e.node) || [];
-    results.publicSearch = { works: true, count: pls.length, playlists: pls.map(p => p.name) };
-  } catch (err) {
-    results.publicSearch = { works: false, error: err.message };
-  }
-
-  res.json(results);
-});
 
 // Chat endpoint with SSE streaming
 const chatLimiter = rateLimit({
