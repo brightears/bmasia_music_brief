@@ -1573,20 +1573,30 @@ app.get('/api/test-block', async (req, res) => {
     if (!track) { return res.json({ error: 'No track found from search' }); }
     results.track = { id: track.id, title: track.title, artist: track.artists?.map(a => a.name).join(', ') };
 
-    // 2. Block the track on test zone
+    // 2. Introspect blockTrack return type
+    try {
+      const schema = await sybPublicQuery(`{
+        __type(name: "BlockTrackPayload") { fields { name type { name kind ofType { name kind } } } }
+      }`);
+      results.blockTrackPayload = schema?.__type?.fields?.map(f => ({ name: f.name, type: f.type?.name || f.type?.ofType?.name }));
+    } catch (err) {
+      results.blockTrackPayload = { error: err.message };
+    }
+
+    // 3. Block the track on test zone (minimal return)
     try {
       const blockData = await sybQuery(`mutation($input: BlockTrackInput!) {
-        blockTrack(input: $input) { parent { ... on SoundZone { id name } } }
+        blockTrack(input: $input) { __typename }
       }`, { input: { parent: testZoneId, source: track.id, reasons: ['OTHER'] } });
       results.blockTrack = { works: true, result: blockData?.blockTrack };
     } catch (err) {
       results.blockTrack = { works: false, error: err.message };
     }
 
-    // 3. Immediately unblock it
+    // 4. Immediately unblock it (minimal return)
     try {
       const unblockData = await sybQuery(`mutation($input: UnblockTrackInput!) {
-        unblockTrack(input: $input) { parent { ... on SoundZone { id name } } }
+        unblockTrack(input: $input) { __typename }
       }`, { input: { parent: testZoneId, source: track.id } });
       results.unblockTrack = { works: true, result: unblockData?.unblockTrack };
     } catch (err) {
