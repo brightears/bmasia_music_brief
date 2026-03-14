@@ -550,6 +550,88 @@ body.chat-active {
 }
 .select-btn.active svg { stroke-width: 2.5; }
 
+/* ============ Beat Breeze Preview Tracks ============ */
+.bb-preview-tracks {
+  margin: 10px 0 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+.bb-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--glass-border);
+  transition: background var(--dur-fast) ease;
+}
+.bb-track:last-child { border-bottom: none; }
+.bb-track:hover { background: rgba(255,255,255,0.04); }
+.bb-track.playing { background: var(--accent-ultra-light); }
+.bb-play-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-soft);
+  background: rgba(255,255,255,0.03);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--dur-fast) ease;
+  font-size: 0;
+}
+.bb-play-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.bb-play-btn svg { width: 12px; height: 12px; }
+.bb-track-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.bb-track-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bb-track-artist {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bb-track-dur {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.bb-progress {
+  width: 60px;
+  height: 3px;
+  background: var(--glass-border);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: none;
+}
+.bb-track.playing .bb-progress { display: block; }
+.bb-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.2s linear;
+}
+
 /* ============ Send to Design Team button ============ */
 .send-brief-block {
   width: 100%;
@@ -1821,6 +1903,105 @@ const DAYPART_ICONS = {
 };
 
 // =========================================================================
+// Beat Breeze Audio Preview Player
+// =========================================================================
+const bbAudio = new Audio();
+bbAudio.preload = 'none';
+let bbCurrentTrackEl = null;
+
+function formatDuration(seconds) {
+  if (!seconds || seconds <= 0) return '';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function bbPlayTrack(btn) {
+  const trackEl = btn.closest('.bb-track');
+  const url = trackEl.dataset.audioUrl;
+  if (!url) return;
+
+  // If same track is playing, toggle pause
+  if (bbCurrentTrackEl === trackEl && !bbAudio.paused) {
+    bbAudio.pause();
+    trackEl.classList.remove('playing');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>';
+    return;
+  }
+
+  // Stop previous
+  if (bbCurrentTrackEl) {
+    bbCurrentTrackEl.classList.remove('playing');
+    const prevBtn = bbCurrentTrackEl.querySelector('.bb-play-btn');
+    if (prevBtn) prevBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>';
+    const prevFill = bbCurrentTrackEl.querySelector('.bb-progress-fill');
+    if (prevFill) prevFill.style.width = '0%';
+  }
+
+  // Play new
+  bbCurrentTrackEl = trackEl;
+  trackEl.classList.add('playing');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+  bbAudio.src = url;
+  bbAudio.play().catch(() => {
+    trackEl.classList.remove('playing');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>';
+  });
+}
+
+bbAudio.addEventListener('timeupdate', () => {
+  if (!bbCurrentTrackEl) return;
+  const fill = bbCurrentTrackEl.querySelector('.bb-progress-fill');
+  // 15-second cap (safety net — server already limits bytes)
+  if (bbAudio.currentTime >= 15) {
+    bbAudio.pause();
+    bbCurrentTrackEl.classList.remove('playing');
+    const btn = bbCurrentTrackEl.querySelector('.bb-play-btn');
+    if (btn) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>';
+    if (fill) fill.style.width = '100%';
+    return;
+  }
+  if (fill) fill.style.width = `${(bbAudio.currentTime / 15) * 100}%`;
+});
+
+bbAudio.addEventListener('ended', () => {
+  if (!bbCurrentTrackEl) return;
+  bbCurrentTrackEl.classList.remove('playing');
+  const btn = bbCurrentTrackEl.querySelector('.bb-play-btn');
+  if (btn) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>';
+  const fill = bbCurrentTrackEl.querySelector('.bb-progress-fill');
+  if (fill) fill.style.width = '0%';
+  bbCurrentTrackEl = null;
+});
+
+bbAudio.addEventListener('error', () => {
+  if (!bbCurrentTrackEl) return;
+  bbCurrentTrackEl.classList.remove('playing');
+  const btn = bbCurrentTrackEl.querySelector('.bb-play-btn');
+  if (btn) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>';
+  bbCurrentTrackEl = null;
+});
+
+function renderBBPreviewTracks(tracks) {
+  if (!tracks || tracks.length === 0) return '';
+  return `<div class="bb-preview-tracks">
+    ${tracks.map(t => `
+      <div class="bb-track" data-audio-url="${escHtml(t.audioUrl || '')}">
+        <button type="button" class="bb-play-btn" onclick="bbPlayTrack(this)"${!t.audioUrl ? ' disabled' : ''}>
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>
+        </button>
+        <div class="bb-track-info">
+          <span class="bb-track-title">${escHtml(t.title)}</span>
+          ${t.artist ? `<span class="bb-track-artist">${escHtml(t.artist)}</span>` : ''}
+        </div>
+        <span class="bb-track-dur">${formatDuration(t.duration)}</span>
+        <div class="bb-progress"><div class="bb-progress-fill"></div></div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+// =========================================================================
 // Chat rendering
 // =========================================================================
 const chatArea = document.getElementById('chatArea');
@@ -1996,12 +2177,20 @@ function renderRecommendationsInChat(recommendations, dayparts, notes) {
                 <span class="match-badge ${ml.tier}">${ml.label}</span>
               </div>
               <p class="playlist-desc">${escHtml(rec.description)}</p>
+              ${rec.source === 'beatbreeze' && rec.previewTracks ? renderBBPreviewTracks(rec.previewTracks) : ''}
               <p class="playlist-reason">${escHtml(rec.reason)}</p>
               <div class="playlist-actions">
-                <a href="${rec.sybUrl}" target="_blank" rel="noopener" class="preview-link">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                  ${t.preview_on_syb}
-                </a>
+                ${rec.source === 'beatbreeze' ? `
+                  <span class="preview-link" style="cursor:default;opacity:0.7;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16" fill="currentColor" stroke="none"/></svg>
+                    ${rec.trackCount || 0} tracks
+                  </span>
+                ` : `
+                  <a href="${rec.sybUrl}" target="_blank" rel="noopener" class="preview-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    ${t.preview_on_syb}
+                  </a>
+                `}
                 <button type="button" class="select-btn" onclick="toggleSelect(this)">
                   <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   <span class="select-label">${t.add_to_brief}</span>
@@ -2081,12 +2270,20 @@ function renderMultiZoneRecommendations(recommendations, daypartsMap, notes) {
                   <span class="match-badge ${ml.tier}">${ml.label}</span>
                 </div>
                 <p class="playlist-desc">${escHtml(rec.description)}</p>
+                ${rec.source === 'beatbreeze' && rec.previewTracks ? renderBBPreviewTracks(rec.previewTracks) : ''}
                 <p class="playlist-reason">${escHtml(rec.reason)}</p>
                 <div class="playlist-actions">
-                  <a href="${rec.sybUrl}" target="_blank" rel="noopener" class="preview-link">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    ${t.preview_on_syb}
-                  </a>
+                  ${rec.source === 'beatbreeze' ? `
+                    <span class="preview-link" style="cursor:default;opacity:0.7;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16" fill="currentColor" stroke="none"/></svg>
+                      ${rec.trackCount || 0} tracks
+                    </span>
+                  ` : `
+                    <a href="${rec.sybUrl}" target="_blank" rel="noopener" class="preview-link">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      ${t.preview_on_syb}
+                    </a>
+                  `}
                   <button type="button" class="select-btn" onclick="toggleSelect(this)">
                     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     <span class="select-label">${t.add_to_brief}</span>

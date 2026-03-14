@@ -564,6 +564,164 @@ function enrichRecommendations(aiResult, apiPlaylistMap = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// Beat Breeze Matching Algorithm (tag-based scoring)
+// ---------------------------------------------------------------------------
+function beatBreezeMatch(data, dayparts) {
+  if (beatbreezeCatalog.length === 0) return { recommendations: [], designerNotes: 'Beat Breeze catalog not loaded.' };
+
+  const vibes = Array.isArray(data.vibes) ? data.vibes : [data.vibes].filter(Boolean);
+  const energy = parseInt(data.energy, 10) || 5;
+  const venueType = data.venueType || '';
+  const avoidList = (data.avoidList || '').toLowerCase();
+  const vocals = data.vocals || '';
+  const genreHints = data.genreHints || [];
+
+  // Map venueType to zone tag keywords
+  const venueZoneMap = {
+    'hotel-lobby': ['hotel', 'lobby'],
+    restaurant: ['restaurant', 'dining'],
+    'bar-lounge': ['bar', 'lounge'],
+    'spa-wellness': ['spa', 'wellness'],
+    cafe: ['cafe', 'coffee'],
+    'fashion-retail': ['retail', 'store', 'fashion'],
+    coworking: ['office', 'coworking'],
+    'pool-beach': ['pool', 'beach'],
+    'gym-fitness': ['gym', 'fitness'],
+    qsr: ['restaurant', 'fast'],
+  };
+  const targetZones = venueZoneMap[venueType] || [];
+
+  function scoreFolder(folder) {
+    let score = 0;
+    const tags = folder.tags || [];
+    const tagsByDim = {};
+    for (const t of tags) {
+      if (!tagsByDim[t.dimension]) tagsByDim[t.dimension] = [];
+      tagsByDim[t.dimension].push(t.name.toLowerCase());
+    }
+
+    // Zone match: venueType → zone tags (+3)
+    const zoneTags = tagsByDim['zone'] || [];
+    if (targetZones.length > 0 && zoneTags.some(z => targetZones.some(tz => z.includes(tz) || tz.includes(z)))) score += 3;
+
+    // Mood match: vibes → mood tags (+2 each)
+    const moodTags = tagsByDim['mood'] || [];
+    for (const vibe of vibes) {
+      if (moodTags.some(m => m.includes(vibe.toLowerCase()) || vibe.toLowerCase().includes(m))) score += 2;
+    }
+
+    // Genre match: genreHints → genre tags + name/description (+2 each)
+    const genreTags = tagsByDim['genre'] || [];
+    const text = `${folder.name} ${folder.description || ''}`.toLowerCase();
+    let hintMatches = 0;
+    for (const hint of genreHints) {
+      const h = hint.toLowerCase();
+      if (genreTags.some(g => g.includes(h) || h.includes(g)) || text.includes(h)) { score += 2; hintMatches++; }
+    }
+    if (genreHints.length >= 2 && hintMatches === 0) score -= 5;
+
+    // Energy dimension match
+    const energyTags = tagsByDim['energy'] || [];
+    if (energy <= 3 && energyTags.some(e => ['low', 'calm', 'soft'].includes(e))) score += 1;
+    else if (energy <= 6 && energyTags.some(e => ['medium', 'moderate', 'mid'].includes(e))) score += 1;
+    else if (energy > 6 && energyTags.some(e => ['high', 'energetic', 'upbeat'].includes(e))) score += 1;
+
+    // Avoid list penalty (-10 per match)
+    if (avoidList) {
+      const avoidTerms = avoidList
+        .replace(/\bno\b/gi, '').replace(/\bhits\b/gi, '').replace(/\bmainstream\b/gi, '')
+        .split(/[,;]+|\b(?:and|or)\b/i)
+        .map(s => s ? s.trim().toLowerCase() : '')
+        .filter(s => s && s.length > 1);
+      const normalizedText = text.replace(/-/g, ' ');
+      for (const term of avoidTerms) {
+        const normalizedTerm = term.replace(/-/g, ' ');
+        if (normalizedText.includes(normalizedTerm)) score -= 10;
+        if (genreTags.includes(normalizedTerm)) score -= 10;
+      }
+    }
+
+    // Vocals preference
+    if (vocals === 'instrumental' && (text.includes('instrumental') || genreTags.includes('instrumental'))) score += 1.5;
+    if (vocals === 'mostly-instrumental' && (text.includes('instrumental') || text.includes('acoustic'))) score += 0.8;
+
+    return { ...folder, baseScore: score, text };
+  }
+
+  const scored = beatbreezeCatalog.map(scoreFolder);
+
+  // Per-daypart scoring (energy-adjusted), same pattern as deterministicMatch
+  const usedIds = new Set();
+  const perDp = Math.ceil(12 / dayparts.length);
+  const allRecs = [];
+
+  for (const dp of dayparts) {
+    const dpScored = scored.map(p => {
+      let bonus = 0;
+      const energyTags = (p.tags || []).filter(t => t.dimension === 'energy').map(t => t.name.toLowerCase());
+      if (dp.energy <= 3 && energyTags.some(e => ['low', 'calm', 'soft'].includes(e))) bonus += 1;
+      else if (dp.energy <= 6 && energyTags.some(e => ['medium', 'moderate', 'mid'].includes(e))) bonus += 1;
+      else if (dp.energy > 6 && energyTags.some(e => ['high', 'energetic', 'upbeat'].includes(e))) bonus += 1;
+      return { ...p, dpScore: p.baseScore + bonus };
+    });
+    dpScored.sort((a, b) => b.dpScore - a.dpScore);
+
+    let picked = 0;
+    for (const p of dpScored) {
+      if (picked >= perDp || p.dpScore <= 0) break;
+      if (usedIds.has(p.id)) continue;
+      usedIds.add(p.id);
+
+      const matchedVibes = vibes.filter(v => {
+        const moodTags = (p.tags || []).filter(t => t.dimension === 'mood').map(t => t.name.toLowerCase());
+        return moodTags.some(m => m.includes(v.toLowerCase()) || v.toLowerCase().includes(m));
+      });
+      const vibeStr = matchedVibes.length > 0 ? matchedVibes.join(', ') : vibes[0] || 'selected';
+      const reason = `${p.description || p.name} — fits your ${vibeStr} ${(venueType || 'venue').replace(/-/g, ' ')}`;
+
+      allRecs.push({ playlistId: p.id, daypart: dp.key, reason, rawScore: p.dpScore });
+      picked++;
+    }
+  }
+
+  const maxRaw = Math.max(...allRecs.map(r => r.rawScore), 1);
+  return {
+    recommendations: allRecs.map(r => ({
+      playlistId: r.playlistId,
+      daypart: r.daypart,
+      reason: r.reason,
+      matchScore: Math.round(55 + (r.rawScore / maxRaw) * 40),
+    })),
+    designerNotes: 'Generated via Beat Breeze tag-based matching with AI genre direction.',
+  };
+}
+
+function enrichBeatBreezeRecommendations(result) {
+  const audioBaseUrl = process.env.AUDIO_SHARING_URL || '';
+  return {
+    ...result,
+    recommendations: result.recommendations.map(rec => {
+      const folder = beatbreezeCatalog.find(f => f.id === rec.playlistId);
+      if (!folder) return null;
+      return {
+        ...rec,
+        name: folder.name,
+        description: folder.description || '',
+        source: 'beatbreeze',
+        trackCount: folder.tracks?.length || 0,
+        previewTracks: (folder.tracks || []).slice(0, 3).map(t => ({
+          id: t.id,
+          title: t.title,
+          artist: t.artist || '',
+          duration: t.duration,
+          audioUrl: audioBaseUrl ? `${audioBaseUrl}/api/tracks/${t.id}/audio?preview=true` : null,
+        })),
+      };
+    }).filter(Boolean),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Email HTML builder
 // ---------------------------------------------------------------------------
 function buildPlaylistEmailSections(aiResults, brief) {
@@ -592,6 +750,23 @@ function buildPlaylistEmailSections(aiResults, brief) {
     return `<span style="font-weight:600;">${label}</span>`;
   };
 
+  const playlistCell = (p) => {
+    if (p.source === 'beatbreeze') {
+      // Beat Breeze: show playlist name + track listing
+      let cell = `<span style="color:#EFA634;font-weight:600;">${esc(p.name)}</span>`;
+      if (p.previewTracks && p.previewTracks.length > 0) {
+        cell += '<br>' + p.previewTracks.map(t =>
+          `<span style="color:#888;font-size:11px;">${esc(t.title)}${t.artist ? ` — ${esc(t.artist)}` : ''}</span>`
+        ).join('<br>');
+      }
+      cell += `<br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>`;
+      return cell;
+    }
+    // SYB: link to SYB playlist
+    return `<a href="${esc(p.sybUrl)}" style="color:#EFA634;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
+      <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>`;
+  };
+
   const playlistTable = (playlists) => `<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-bottom:12px;">
     <tr style="background:#f3f4f6;">
       <th style="padding:10px 12px;text-align:left;font-size:13px;color:#374151;">Playlist</th>
@@ -599,8 +774,7 @@ function buildPlaylistEmailSections(aiResults, brief) {
     </tr>
     ${playlists.map(p => `<tr>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;">
-        <a href="${esc(p.sybUrl)}" style="color:#EFA634;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
-        <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>
+        ${playlistCell(p)}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;vertical-align:top;">${daypartCell(p)}</td>
     </tr>`).join('')}
@@ -809,8 +983,22 @@ function esc(str) {
 function buildChatSystemPrompt(language, product = 'syb') {
   const lang = language === 'th' ? 'Thai' : 'English';
 
+  const bbCatalogInfo = beatbreezeCatalog.length > 0
+    ? `You have ${beatbreezeCatalog.length} curated Beat Breeze playlists available. Each playlist has tags across 4 dimensions: zone (venue type), mood, genre, and energy.`
+    : 'The Beat Breeze library is being built. Our design team will curate a custom selection.';
+
   const productContext = product === 'beatbreeze'
-    ? '\nThe customer has selected Beat Breeze — our royalty-free music solution. Beat Breeze offers curated royalty-free playlists with no licensing fees, ideal for businesses that want quality background music at an accessible price point. Frame your recommendations as Beat Breeze playlists.'
+    ? `\nThe customer has selected Beat Breeze — BMAsia's own royalty-free music solution. No licensing fees — simpler pricing conversation.
+
+## Beat Breeze Catalog
+${bbCatalogInfo}
+
+Key differences from SYB:
+- You can recommend specific TRACKS within playlists, not just playlists
+- The customer will hear 15-second audio previews directly in the chat
+- Frame recommendations as "Beat Breeze playlists" (never mention SYB or Soundtrack)
+
+When presenting recommendations, highlight that the customer can preview tracks directly. Narrate the energy arc as usual.`
     : '\nThe customer has selected Soundtrack Your Brand (SYB) — our premium licensed music platform. SYB offers the largest catalog of expertly curated playlists for businesses, with fully licensed commercial music. Frame your recommendations as SYB playlists.';
 
   return `You are a senior music designer at BMAsia Group — Asia's leading background music company. You design soundtracks for venues across Asia.
@@ -1216,6 +1404,28 @@ async function executeVenueResearch(toolInput) {
 }
 
 // ---------------------------------------------------------------------------
+// Beat Breeze Catalog Cache
+// ---------------------------------------------------------------------------
+let beatbreezeCatalog = [];
+let beatbreezeCatalogAge = 0;
+
+async function refreshBeatBreezeCatalog() {
+  const url = process.env.AUDIO_SHARING_URL;
+  if (!url) return;
+  try {
+    const res = await fetch(`${url}/api/public/catalog`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    beatbreezeCatalog = data.folders || [];
+    beatbreezeCatalogAge = Date.now();
+    const trackCount = beatbreezeCatalog.reduce((n, f) => n + (f.tracks?.length || 0), 0);
+    console.log(`[Beat Breeze] Cached ${beatbreezeCatalog.length} playlists, ${trackCount} tracks`);
+  } catch (err) {
+    console.error('[Beat Breeze] Catalog refresh failed:', err.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // SYB GraphQL API — existing client lookup + playlist search
 // ---------------------------------------------------------------------------
 const SYB_API = 'https://api.soundtrackyourbrand.com/v2';
@@ -1554,10 +1764,17 @@ async function executeRecommendationTool(toolInput, product = 'syb') {
     const energy = parseInt(data.energy, 10) || 5;
     const hoursForDayparts = data.eventTimeRange || data.hours;
     const dayparts = generateDayparts(hoursForDayparts, energy);
-    // Fetch API playlists in parallel with daypart generation
+
+    // Beat Breeze path: tag-based matching against cached catalog
+    if (product === 'beatbreeze' && beatbreezeCatalog.length > 0) {
+      const result = beatBreezeMatch(data, dayparts);
+      const enriched = enrichBeatBreezeRecommendations(result);
+      return { dayparts, ...enriched };
+    }
+
+    // SYB path: keyword matching + API search
     const apiPlaylists = await fetchApiPlaylists(data);
     const result = deterministicMatch(data, dayparts, apiPlaylists);
-    // Build API playlist map for enrichment
     const apiMap = Object.fromEntries(apiPlaylists.map(p => [p.id, p]));
     const enriched = enrichRecommendations(result, apiMap);
     return { dayparts, ...enriched };
@@ -3322,5 +3539,10 @@ app.listen(PORT, () => {
   // Pre-load SYB account cache
   if (process.env.SOUNDTRACK_API_TOKEN) {
     refreshSybAccountCache().catch(err => console.error('[SYB] Startup cache failed:', err.message));
+  }
+  // Pre-load Beat Breeze catalog
+  if (process.env.AUDIO_SHARING_URL) {
+    refreshBeatBreezeCatalog().catch(err => console.error('[Beat Breeze] Startup cache failed:', err.message));
+    setInterval(() => refreshBeatBreezeCatalog().catch(() => {}), 30 * 60 * 1000); // Refresh every 30 min
   }
 });
