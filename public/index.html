@@ -12,9 +12,9 @@
 
 /* ============ Design Tokens ============ */
 :root {
-  /* Base surfaces */
+  /* Base surfaces — aligned with bmasiamusic.com */
   --bg-deep: #09090b;
-  --bg: #0f1117;
+  --bg: #0f0f0f;
   --bg-elevated: #161822;
   --bg-hover: #1c1f2e;
   /* Glass layers */
@@ -31,9 +31,11 @@
   /* Borders */
   --border: rgba(255,255,255,0.06);
   --border-strong: rgba(255,255,255,0.12);
-  /* BMAsia brand (always present) */
+  /* BMAsia brand — aligned with bmasiamusic.com */
   --brand-orange: #EFA634;
+  --brand-orange-dark: #d99530;
   --brand-orange-dim: rgba(239,166,52,0.15);
+  --brand-navy: #1a1a2e;
   /* Accent (SYB purple — theme-switchable) */
   --accent: #8B5CF6;
   --accent-hover: #7C3AED;
@@ -83,7 +85,7 @@
 /* ============ Body ============ */
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: #0f0f0f;
+  background: var(--bg);
   color: var(--text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -122,10 +124,11 @@ body.chat-active {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   height: 64px;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
 }
 .header.scrolled {
   background: rgba(15,15,15,0.95);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06);
 }
 .header-inner {
   max-width: 80rem;
@@ -155,6 +158,32 @@ body.chat-active {
   gap: 8px;
   position: relative;
   z-index: 1;
+}
+.back-to-site {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  letter-spacing: 0.2px;
+  transition: all var(--dur-fast) ease;
+  white-space: nowrap;
+}
+.back-to-site:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.14);
+  color: var(--text);
+}
+.back-to-site svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+@media (min-width: 480px) {
+  .back-to-site { display: inline-flex; }
 }
 .lang-toggle {
   display: flex;
@@ -1096,7 +1125,7 @@ body.chat-active {
   color: #ffffff;
 }
 .send-btn:hover:not(:disabled) {
-  background: #d99530;
+  background: var(--brand-orange-dark);
   box-shadow: 0 0 16px rgba(239,166,52,0.3);
   transform: scale(1.05);
 }
@@ -1212,11 +1241,11 @@ body.chat-active {
   object-fit: cover;
   opacity: 0.5;
 }
-/* Gradient overlay on hero */
+/* Gradient overlay on hero — matches bmasiamusic.com hero pattern */
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(15,15,15,0.6), rgba(26,26,46,0.4), rgba(15,15,15,0.85));
+  background: linear-gradient(to bottom, rgba(15,15,15,0.6), rgba(26,26,46,0.4), rgba(15,15,15,0.8));
   z-index: 1;
 }
 /* Content sits above overlay */
@@ -1252,6 +1281,34 @@ body.chat-active {
   line-height: 1.65;
   max-width: 480px;
   margin: 0 auto 48px;
+}
+.welcome-tagline {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--brand-orange);
+  margin-bottom: 16px;
+  opacity: 0.9;
+}
+.powered-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 48px;
+  padding: 6px 14px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+.powered-badge img {
+  height: 14px;
+  width: auto;
+  opacity: 0.6;
 }
 
 /* Product Selector (SYB / Beat Breeze) */
@@ -1638,7 +1695,7 @@ body.chat-active {
   pointer-events: auto;
 }
 .sq-confirm-btn:hover {
-  background: #d99530;
+  background: var(--brand-orange-dark);
   box-shadow: 0 0 12px rgba(239,166,52,0.3);
 }
 /* Answered state */
@@ -1673,6 +1730,10 @@ body.chat-active {
         <span class="header-title" data-i18n="title">Music Design Assistant</span>
       </div>
       <div class="header-right">
+        <a href="https://bmasiamusic.com" class="back-to-site" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          bmasiamusic.com
+        </a>
         <div class="lang-toggle">
           <button class="lang-btn active" onclick="setLang('en')">EN</button>
           <button class="lang-btn" onclick="setLang('th')">TH</button>
@@ -1779,13 +1840,14 @@ const i18n = {
     toast_success: 'Brief sent successfully! Our team will review it shortly.',
     toast_error: 'Failed to send. Please try again.',
     toast_validation: 'Please fill in the required fields.',
-    greeting: "Hi! I'm your BMAsia music designer. I help create the perfect soundtrack for venues and events across Asia.\n\nWhat brings you here today?",
+    greeting: "Welcome! I'm your BMAsia music designer. Tell me about your venue or event, and I'll craft a personalized playlist recommendation for you.\n\nWhat brings you here today?",
     chip_new: 'Design music for a new venue',
     chip_event: 'Plan music for a special event',
     chip_update: 'Update my current music',
     greeting_title: 'Music Design',
     greeting_title_highlight: 'Assistant',
-    greeting_subtitle: "I'm your BMAsia music designer. I help create the perfect soundtrack for venues and events across Asia.",
+    greeting_subtitle: "Create the perfect background music for your venue or event. Our AI music designer will craft a personalized playlist recommendation in minutes.",
+    hero_tagline: 'Wherever Music Matters',
     chip_new_desc: 'Start fresh with a complete sonic identity',
     chip_event_desc: 'Curate the atmosphere for a one-time occasion',
     chip_update_desc: 'Refresh or refine your existing playlist',
@@ -1830,7 +1892,8 @@ const i18n = {
     chip_update: '\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e31\u0e08\u0e08\u0e38\u0e1a\u0e31\u0e19',
     greeting_title: '\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e2a\u0e35\u0e22\u0e07',
     greeting_title_highlight: '\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13',
-    greeting_subtitle: '\u0e1c\u0e21\u0e40\u0e1b\u0e47\u0e19\u0e1c\u0e39\u0e49\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e25\u0e07\u0e02\u0e2d\u0e07 BMAsia \u0e0a\u0e48\u0e27\u0e22\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e23\u0e30\u0e01\u0e2d\u0e1a\u0e17\u0e35\u0e48\u0e2a\u0e21\u0e1a\u0e39\u0e23\u0e13\u0e4c\u0e41\u0e1a\u0e1a\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e41\u0e25\u0e30\u0e07\u0e32\u0e19\u0e2d\u0e35\u0e40\u0e27\u0e19\u0e15\u0e4c\u0e17\u0e31\u0e48\u0e27\u0e40\u0e2d\u0e40\u0e0a\u0e35\u0e22',
+    greeting_subtitle: '\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e40\u0e1e\u0e25\u0e07\u0e1b\u0e23\u0e30\u0e01\u0e2d\u0e1a\u0e17\u0e35\u0e48\u0e2a\u0e21\u0e1a\u0e39\u0e23\u0e13\u0e4c\u0e41\u0e1a\u0e1a\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e2b\u0e23\u0e37\u0e2d\u0e07\u0e32\u0e19\u0e2d\u0e35\u0e40\u0e27\u0e19\u0e15\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13 AI \u0e08\u0e30\u0e0a\u0e48\u0e27\u0e22\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e43\u0e2b\u0e49\u0e04\u0e38\u0e13\u0e20\u0e32\u0e22\u0e43\u0e19\u0e44\u0e21\u0e48\u0e01\u0e35\u0e48\u0e19\u0e32\u0e17\u0e35',
+    hero_tagline: '\u0e17\u0e35\u0e48\u0e17\u0e35\u0e48\u0e14\u0e19\u0e15\u0e23\u0e35\u0e2a\u0e33\u0e04\u0e31\u0e0d',
     chip_new_desc: '\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e43\u0e2b\u0e21\u0e48\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14',
     chip_event_desc: '\u0e04\u0e31\u0e14\u0e2a\u0e23\u0e23\u0e1a\u0e23\u0e23\u0e22\u0e32\u0e01\u0e32\u0e28\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e07\u0e32\u0e19\u0e1e\u0e34\u0e40\u0e28\u0e29',
     chip_update_desc: '\u0e1b\u0e23\u0e31\u0e1a\u0e1b\u0e23\u0e38\u0e07\u0e2b\u0e23\u0e37\u0e2d\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e40\u0e1e\u0e25\u0e22\u0e4c\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e21\u0e35\u0e2d\u0e22\u0e39\u0e48',
@@ -2052,6 +2115,7 @@ function showWelcomeState() {
     </div>
     <div class="hero-overlay"></div>
     <div class="welcome-content">
+      <p class="welcome-tagline" data-i18n="hero_tagline">Wherever Music Matters</p>
       <h1 class="welcome-title"><span data-i18n="greeting_title">Music Design</span> <span class="gradient-text" data-i18n="greeting_title_highlight">Assistant</span></h1>
       <p class="welcome-subtitle" data-i18n="greeting_subtitle">${t.greeting_subtitle}</p>
       <div class="product-selector">
@@ -2086,6 +2150,9 @@ function showWelcomeState() {
             <span class="mode-card-desc" data-i18n="chip_update_desc">${t.chip_update_desc}</span>
           </span>
         </button>
+      </div>
+      <div class="powered-badge">
+        <img src="/images/BMAsia_Logo.png" alt="BMAsia"> Powered by BMAsia Group
       </div>
     </div>
   `;
