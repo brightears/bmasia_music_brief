@@ -1735,23 +1735,7 @@ body.chat-active {
           <input type="tel" name="contactPhone">
         </div>
       </div>
-      <div class="field">
-          <label data-i18n="sf_product">Product</label>
-          <div class="product-toggle">
-            <label class="product-card selected" data-product="syb" onclick="selectProduct(this)">
-              <input type="radio" name="product" value="syb" checked>
-              <span class="check-indicator"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-              <div class="product-name">SYB</div>
-              <div class="product-desc" data-i18n="syb_desc">Licensed music</div>
-            </label>
-            <label class="product-card" data-product="beatbreeze" onclick="selectProduct(this)">
-              <input type="radio" name="product" value="beatbreeze">
-              <span class="check-indicator"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-              <div class="product-name">Beat Breeze</div>
-              <div class="product-desc" data-i18n="bb_desc">Royalty-free</div>
-            </label>
-          </div>
-      </div>
+      <input type="hidden" name="product" id="sfProduct" value="syb">
 
       <button type="submit" class="submit-btn" id="submitBriefBtn" data-i18n="btn_submit_brief">Submit Brief</button>
     </form>
@@ -2403,7 +2387,7 @@ function showScheduleSummary() {
       for (const dpKey of orderedKeys) {
         const dpLabel = daypartLabels[dpKey] || dpKey;
         const recs = recsToShow.filter(
-          r => r.zone === zoneName && r.daypart === dpKey && selectedIds.has(r.playlistId)
+          r => r.zone === zoneName && r.daypart === dpKey && selectedIds.has(String(r.playlistId))
         );
 
         html += `<div class="schedule-daypart">`;
@@ -2442,7 +2426,7 @@ function showScheduleSummary() {
     for (const dpKey of orderedKeys) {
       const dpLabel = daypartLabels[dpKey] || dpKey;
       const recs = recsToShow.filter(
-        r => r.daypart === dpKey && selectedIds.has(r.playlistId)
+        r => r.daypart === dpKey && selectedIds.has(String(r.playlistId))
       );
 
       html += `<div class="schedule-daypart">`;
@@ -2924,12 +2908,8 @@ function openSubmission() {
   const sfEmail = document.getElementById('sfEmail');
   if (sfName && !sfName.value && lastContactName) sfName.value = lastContactName;
   if (sfEmail && !sfEmail.value && lastContactEmail) sfEmail.value = lastContactEmail;
-  // Pre-fill product from hero selection
-  document.querySelectorAll('.product-card').forEach(c => {
-    const match = c.dataset.product === currentProduct;
-    c.classList.toggle('selected', match);
-    c.querySelector('input[type="radio"]').checked = match;
-  });
+  // Set product from hero selection
+  document.getElementById('sfProduct').value = currentProduct;
   document.getElementById('submissionOverlay').classList.add('visible');
 }
 
@@ -3023,7 +3003,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e) => {
   data.extractedBrief = extractedBrief;
   data.conversationSummary = conversationSummary;
   data.allRecommendations = currentRecommendations;
-  data.likedPlaylists = currentRecommendations.filter(r => selectedIds.has(r.playlistId));
+  data.likedPlaylists = currentRecommendations.filter(r => selectedIds.has(String(r.playlistId)));
   data.daypartsMetadata = currentDayparts;
   data.vibes = extractedBrief?.vibes || [];
   data.energy = extractedBrief?.energy;
@@ -3038,7 +3018,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e) => {
   if (weekendRecommendations) {
     data.weekendRecommendations = weekendRecommendations;
     data.weekendDayparts = weekendDayparts;
-    data.weekendLikedPlaylists = weekendRecommendations.filter(r => selectedIds.has(r.playlistId));
+    data.weekendLikedPlaylists = weekendRecommendations.filter(r => selectedIds.has(String(r.playlistId)));
   }
 
   try {

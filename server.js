@@ -732,6 +732,37 @@ function beatBreezeMatch(data, dayparts) {
   };
 }
 
+/** Pick up to `count` tracks with maximum artist diversity via round-robin. */
+function pickDiverseTracks(tracks, count) {
+  if (!tracks || tracks.length <= count) return tracks || [];
+  // Group tracks by artist
+  const byArtist = {};
+  for (const t of tracks) {
+    const key = (t.artist || '').toLowerCase();
+    if (!byArtist[key]) byArtist[key] = [];
+    byArtist[key].push(t);
+  }
+  // Round-robin across artists
+  const artists = Object.keys(byArtist);
+  // Shuffle artist order for variety between requests
+  for (let i = artists.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [artists[i], artists[j]] = [artists[j], artists[i]];
+  }
+  const result = [];
+  let round = 0;
+  while (result.length < count) {
+    let added = false;
+    for (const a of artists) {
+      if (result.length >= count) break;
+      if (byArtist[a][round]) { result.push(byArtist[a][round]); added = true; }
+    }
+    if (!added) break;
+    round++;
+  }
+  return result;
+}
+
 function enrichBeatBreezeRecommendations(result) {
   const audioBaseUrl = process.env.AUDIO_SHARING_URL || '';
   return {
@@ -745,7 +776,7 @@ function enrichBeatBreezeRecommendations(result) {
         description: folder.description || '',
         source: 'beatbreeze',
         trackCount: folder.tracks?.length || 0,
-        previewTracks: (folder.tracks || []).slice(0, 15).map(t => ({
+        previewTracks: pickDiverseTracks(folder.tracks || [], 15).map(t => ({
           id: t.id,
           title: t.title,
           artist: t.artist || '',
