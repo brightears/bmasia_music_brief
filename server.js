@@ -819,15 +819,9 @@ function buildPlaylistEmailSections(aiResults, brief) {
 
   const playlistCell = (p) => {
     if (p.source === 'beatbreeze') {
-      // Beat Breeze: show playlist name + track listing
-      let cell = `<span style="color:#EFA634;font-weight:600;">${esc(p.name)}</span>`;
-      if (p.previewTracks && p.previewTracks.length > 0) {
-        cell += '<br>' + p.previewTracks.map(t =>
-          `<span style="color:#888;font-size:11px;">${esc(t.title)}${t.artist ? ` — ${esc(t.artist)}` : ''}</span>`
-        ).join('<br>');
-      }
-      cell += `<br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>`;
-      return cell;
+      // Beat Breeze: playlist name + reason (design team knows the catalog)
+      return `<span style="color:#EFA634;font-weight:600;">${esc(p.name)}</span>
+        <br><span style="color:#666;font-size:12px;">${esc(p.reason)}</span>`;
     }
     // SYB: link to SYB playlist
     return `<a href="${esc(p.sybUrl)}" style="color:#EFA634;font-weight:600;text-decoration:none;">${esc(p.name)}</a>
