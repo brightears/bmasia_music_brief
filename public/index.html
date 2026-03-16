@@ -109,26 +109,32 @@ body.chat-active {
   position: relative;
   padding-top: 64px;
 }
+@media (min-width: 768px) {
+  .app-shell { padding-top: 80px; }
+}
 .welcome-active .app-shell { height: 100dvh; overflow: hidden; }
 .welcome-active .input-bar { display: none; }
 .welcome-active .chat-area { max-width: none; padding: 0; }
 
-/* ============ Header ============ */
+/* ============ Header (matches bmasiamusic.com) ============ */
 .header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 50;
-  background: rgba(15,15,15,0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: linear-gradient(to bottom, rgba(15,15,15,0.7), transparent);
   height: 64px;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
 }
 .header.scrolled {
   background: rgba(15,15,15,0.95);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+@media (min-width: 768px) {
+  .header { height: 80px; }
 }
 .header-inner {
   max-width: 80rem;
@@ -139,78 +145,255 @@ body.chat-active {
   align-items: center;
   justify-content: space-between;
 }
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.header-logo-link {
+  position: relative;
+  z-index: 57;
+  display: inline-flex;
+  border-radius: 8px;
+  transition: transform 0.15s ease;
 }
-.header-logo img {
-  height: 36px;
+.header-logo-link:hover { transform: scale(1.02); }
+.header-logo-link:active { transform: scale(0.98); }
+.header-logo-link img {
+  height: 32px;
   width: auto;
-  opacity: 0.95;
+  object-fit: contain;
 }
-.header-title {
+@media (min-width: 768px) {
+  .header-logo-link img { height: 40px; }
+}
+
+/* Desktop Navigation */
+.header-nav-desktop {
   display: none;
+  align-items: center;
+  gap: 4px;
 }
-.header-right {
+@media (min-width: 768px) {
+  .header-nav-desktop { display: flex; }
+}
+@media (min-width: 1024px) {
+  .header-nav-desktop { gap: 8px; }
+}
+.nav-link {
+  position: relative;
+  padding: 8px 16px;
+  color: rgba(255,255,255,0.9);
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+.nav-link:hover { color: #ffffff; }
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  background: var(--brand-orange);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease-out;
+}
+.nav-link:hover::after { transform: scaleX(1); }
+.nav-link-active { color: #ffffff; }
+.nav-link-active::after { transform: scaleX(1); }
+
+/* Language Switcher (globe dropdown) */
+.lang-switcher { position: relative; }
+.lang-switcher-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  position: relative;
-  z-index: 1;
-}
-.back-to-site {
-  display: none;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: var(--radius-pill);
-  background: rgba(255,255,255,0.04);
-  color: var(--text-secondary);
+  padding: 8px 12px;
+  color: rgba(255,255,255,0.9);
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
-  text-decoration: none;
-  letter-spacing: 0.2px;
-  transition: all var(--dur-fast) ease;
+  transition: color 0.15s ease;
   white-space: nowrap;
 }
-.back-to-site:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.14);
-  color: var(--text);
+.lang-switcher-btn:hover { color: #ffffff; }
+.globe-icon { width: 16px; height: 16px; flex-shrink: 0; }
+.chevron-icon {
+  width: 16px; height: 16px; flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
-.back-to-site svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
-@media (min-width: 480px) {
-  .back-to-site { display: inline-flex; }
-}
-.lang-toggle {
-  display: flex;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: var(--radius-pill);
+.lang-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 180px;
+  background: rgba(15,15,15,0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   overflow: hidden;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  z-index: 60;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.lang-btn {
-  padding: 5px 12px;
+.lang-dropdown.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.lang-dropdown-up {
+  top: auto;
+  bottom: calc(100% + 8px);
+  transform: translateY(10px) scale(0.95);
+}
+.lang-dropdown-up.open { transform: translateY(0) scale(1); }
+.lang-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
   border: none;
-  background: transparent;
-  color: var(--text-muted);
+  background: none;
+  color: rgba(255,255,255,0.8);
   font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 14px;
   cursor: pointer;
-  transition: all var(--dur-fast) ease;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
 }
-.lang-btn.active {
-  background: rgba(255,255,255,0.12);
-  color: var(--text);
+.lang-option:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.lang-option-active { background: rgba(239,166,52,0.2); color: var(--brand-orange); }
+.lang-dot {
+  width: 8px; height: 8px;
+  background: var(--brand-orange);
+  border-radius: 50%;
 }
-.lang-btn:hover:not(.active) { color: var(--text-secondary); }
+
+/* Mobile Menu Button (hamburger) */
+.mobile-menu-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px; height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  margin-right: -8px;
+  position: relative;
+  z-index: 57;
+  border-radius: 8px;
+}
+@media (min-width: 768px) {
+  .mobile-menu-btn { display: none; }
+}
+.hamburger-line {
+  display: block;
+  width: 20px; height: 2px;
+  background: #fff;
+  border-radius: 999px;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  transform-origin: center;
+}
+.mobile-menu-btn.open .hamburger-line:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.mobile-menu-btn.open .hamburger-line:nth-child(2) {
+  opacity: 0; transform: scaleX(0);
+}
+.mobile-menu-btn.open .hamburger-line:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile Overlay */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 55;
+}
+.mobile-overlay.open { opacity: 1; pointer-events: auto; }
+@media (min-width: 768px) {
+  .mobile-overlay { display: none; }
+}
+
+/* Mobile Menu Panel */
+.mobile-menu {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 100%; max-width: 384px;
+  background: var(--bg);
+  border-left: 1px solid rgba(255,255,255,0.1);
+  z-index: 56;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.mobile-menu.open { transform: translateX(0); }
+@media (min-width: 768px) {
+  .mobile-menu { display: none !important; }
+}
+.mobile-menu-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 96px 24px 32px;
+}
+.mobile-nav { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.mobile-nav-link {
+  display: block;
+  padding: 12px 16px;
+  font-size: 18px;
+  color: rgba(255,255,255,0.9);
+  font-family: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+.mobile-nav-link:hover { background: rgba(255,255,255,0.05); color: #fff; }
+.mobile-nav-active { color: var(--brand-orange); }
+.mobile-lang-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.mobile-lang-label { color: rgba(255,255,255,0.6); font-size: 14px; }
+.mobile-cta {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: var(--brand-orange);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 16px;
+  text-decoration: none;
+  transition: background 0.15s;
+  margin-top: 16px;
+}
+.mobile-cta:hover { background: var(--brand-orange-dark); }
 
 /* ============ Chat Area ============ */
 .chat-area {
@@ -1223,6 +1406,9 @@ body.chat-active {
   padding: 60px 24px 80px;
   overflow: hidden;
 }
+@media (min-width: 768px) {
+  .welcome-hero { min-height: calc(100vh - 80px); }
+}
 .welcome-hero.exiting {
   opacity: 0;
   transform: translateY(-24px) scale(0.97);
@@ -1282,35 +1468,8 @@ body.chat-active {
   max-width: 480px;
   margin: 0 auto 48px;
 }
-.welcome-tagline {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--brand-orange);
-  margin-bottom: 16px;
-  opacity: 0.9;
+.welcome-tagline { display: none; /* removed — redundant on bmasiamusic.com */
 }
-.powered-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 48px;
-  padding: 6px 14px;
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: var(--radius-pill);
-  background: rgba(255,255,255,0.03);
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-}
-.powered-badge img {
-  height: 14px;
-  width: auto;
-  opacity: 0.6;
-}
-
 /* Product Selector (SYB / Beat Breeze) */
 .product-selector {
   display: flex;
@@ -1438,14 +1597,11 @@ body.chat-active {
 /* ============ Responsive ============ */
 @media (min-width: 768px) {
   .header-inner { padding: 0 32px; }
-  .header-logo img { height: 40px; }
 }
 @media (min-width: 1024px) {
   .header-inner { padding: 0 64px; }
 }
 @media (max-width: 640px) {
-  .header-inner { padding: 0 16px; }
-  .header-logo img { height: 28px; }
   .chat-area { padding: 16px 14px 120px; gap: 16px; }
   .msg { max-width: 88%; }
   .msg-bubble { padding: 14px 16px; font-size: 14px; }
@@ -1721,26 +1877,71 @@ body.chat-active {
 
 <div class="app-shell">
   <!-- Header -->
-  <div class="header" id="mainHeader">
-    <div class="header-inner">
-      <div class="header-left">
-        <div class="header-logo">
-          <img src="images/BMAsia_Logo.png" alt="BMAsia Group" width="120" height="40">
+  <header class="header" id="mainHeader" role="banner">
+    <nav class="header-inner" role="navigation" aria-label="Main navigation">
+      <a href="/en/" class="header-logo-link" data-nav>
+        <img src="images/BMAsia_Logo.png" alt="BMAsia - Wherever Music Matters" width="120" height="40">
+      </a>
+
+      <!-- Desktop Navigation -->
+      <div class="header-nav-desktop">
+        <a href="/en/" class="nav-link" data-nav>Home</a>
+        <a href="/en/how-it-works/" class="nav-link" data-nav>How It Works</a>
+        <a href="/en/licensing/" class="nav-link" data-nav>Licensing</a>
+        <a href="/design/" class="nav-link nav-link-active">Music Design</a>
+        <a href="/en/quotation/" class="nav-link" data-nav>Get a Quote</a>
+        <div class="lang-switcher">
+          <button class="lang-switcher-btn" onclick="toggleLangDropdown(event)" aria-expanded="false" aria-haspopup="listbox" aria-label="Select language">
+            <svg class="globe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span class="lang-switcher-label" id="desktopLangLabel">English</span>
+            <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="lang-dropdown" id="desktopLangDropdown" role="listbox" aria-label="Available languages">
+            <button class="lang-option lang-option-active" data-lang="en" onclick="switchLang('en')" role="option" aria-selected="true"><span>English</span><span class="lang-dot"></span></button>
+            <button class="lang-option" data-lang="th" onclick="switchLang('th')" role="option" aria-selected="false"><span>ไทย</span></button>
+          </div>
         </div>
-        <span class="header-title" data-i18n="title">Music Design Assistant</span>
       </div>
-      <div class="header-right">
-        <a href="https://bmasiamusic.com" class="back-to-site" target="_blank" rel="noopener noreferrer">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          bmasiamusic.com
-        </a>
-        <div class="lang-toggle">
-          <button class="lang-btn active" onclick="setLang('en')">EN</button>
-          <button class="lang-btn" onclick="setLang('th')">TH</button>
+
+      <!-- Mobile Menu Button -->
+      <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+    </nav>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()" aria-hidden="true"></div>
+
+    <!-- Mobile Menu Panel -->
+    <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="Mobile navigation menu">
+      <div class="mobile-menu-content">
+        <nav class="mobile-nav" aria-label="Mobile navigation">
+          <a href="/en/" class="mobile-nav-link" data-nav onclick="closeMobileMenu()">Home</a>
+          <a href="/en/how-it-works/" class="mobile-nav-link" data-nav onclick="closeMobileMenu()">How It Works</a>
+          <a href="/en/licensing/" class="mobile-nav-link" data-nav onclick="closeMobileMenu()">Licensing</a>
+          <a href="/design/" class="mobile-nav-link mobile-nav-active" onclick="closeMobileMenu()">Music Design</a>
+          <a href="/en/quotation/" class="mobile-nav-link" data-nav onclick="closeMobileMenu()">Get a Quote</a>
+        </nav>
+        <div class="mobile-lang-section">
+          <span class="mobile-lang-label">Language</span>
+          <div class="lang-switcher">
+            <button class="lang-switcher-btn" onclick="toggleMobileLangDropdown(event)" aria-label="Select language">
+              <svg class="globe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span class="lang-switcher-label" id="mobileLangLabel">English</span>
+              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="lang-dropdown lang-dropdown-up" id="mobileLangDropdown" role="listbox" aria-label="Available languages">
+              <button class="lang-option lang-option-active" data-lang="en" onclick="switchLang('en')" role="option"><span>English</span><span class="lang-dot"></span></button>
+              <button class="lang-option" data-lang="th" onclick="switchLang('th')" role="option"><span>ไทย</span></button>
+            </div>
+          </div>
         </div>
+        <a href="/en/quotation/" class="mobile-cta" data-nav onclick="closeMobileMenu()">Get a Quote</a>
       </div>
     </div>
-  </div>
+  </header>
 
   <!-- Chat Area -->
   <div class="chat-area" id="chatArea"></div>
@@ -1908,9 +2109,6 @@ let currentLang = 'en';
 
 function setLang(lang) {
   currentLang = lang;
-  document.querySelectorAll('.lang-btn').forEach(b =>
-    b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase())
-  );
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
@@ -1926,6 +2124,92 @@ function setLang(lang) {
 // =========================================================================
 const baseEl = document.querySelector('base');
 const API_BASE = baseEl ? baseEl.getAttribute('href').replace(/\/$/, '') : '';
+const SITE_BASE = baseEl ? '' : 'https://bmasiamusic.com';
+
+// =========================================================================
+// Navigation: mobile menu, language switcher, nav locale
+// =========================================================================
+function toggleMobileMenu() {
+  const btn = document.getElementById('mobileMenuBtn');
+  const menu = document.getElementById('mobileMenu');
+  const overlay = document.getElementById('mobileOverlay');
+  const isOpen = menu.classList.contains('open');
+  if (isOpen) { closeMobileMenu(); return; }
+  btn.classList.add('open');
+  btn.setAttribute('aria-expanded', 'true');
+  btn.setAttribute('aria-label', 'Close menu');
+  menu.classList.add('open');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileMenu() {
+  const btn = document.getElementById('mobileMenuBtn');
+  const menu = document.getElementById('mobileMenu');
+  const overlay = document.getElementById('mobileOverlay');
+  btn.classList.remove('open');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-label', 'Open menu');
+  menu.classList.remove('open');
+  overlay.classList.remove('open');
+  if (!document.body.classList.contains('welcome-active')) {
+    document.body.style.overflow = '';
+  }
+}
+function toggleLangDropdown(e) {
+  e && e.stopPropagation();
+  const dd = document.getElementById('desktopLangDropdown');
+  const isOpen = dd.classList.contains('open');
+  closeAllDropdowns();
+  if (!isOpen) dd.classList.add('open');
+}
+function toggleMobileLangDropdown(e) {
+  e && e.stopPropagation();
+  const dd = document.getElementById('mobileLangDropdown');
+  const isOpen = dd.classList.contains('open');
+  closeAllDropdowns();
+  if (!isOpen) dd.classList.add('open');
+}
+function closeAllDropdowns() {
+  document.querySelectorAll('.lang-dropdown').forEach(d => d.classList.remove('open'));
+}
+function switchLang(lang) {
+  setLang(lang);
+  closeAllDropdowns();
+  closeMobileMenu();
+  const label = lang === 'en' ? 'English' : '\u0e44\u0e17\u0e22';
+  document.getElementById('desktopLangLabel').textContent = label;
+  document.getElementById('mobileLangLabel').textContent = label;
+  document.querySelectorAll('.lang-option').forEach(opt => {
+    const isActive = opt.getAttribute('data-lang') === lang;
+    opt.classList.toggle('lang-option-active', isActive);
+    const dot = opt.querySelector('.lang-dot');
+    if (isActive && !dot) {
+      const d = document.createElement('span');
+      d.className = 'lang-dot';
+      opt.appendChild(d);
+    } else if (!isActive && dot) {
+      dot.remove();
+    }
+  });
+  updateNavLocale(lang);
+}
+function updateNavLocale(lang) {
+  document.querySelectorAll('[data-nav]').forEach(link => {
+    let href = link.getAttribute('href');
+    href = href.replace(/^\/(en|th)(\/|$)/, `/${lang}$2`);
+    link.setAttribute('href', SITE_BASE + href);
+  });
+  const cta = document.querySelector('.mobile-cta');
+  if (cta) cta.setAttribute('href', SITE_BASE + `/${lang}/quotation/`);
+}
+document.addEventListener('mousedown', (e) => {
+  if (!e.target.closest('.lang-switcher')) closeAllDropdowns();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeMobileMenu(); closeAllDropdowns(); }
+});
+// On load: if not proxied, prefix nav links with full domain
+if (SITE_BASE) updateNavLocale(currentLang);
 
 // =========================================================================
 // State
@@ -2121,7 +2405,6 @@ function showWelcomeState() {
     </div>
     <div class="hero-overlay"></div>
     <div class="welcome-content">
-      <p class="welcome-tagline" data-i18n="hero_tagline">Wherever Music Matters</p>
       <h1 class="welcome-title"><span data-i18n="greeting_title">Music Design</span> <span class="gradient-text" data-i18n="greeting_title_highlight">Assistant</span></h1>
       <p class="welcome-subtitle" data-i18n="greeting_subtitle">${t.greeting_subtitle}</p>
       <div class="product-selector">
@@ -2156,9 +2439,6 @@ function showWelcomeState() {
             <span class="mode-card-desc" data-i18n="chip_update_desc">${t.chip_update_desc}</span>
           </span>
         </button>
-      </div>
-      <div class="powered-badge">
-        <img src="images/BMAsia_Logo.png" alt="BMAsia"> Powered by BMAsia Group
       </div>
     </div>
   `;
