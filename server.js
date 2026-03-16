@@ -250,10 +250,14 @@ function iconForTime(mins) {
   return 'stars'; // 0-4
 }
 
-function generateDayparts(hoursStr, baseEnergy) {
+function generateDayparts(hoursStr, baseEnergy, schedulingMode) {
   const energy = baseEnergy || 5;
+  const mode = schedulingMode || 'auto'; // 'auto' | 'single' | 'custom'
 
   if (!hoursStr || !hoursStr.trim()) {
+    if (mode === 'single') {
+      return [{ key: 'all_day', label: 'All Day', timeRange: 'all day', icon: 'sun', energy }];
+    }
     return DEFAULT_DAYPARTS.map((dp, i) => ({
       ...dp, energy: clamp(energy + [-2, 0, 1][i], 1, 10),
     }));
@@ -274,6 +278,21 @@ function generateDayparts(hoursStr, baseEnergy) {
     ? (1440 - openMin) + closeMin
     : closeMin - openMin;
   const totalHours = totalMinutes / 60;
+
+  // Single mode: one daypart covering entire operating window
+  if (mode === 'single') {
+    const endMin = (openMin + totalMinutes) % 1440;
+    return [{
+      key: 'all_day',
+      label: `All Day (${timeLabel(openMin)}\u2013${timeLabel(endMin)})`,
+      timeRange: `${timeLabel(openMin)}-${timeLabel(endMin)}`,
+      icon: iconForTime(openMin),
+      energy,
+    }];
+  }
+
+  // Custom mode: use customer-specified segment count (passed via customSegments)
+  // Falls through to auto calculation below
 
   const segCount = totalHours <= 3 ? 1 : totalHours <= 6 ? 2 : totalHours <= 12 ? 3 : 4;
   const segLen = Math.round(totalMinutes / segCount);
@@ -1085,6 +1104,7 @@ You think like a professional music designer, not a form-filler:
 - ALWAYS end every message with a clear question or call-to-action
 - NEVER ask more than ONE question per message — this is critical. When you call ask_structured_question, the structured card IS your question. Your text in that same turn must ONLY contain acknowledgment or commentary about the previous answer — do NOT write the question in your text. The card handles the question.
 - ALWAYS collect operating hours before calling generate_recommendations. Without hours, the system falls back to generic Morning/Afternoon/Evening dayparts which may not match the venue at all (e.g. a bar that opens at 5pm should not get "Morning" playlists). Operating hours is non-negotiable.
+- ALWAYS ask about scheduling preference (step 5c) after collecting hours. The customer may want one consistent vibe all day, automatic time segments, or custom time blocks. Pass schedulingMode to generate_recommendations — this determines whether the system splits the day or keeps it as one block. If the customer later says they want fewer/more time segments, regenerate with the correct schedulingMode.
 - If the customer gives a rich description upfront, you can skip unnecessary follow-ups — but you MUST still ask about operating hours
 - Do NOT list or explain the information you need — just ask naturally, one thing at a time
 - NEVER assume vocal preference. Always ask explicitly before generating recommendations. Getting this wrong means an entire schedule of music the customer doesn't want.
@@ -1108,6 +1128,11 @@ Phase 1 — UNDERSTAND (2-3 exchanges):
 Phase 2 — DIG DEEPER (2-4 exchanges):
 5. Share a design insight from your research (a conclusion, not facts — see "Using Venue Research" below). Then ask about operating hours as a standalone question.
 5b. MULTI-ZONE DETECTION: For hotels, large venues, or when research/SYB lookup shows multiple areas, ask: "Does your venue have different areas that need their own music identity?" If yes, ask which areas/zones they want to design for. For existing SYB clients, zone names come from the lookup — reference them. For each zone, you will need to understand its unique vibe and energy — ask about each zone one at a time. You do NOT need separate operating hours per zone unless they differ significantly.
+5c. SCHEDULING PREFERENCE: After collecting operating hours, ask how the customer wants the music structured throughout the day using ask_structured_question:
+   - "One consistent vibe all day" (schedulingMode: "single") — same playlist selection for the entire operating window. Good for spas, cafes, venues that want a uniform identity.
+   - "Different music for different times" (schedulingMode: "auto") — the system creates time segments (e.g. Opening, Peak, Wind Down) with different playlists per segment. Good for restaurants with distinct service periods, bars that build energy through the night, hotels with morning/afternoon/evening shifts.
+   - "I have specific time blocks in mind" (schedulingMode: "custom") — the customer defines their own time blocks (e.g. "Breakfast 7-10am, Lunch 11am-2pm, Happy Hour 4-7pm"). Follow up to collect the block names and time ranges.
+   IMPORTANT: Pass the chosen schedulingMode to generate_recommendations. If "custom", also ask what the time blocks are and pass them as customDayparts. If "single", the system generates ONE daypart covering the full window. This is NOT optional — the customer's scheduling preference MUST be respected. Do NOT default to multi-daypart when the customer chose "single".
 6. Ask ONE expert follow-up question based on what you have learned so far. Choose the most impactful one:
    - For bars/lounges: "Who are your typical guests — age range, local crowd or tourists, after-work drinks or nightlife destination?"
    - If they have DJs or live music (from research or conversation): "What style do your DJs usually play, and what times do they come on?"
@@ -1294,6 +1319,24 @@ const RECOMMEND_TOOL = {
       hours: {
         type: 'string',
         description: 'Operating hours (e.g., "17:00 - 02:00", "9am - 11pm")',
+      },
+      schedulingMode: {
+        type: 'string',
+        enum: ['auto', 'single', 'custom'],
+        description: 'How to split the day into time segments. "auto" = system decides based on hours (default). "single" = one consistent playlist selection for the entire day (no dayparts). "custom" = customer specified custom time blocks (use customDayparts).',
+      },
+      customDayparts: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string', description: 'Name for this time block (e.g. "Breakfast", "Happy Hour", "Dinner Service")' },
+            timeRange: { type: 'string', description: 'Time range (e.g. "7:00 AM - 10:00 AM")' },
+            energy: { type: 'number', minimum: 1, maximum: 10, description: 'Energy level for this block' },
+          },
+          required: ['label', 'timeRange'],
+        },
+        description: 'Custom time blocks when schedulingMode is "custom". Each block gets its own playlist recommendations.',
       },
       referenceVenues: { type: 'string', description: 'Reference venues mentioned by customer' },
       avoidList: { type: 'string', description: 'Genres or styles to avoid, as clean comma-separated terms (e.g. "pop, hip-hop, rap, EDM"). Extract just the genre keywords, not full phrases like "no mainstream pop hits".' },
@@ -1800,6 +1843,8 @@ async function executeRecommendationTool(toolInput, product = 'syb') {
     eventDate: toolInput.eventDate || null,
     eventTimeRange: toolInput.eventTimeRange || null,
     existingScheduleId: toolInput.existingScheduleId || null,
+    schedulingMode: toolInput.schedulingMode || 'auto',
+    customDayparts: toolInput.customDayparts || null,
   };
 
   const zones = toolInput.zones;
@@ -1824,7 +1869,30 @@ async function executeRecommendationTool(toolInput, product = 'syb') {
   async function runPipeline(data) {
     const energy = parseInt(data.energy, 10) || 5;
     const hoursForDayparts = data.eventTimeRange || data.hours;
-    const dayparts = generateDayparts(hoursForDayparts, energy);
+    const mode = data.schedulingMode || 'auto';
+
+    let dayparts;
+    if (mode === 'custom' && Array.isArray(data.customDayparts) && data.customDayparts.length > 0) {
+      // Customer-specified time blocks
+      dayparts = data.customDayparts.map((cd, i) => {
+        const timeMatch = cd.timeRange?.match(
+          /(\d{1,2}[:\.]?\d{0,2}\s*(?:am|pm)?)\s*[-\u2013\u2014to]+\s*(\d{1,2}[:\.]?\d{0,2}\s*(?:am|pm)?)/i
+        );
+        const startMin = timeMatch ? parseTime(timeMatch[1]) : 0;
+        const endMin = timeMatch ? parseTime(timeMatch[2]) : 0;
+        return {
+          key: cd.label.toLowerCase().replace(/\s+/g, '_'),
+          label: timeMatch
+            ? `${cd.label} (${timeLabel(startMin)}\u2013${timeLabel(endMin)})`
+            : cd.label,
+          timeRange: cd.timeRange || '',
+          icon: timeMatch ? iconForTime(startMin) : 'sun',
+          energy: cd.energy || energy,
+        };
+      });
+    } else {
+      dayparts = generateDayparts(hoursForDayparts, energy, mode);
+    }
 
     // Beat Breeze path: tag-based matching against cached catalog
     if (product === 'beatbreeze' && beatbreezeCatalog.length > 0) {
