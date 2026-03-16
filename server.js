@@ -576,57 +576,92 @@ function beatBreezeMatch(data, dayparts) {
   const vocals = data.vocals || '';
   const genreHints = data.genreHints || [];
 
-  // Map venueType to zone tag keywords
-  const venueZoneMap = {
-    'hotel-lobby': ['hotel', 'lobby'],
-    restaurant: ['restaurant', 'dining'],
-    'bar-lounge': ['bar', 'lounge'],
-    'spa-wellness': ['spa', 'wellness'],
-    cafe: ['cafe', 'coffee'],
-    'fashion-retail': ['retail', 'store', 'fashion'],
-    coworking: ['office', 'coworking'],
-    'pool-beach': ['pool', 'beach'],
-    'gym-fitness': ['gym', 'fitness'],
-    qsr: ['restaurant', 'fast'],
+  // Venue type → preferred genres (replaces the old zone tag system)
+  const venueGenreAffinity = {
+    'hotel-lobby': ['jazz', 'classical', 'ambient', 'lounge', 'bossa-nova', 'chill'],
+    restaurant: ['jazz', 'bossa-nova', 'lounge', 'classical', 'world'],
+    'bar-lounge': ['jazz', 'electronic', 'lounge', 'blues', 'chill'],
+    'spa-wellness': ['ambient', 'classical', 'chill', 'world'],
+    cafe: ['lofi', 'jazz', 'bossa-nova', 'pop', 'chill'],
+    'fashion-retail': ['electronic', 'pop', 'lounge'],
+    coworking: ['lofi', 'ambient', 'chill', 'classical'],
+    'pool-beach': ['electronic', 'latin', 'chill', 'afro'],
+    'gym-fitness': ['electronic', 'pop', 'afro'],
+    qsr: ['pop', 'lofi', 'electronic'],
   };
-  const targetZones = venueZoneMap[venueType] || [];
+  const preferredGenres = venueGenreAffinity[venueType] || [];
+
+  // Helper: extract track-level metadata from first track (representative of whole playlist)
+  function getTrackMeta(folder) {
+    const t = (folder.tracks || [])[0];
+    if (!t) return { genre: '', mood: '', energy: '', bpm: 0, isInstrumental: null, subGenre: '', region: '', trackTags: [] };
+    // Parse tags — could be a JSON string or array
+    let trackTags = [];
+    if (typeof t.tags === 'string') { try { trackTags = JSON.parse(t.tags); } catch(e) { trackTags = []; } }
+    else if (Array.isArray(t.tags)) { trackTags = t.tags; }
+    const subTag = trackTags.find(tag => typeof tag === 'string' && tag.startsWith('sub:'));
+    const regionTag = trackTags.find(tag => typeof tag === 'string' && tag.startsWith('region:'));
+    return {
+      genre: (t.genre || '').toLowerCase(),
+      mood: (t.mood || '').toLowerCase(),
+      energy: (t.energy || '').toUpperCase(),
+      bpm: t.tempoBpm || 0,
+      isInstrumental: t.isInstrumental,
+      subGenre: subTag ? subTag.replace('sub:', '') : '',
+      region: regionTag ? regionTag.replace('region:', '') : '',
+      trackTags,
+    };
+  }
 
   function scoreFolder(folder) {
     let score = 0;
-    const tags = folder.tags || [];
-    const tagsByDim = {};
-    for (const t of tags) {
-      if (!tagsByDim[t.dimension]) tagsByDim[t.dimension] = [];
-      tagsByDim[t.dimension].push(t.name.toLowerCase());
-    }
-
-    // Zone match: venueType → zone tags (+3)
-    const zoneTags = tagsByDim['zone'] || [];
-    if (targetZones.length > 0 && zoneTags.some(z => targetZones.some(tz => z.includes(tz) || tz.includes(z)))) score += 3;
-
-    // Mood match: vibes → mood tags (+2 each)
-    const moodTags = tagsByDim['mood'] || [];
-    for (const vibe of vibes) {
-      if (moodTags.some(m => m.includes(vibe.toLowerCase()) || vibe.toLowerCase().includes(m))) score += 2;
-    }
-
-    // Genre match: genreHints → genre tags + name/description (+2 each)
-    const genreTags = tagsByDim['genre'] || [];
+    const meta = getTrackMeta(folder);
     const text = `${folder.name} ${folder.description || ''}`.toLowerCase();
+
+    // 1. Genre match: genreHints → track genre + sub-genre + name/desc (+3 for genre, +2 for sub/text)
     let hintMatches = 0;
     for (const hint of genreHints) {
-      const h = hint.toLowerCase();
-      if (genreTags.some(g => g.includes(h) || h.includes(g)) || text.includes(h)) { score += 2; hintMatches++; }
+      const h = hint.toLowerCase().replace(/-/g, ' ');
+      if (meta.genre && (meta.genre.includes(h) || h.includes(meta.genre))) {
+        score += 3; hintMatches++;
+      } else if (meta.subGenre && (meta.subGenre.replace(/-/g, ' ').includes(h) || h.includes(meta.subGenre.replace(/-/g, ' ')))) {
+        score += 2; hintMatches++;
+      } else if (text.includes(h)) {
+        score += 2; hintMatches++;
+      }
     }
     if (genreHints.length >= 2 && hintMatches === 0) score -= 5;
 
-    // Energy dimension match
-    const energyTags = tagsByDim['energy'] || [];
-    if (energy <= 3 && energyTags.some(e => ['low', 'calm', 'soft'].includes(e))) score += 1;
-    else if (energy <= 6 && energyTags.some(e => ['medium', 'moderate', 'mid'].includes(e))) score += 1;
-    else if (energy > 6 && energyTags.some(e => ['high', 'energetic', 'upbeat'].includes(e))) score += 1;
+    // 2. Mood match: vibes → track mood (+2 each)
+    if (meta.mood) {
+      for (const vibe of vibes) {
+        const v = vibe.toLowerCase();
+        if (meta.mood.includes(v) || v.includes(meta.mood)) score += 2;
+      }
+    }
 
-    // Avoid list penalty (-10 per match)
+    // 3. Venue affinity: track genre in preferred genres for this venue type (+2)
+    if (meta.genre && preferredGenres.includes(meta.genre)) score += 2;
+
+    // 4. BPM-based energy fit (+1)
+    if (meta.bpm > 0) {
+      if (energy <= 3 && meta.bpm < 100) score += 1;
+      else if (energy >= 4 && energy <= 6 && meta.bpm >= 90 && meta.bpm <= 135) score += 1;
+      else if (energy > 6 && meta.bpm > 120) score += 1;
+    }
+
+    // 5. Vocals preference: use isInstrumental flag (+2 exact match, +0.8 partial)
+    if (meta.isInstrumental !== null && meta.isInstrumental !== undefined) {
+      if (vocals === 'instrumental' && meta.isInstrumental) score += 2;
+      else if (vocals === 'mostly-instrumental' && meta.isInstrumental) score += 0.8;
+      else if (vocals === 'vocal' && !meta.isInstrumental) score += 1.5;
+    } else {
+      // Fallback to text matching
+      if (vocals === 'instrumental' && text.includes('instrumental')) score += 1.5;
+      if (vocals === 'mostly-instrumental' && text.includes('instrumental')) score += 0.8;
+    }
+
+    // 6. Avoid list penalty (-10 per match)
     if (avoidList) {
       const avoidTerms = avoidList
         .replace(/\bno\b/gi, '').replace(/\bhits\b/gi, '').replace(/\bmainstream\b/gi, '')
@@ -635,22 +670,18 @@ function beatBreezeMatch(data, dayparts) {
         .filter(s => s && s.length > 1);
       const normalizedText = text.replace(/-/g, ' ');
       for (const term of avoidTerms) {
-        const normalizedTerm = term.replace(/-/g, ' ');
-        if (normalizedText.includes(normalizedTerm)) score -= 10;
-        if (genreTags.includes(normalizedTerm)) score -= 10;
+        const nt = term.replace(/-/g, ' ');
+        if (normalizedText.includes(nt)) score -= 10;
+        if (meta.genre.includes(nt) || meta.subGenre.replace(/-/g, ' ').includes(nt)) score -= 10;
       }
     }
 
-    // Vocals preference
-    if (vocals === 'instrumental' && (text.includes('instrumental') || genreTags.includes('instrumental'))) score += 1.5;
-    if (vocals === 'mostly-instrumental' && (text.includes('instrumental') || text.includes('acoustic'))) score += 0.8;
-
-    return { ...folder, baseScore: score, text };
+    return { ...folder, baseScore: score, text, meta };
   }
 
   const scored = beatbreezeCatalog.map(scoreFolder);
 
-  // Per-daypart scoring (energy-adjusted), same pattern as deterministicMatch
+  // Per-daypart scoring: adjust by BPM fit for the daypart's energy level
   const usedIds = new Set();
   const perDp = Math.ceil(12 / dayparts.length);
   const allRecs = [];
@@ -658,10 +689,14 @@ function beatBreezeMatch(data, dayparts) {
   for (const dp of dayparts) {
     const dpScored = scored.map(p => {
       let bonus = 0;
-      const energyTags = (p.tags || []).filter(t => t.dimension === 'energy').map(t => t.name.toLowerCase());
-      if (dp.energy <= 3 && energyTags.some(e => ['low', 'calm', 'soft'].includes(e))) bonus += 1;
-      else if (dp.energy <= 6 && energyTags.some(e => ['medium', 'moderate', 'mid'].includes(e))) bonus += 1;
-      else if (dp.energy > 6 && energyTags.some(e => ['high', 'energetic', 'upbeat'].includes(e))) bonus += 1;
+      if (p.meta.bpm > 0) {
+        if (dp.energy <= 3 && p.meta.bpm < 100) bonus += 1.5;
+        else if (dp.energy >= 4 && dp.energy <= 6 && p.meta.bpm >= 90 && p.meta.bpm <= 135) bonus += 1;
+        else if (dp.energy > 6 && p.meta.bpm > 120) bonus += 1.5;
+      }
+      // Mood-energy alignment: calm/peaceful moods for low energy, energetic/upbeat for high
+      if (dp.energy <= 3 && ['calm', 'peaceful', 'dreamy', 'mellow'].includes(p.meta.mood)) bonus += 1;
+      else if (dp.energy > 6 && ['energetic', 'upbeat', 'lively', 'groovy', 'festive', 'cheerful'].includes(p.meta.mood)) bonus += 1;
       return { ...p, dpScore: p.baseScore + bonus };
     });
     dpScored.sort((a, b) => b.dpScore - a.dpScore);
@@ -672,12 +707,13 @@ function beatBreezeMatch(data, dayparts) {
       if (usedIds.has(p.id)) continue;
       usedIds.add(p.id);
 
-      const matchedVibes = vibes.filter(v => {
-        const moodTags = (p.tags || []).filter(t => t.dimension === 'mood').map(t => t.name.toLowerCase());
-        return moodTags.some(m => m.includes(v.toLowerCase()) || v.toLowerCase().includes(m));
-      });
-      const vibeStr = matchedVibes.length > 0 ? matchedVibes.join(', ') : vibes[0] || 'selected';
-      const reason = `${p.description || p.name} — fits your ${vibeStr} ${(venueType || 'venue').replace(/-/g, ' ')}`;
+      // Build reason using actual metadata
+      const moodStr = p.meta.mood || vibes[0] || 'curated';
+      const genreStr = p.meta.subGenre ? p.meta.subGenre.replace(/-/g, ' ') : (p.meta.genre || '');
+      const venueStr = (venueType || 'venue').replace(/-/g, ' ');
+      const reason = genreStr
+        ? `${moodStr} ${genreStr} — great fit for your ${venueStr}`
+        : `${p.name} — ${moodStr} music for your ${venueStr}`;
 
       allRecs.push({ playlistId: p.id, daypart: dp.key, reason, rawScore: p.dpScore });
       picked++;
@@ -692,7 +728,7 @@ function beatBreezeMatch(data, dayparts) {
       reason: r.reason,
       matchScore: Math.round(55 + (r.rawScore / maxRaw) * 40),
     })),
-    designerNotes: 'Generated via Beat Breeze tag-based matching with AI genre direction.',
+    designerNotes: 'Generated via Beat Breeze track-metadata matching (genre, mood, BPM, vocal/instrumental).',
   };
 }
 
