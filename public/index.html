@@ -1911,6 +1911,7 @@ const DAYPART_ICONS = {
 // =========================================================================
 const bbAudio = new Audio();
 bbAudio.preload = 'none';
+bbAudio.crossOrigin = 'anonymous';
 let bbCurrentTrackEl = null;
 
 function formatDuration(seconds) {
@@ -1947,7 +1948,9 @@ function bbPlayTrack(btn) {
   trackEl.classList.add('playing');
   btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
   bbAudio.src = url;
-  bbAudio.play().catch(() => {
+  bbAudio.load();
+  bbAudio.play().catch(err => {
+    console.error('Audio play failed:', err.name, err.message);
     trackEl.classList.remove('playing');
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>';
   });
