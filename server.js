@@ -745,7 +745,7 @@ function enrichBeatBreezeRecommendations(result) {
         description: folder.description || '',
         source: 'beatbreeze',
         trackCount: folder.tracks?.length || 0,
-        previewTracks: (folder.tracks || []).slice(0, 3).map(t => ({
+        previewTracks: (folder.tracks || []).slice(0, 15).map(t => ({
           id: t.id,
           title: t.title,
           artist: t.artist || '',

@@ -555,7 +555,11 @@ body.chat-active {
   margin: 10px 0 14px;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md, 8px);
-  overflow: hidden;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-soft) transparent;
 }
 .bb-track {
   display: flex;
