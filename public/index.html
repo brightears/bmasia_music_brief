@@ -1725,7 +1725,7 @@ body.chat-active {
     <div class="header-inner">
       <div class="header-left">
         <div class="header-logo">
-          <img src="/images/BMAsia_Logo.png" alt="BMAsia Group" width="120" height="40">
+          <img src="images/BMAsia_Logo.png" alt="BMAsia Group" width="120" height="40">
         </div>
         <span class="header-title" data-i18n="title">Music Design Assistant</span>
       </div>
@@ -1922,6 +1922,12 @@ function setLang(lang) {
 }
 
 // =========================================================================
+// Base path (for proxy support via bmasiamusic.com/design)
+// =========================================================================
+const baseEl = document.querySelector('base');
+const API_BASE = baseEl ? baseEl.getAttribute('href').replace(/\/$/, '') : '';
+
+// =========================================================================
 // State
 // =========================================================================
 let conversationHistory = [];
@@ -2111,7 +2117,7 @@ function showWelcomeState() {
   hero.id = 'welcomeHero';
   hero.innerHTML = `
     <div class="hero-bg">
-      <img src="/images/hero-visualization.webp" alt="" loading="eager">
+      <img src="images/hero-visualization.webp" alt="" loading="eager">
     </div>
     <div class="hero-overlay"></div>
     <div class="welcome-content">
@@ -2152,7 +2158,7 @@ function showWelcomeState() {
         </button>
       </div>
       <div class="powered-badge">
-        <img src="/images/BMAsia_Logo.png" alt="BMAsia"> Powered by BMAsia Group
+        <img src="images/BMAsia_Logo.png" alt="BMAsia"> Powered by BMAsia Group
       </div>
     </div>
   `;
@@ -2629,7 +2635,7 @@ async function sendMessage(text) {
   showTypingIndicator();
 
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3089,7 +3095,7 @@ document.getElementById('submitForm').addEventListener('submit', async (e) => {
   }
 
   try {
-    const res = await fetch('/submit', {
+    const res = await fetch(`${API_BASE}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),

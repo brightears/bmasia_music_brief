@@ -156,6 +156,18 @@ const transporter = nodemailer.createTransport({
 // ---------------------------------------------------------------------------
 app.use(express.json({ limit: '500kb' }));
 app.use(express.urlencoded({ extended: true, limit: '500kb' }));
+
+// Serve index.html with dynamic <base> tag when proxied through bmasiamusic.com
+const indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+app.get('/', (req, res) => {
+  const host = req.get('x-forwarded-host') || req.get('host') || '';
+  const isProxied = host.includes('bmasiamusic.com');
+  if (isProxied) {
+    res.send(indexHtml.replace('<head>', '<head>\n<base href="/design/">'));
+  } else {
+    res.send(indexHtml);
+  }
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 const submitLimiter = rateLimit({
