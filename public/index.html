@@ -186,8 +186,12 @@ body.chat-active {
   border-radius: 8px;
   transition: color 0.15s ease;
   white-space: nowrap;
+  outline: none;
 }
 .nav-link:hover { color: #ffffff; }
+.nav-link:focus-visible {
+  box-shadow: 0 0 0 2px var(--brand-orange), 0 0 0 4px var(--bg);
+}
 .nav-link::after {
   content: '';
   position: absolute;
