@@ -112,7 +112,7 @@ body.chat-active {
 @media (min-width: 768px) {
   .app-shell { padding-top: 80px; }
 }
-.welcome-active .app-shell { height: 100dvh; overflow: hidden; }
+.welcome-active .app-shell { height: 100dvh; overflow: hidden; padding-top: 0; }
 .welcome-active .input-bar { display: none; }
 .welcome-active .chat-area { max-width: none; padding: 0; }
 
@@ -1396,13 +1396,13 @@ body.chat-active {
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: calc(100vh - 64px);
-  padding: 60px 24px 80px;
+  min-height: 100vh;
+  padding: 84px 24px 80px;
   overflow: hidden;
   background: linear-gradient(to bottom, var(--bg) 0%, var(--brand-navy) 40%, var(--bg) 100%);
 }
 @media (min-width: 768px) {
-  .welcome-hero { min-height: calc(100vh - 80px); }
+  .welcome-hero { padding-top: 100px; }
 }
 .welcome-hero.exiting {
   opacity: 0;
@@ -1411,18 +1411,14 @@ body.chat-active {
   pointer-events: none;
 }
 /* Hero background image — top section only, like website inner pages */
-/* Negative top pulls image behind the fixed header */
 .hero-bg {
   position: absolute;
-  top: -80px;
+  top: 0;
   left: 0;
   right: 0;
-  height: calc(45% + 80px);
+  height: 45%;
   z-index: 0;
   overflow: hidden;
-}
-@media (max-width: 767px) {
-  .hero-bg { top: -64px; height: calc(45% + 64px); }
 }
 .hero-bg img {
   width: 100%;
@@ -1434,10 +1430,10 @@ body.chat-active {
 /* Gradient overlay — fades image to solid dark like website inner pages */
 .hero-overlay {
   position: absolute;
-  top: -80px;
+  top: 0;
   left: 0;
   right: 0;
-  height: calc(45% + 80px);
+  height: 45%;
   background: linear-gradient(to bottom, rgba(15,15,15,0.6) 0%, rgba(26,26,46,0.4) 40%, rgba(26,26,46,0.85) 85%, var(--brand-navy) 100%);
   z-index: 1;
 }
