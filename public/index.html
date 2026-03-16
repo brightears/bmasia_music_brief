@@ -184,29 +184,19 @@ body.chat-active {
   font-size: 14px;
   text-decoration: none;
   border-radius: 8px;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
   outline: none;
 }
 .nav-link:hover { color: #ffffff; }
-.nav-link:focus-visible {
-  box-shadow: 0 0 0 2px var(--brand-orange), 0 0 0 4px var(--bg);
+.nav-link:focus-visible,
+.nav-link:active {
+  box-shadow: 0 0 0 2px var(--brand-orange);
 }
-.nav-link::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 16px;
-  right: 16px;
-  height: 2px;
-  background: var(--brand-orange);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.2s ease-out;
+.nav-link-active {
+  color: #ffffff;
+  box-shadow: 0 0 0 2px var(--brand-orange);
 }
-.nav-link:hover::after { transform: scaleX(1); }
-.nav-link-active { color: #ffffff; }
-.nav-link-active::after { transform: scaleX(1); }
 
 /* Language Switcher (globe dropdown) */
 .lang-switcher { position: relative; }
@@ -1421,14 +1411,18 @@ body.chat-active {
   pointer-events: none;
 }
 /* Hero background image — top section only, like website inner pages */
+/* Negative top pulls image behind the fixed header */
 .hero-bg {
   position: absolute;
-  top: 0;
+  top: -80px;
   left: 0;
   right: 0;
-  height: 45%;
+  height: calc(45% + 80px);
   z-index: 0;
   overflow: hidden;
+}
+@media (max-width: 767px) {
+  .hero-bg { top: -64px; height: calc(45% + 64px); }
 }
 .hero-bg img {
   width: 100%;
@@ -1440,10 +1434,10 @@ body.chat-active {
 /* Gradient overlay — fades image to solid dark like website inner pages */
 .hero-overlay {
   position: absolute;
-  top: 0;
+  top: -80px;
   left: 0;
   right: 0;
-  height: 45%;
+  height: calc(45% + 80px);
   background: linear-gradient(to bottom, rgba(15,15,15,0.6) 0%, rgba(26,26,46,0.4) 40%, rgba(26,26,46,0.85) 85%, var(--brand-navy) 100%);
   z-index: 1;
 }
