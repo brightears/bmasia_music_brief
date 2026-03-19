@@ -1179,10 +1179,12 @@ Phase 3 — DESIGN:
 
 ### Mode: "update" — Update Existing Music
 1. Ask for venue name and email on file (for verification)
-2. For SYB product: call lookup_existing_client with the venue name. If they are an existing SYB client with BMAsia schedules, tell them which schedules you found and ask which one they want to update. Include the chosen schedule ID as existingScheduleId in extractedBrief.
-3. Ask what they'd like to change and why (specific dayparts, vibes, energy level, new genres)
-4. Ask 1-2 expert follow-up questions, then vocal preference
-5. Call generate_recommendations with genreHints reflecting the adjustment
+2. For SYB product: call lookup_existing_client with the venue name. The system will return the current music setup including what is playing, schedule structure, playlists, and time blocks for each zone.
+3. Summarize the current setup to the customer: "Here is what I see on your account..." — reference specific zone names, playlist names, and time blocks. If they have multiple zones, ask which zone they want to update.
+4. If they have existing BMAsia schedules, tell them which ones you found and ask which to update. Include the chosen schedule ID as existingScheduleId in extractedBrief.
+5. Ask what they would like to change and why — be specific: "Your evening slot currently plays 'Lounge Jazz' — would you like to keep that or try something different?"
+6. Ask 1-2 expert follow-up questions, then vocal preference
+7. Call generate_recommendations with genreHints reflecting the adjustment
    - Include sybAccountId, zoneName, existingScheduleId in extractedBrief
    - The system will update the existing schedule instead of creating a new one
 
@@ -1688,9 +1690,92 @@ async function sybSearchAccount(name) {
 async function sybGetZones(accountId) {
   const data = await sybQuery(`
     query($id: ID!) { account(id: $id) { soundZones(first: 100) {
-      edges { node { id name location { id name } } } } } }
+      edges { node {
+        id name location { id name } online
+        playFrom {
+          ... on Playlist { id name }
+          ... on Schedule { id name }
+          ... on Soundtrack { id name }
+        }
+        schedule {
+          id name
+          playlists { id name }
+          slots { rrule start duration playlistIds }
+        }
+        nowPlaying { track { title artists { name } } }
+      } } } } }
   `, { id: accountId });
   return data?.account?.soundZones?.edges?.map(e => e.node) || [];
+}
+
+// Parse SYB schedule slot data into human-readable format
+function parseDaysFromRRule(rrule) {
+  if (!rrule) return 'Daily';
+  const dayMap = { MO: 'Mon', TU: 'Tue', WE: 'Wed', TH: 'Thu', FR: 'Fri', SA: 'Sat', SU: 'Sun' };
+  const match = rrule.match(/BYDAY=([A-Z,]+)/);
+  if (!match) return 'Daily';
+  const days = match[1].split(',').map(d => dayMap[d] || d);
+  if (days.length === 7) return 'Daily';
+  if (days.length === 5 && !days.includes('Sat') && !days.includes('Sun')) return 'Mon-Fri';
+  if (days.length === 2 && days.includes('Sat') && days.includes('Sun')) return 'Sat-Sun';
+  return days.join(', ');
+}
+
+function formatSlotTime(start) {
+  if (!start) return '?';
+  // SYB uses "060000" or "17:00:00" or "2026-03-16T09:00:00Z" formats
+  let hours, minutes;
+  if (start.includes('T')) {
+    const d = new Date(start);
+    hours = d.getUTCHours();
+    minutes = d.getUTCMinutes();
+  } else if (start.includes(':')) {
+    [hours, minutes] = start.split(':').map(Number);
+  } else {
+    hours = parseInt(start.substring(0, 2), 10);
+    minutes = parseInt(start.substring(2, 4), 10);
+  }
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  return `${h12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+}
+
+function buildZoneSetupSummary(zone) {
+  const parts = [];
+  const status = zone.online ? 'online' : 'offline';
+  parts.push(`Zone "${zone.name}" (${status})`);
+
+  if (zone.nowPlaying?.track) {
+    const artists = zone.nowPlaying.track.artists?.map(a => a.name).join(', ') || '';
+    parts.push(`  Now playing: "${zone.nowPlaying.track.title}"${artists ? ` by ${artists}` : ''}`);
+  }
+
+  if (zone.playFrom?.name) {
+    parts.push(`  Current source: "${zone.playFrom.name}"`);
+  }
+
+  if (zone.schedule) {
+    const sched = zone.schedule;
+    const playlistMap = {};
+    for (const p of (sched.playlists || [])) playlistMap[p.id] = p.name;
+
+    if (sched.slots && sched.slots.length > 0) {
+      parts.push(`  Schedule: "${sched.name}" (${sched.slots.length} time slots)`);
+      for (const slot of sched.slots) {
+        const days = parseDaysFromRRule(slot.rrule);
+        const time = formatSlotTime(slot.start);
+        const durH = Math.round(slot.duration / 3600000 * 10) / 10;
+        const plNames = (slot.playlistIds || []).map(id => playlistMap[id] || 'Unknown').join(', ');
+        parts.push(`    ${days} ${time} (${durH}h) -> ${plNames || 'no playlist'}`);
+      }
+    } else {
+      parts.push(`  Schedule: "${sched.name}" (empty — no time slots)`);
+    }
+  } else if (!zone.playFrom?.name) {
+    parts.push(`  No schedule or source assigned`);
+  }
+
+  return parts.join('\n');
 }
 
 // SYB account cache — paginate through all 900+ accounts, refresh every 30 min
@@ -1756,8 +1841,25 @@ async function executeClientLookup(toolInput) {
         result.accountName = account.businessName;
         result.accountId = account.id;
         result.matchCount = matches.length;
-        result.zones = zones.map(z => ({ name: z.name, id: z.id, location: z.location?.name || '' }));
+        result.zones = zones.map(z => ({
+          name: z.name,
+          id: z.id,
+          location: z.location?.name || '',
+          online: z.online,
+          currentSource: z.playFrom?.name || null,
+          nowPlaying: z.nowPlaying?.track
+            ? `${z.nowPlaying.track.title} by ${(z.nowPlaying.track.artists || []).map(a => a.name).join(', ')}`
+            : null,
+          schedule: z.schedule ? {
+            id: z.schedule.id,
+            name: z.schedule.name,
+            playlists: (z.schedule.playlists || []).map(p => p.name),
+            slotCount: z.schedule.slots?.length || 0,
+          } : null,
+        }));
         result.zoneCount = zones.length;
+        // Build human-readable setup summary for AI context
+        result.zoneSetupSummary = zones.map(z => buildZoneSetupSummary(z)).join('\n\n');
 
         // Query music library for existing BMAsia schedules (single match only)
         if (matches.length === 1) {
@@ -2097,7 +2199,11 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
               const schedList = lookupResult.existingSchedules.map(s => `"${s.name}" (ID: ${s.id})`).join(', ');
               scheduleInfo = `\n\nExisting BMAsia schedules on this account: ${schedList}. For "update" mode: tell the customer which schedules you found and ask which one to update. Include the chosen schedule ID as existingScheduleId in extractedBrief. For "event" mode: note the existing schedule — after the event, music will revert to their regular schedule.`;
             }
-            return `Found existing SYB client: "${lookupResult.accountName}" with ${lookupResult.zoneCount} sound zone(s): ${zoneList}. This is a returning client — welcome them back warmly. Reference their zone names when discussing music design. If they have multiple zones, ask which ones we are working on today. Include sybAccountId: '${lookupResult.accountId}' and sybMatchCount: 1 in your extractedBrief.${scheduleInfo}`;
+            let setupSummary = '';
+            if (lookupResult.zoneSetupSummary) {
+              setupSummary = `\n\n## Current Music Setup\n${lookupResult.zoneSetupSummary}\n\nFor "update" mode: summarize the current setup to the customer before asking what they want to change. Reference specific playlists and time blocks by name. For "new" and "event" modes: this context is available but don't volunteer it unless the customer asks.`;
+            }
+            return `Found existing SYB client: "${lookupResult.accountName}" with ${lookupResult.zoneCount} sound zone(s): ${zoneList}. This is a returning client — welcome them back warmly. Reference their zone names when discussing music design. If they have multiple zones, ask which ones we are working on today. Include sybAccountId: '${lookupResult.accountId}' and sybMatchCount: 1 in your extractedBrief.${scheduleInfo}${setupSummary}`;
           } else if (matchCount <= 5 && lookupResult.accountOptions) {
             // Multi-match — need disambiguation
             const optionsList = lookupResult.accountOptions.map((opt, i) =>
