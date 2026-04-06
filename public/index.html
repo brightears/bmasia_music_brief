@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Music Design Assistant | BMAsia Group</title>
+<title>Music Design Assistant | BMAsia</title>
+<link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Libre+Caslon+Text:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -131,7 +132,10 @@ body.chat-active {
   background: rgba(15,15,15,0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.header:not(.scrolled) {
+  background: linear-gradient(to bottom, rgba(15,15,15,0.7), transparent);
 }
 @media (min-width: 768px) {
   .header { height: 80px; }
@@ -177,9 +181,9 @@ body.chat-active {
 }
 .nav-link {
   position: relative;
-  padding: 8px 16px;
-  color: rgba(255,255,255,0.9);
-  font-family: inherit;
+  padding: 6px 12px;
+  color: rgba(255,255,255,0.7);
+  font-family: 'DM Sans', 'Space Grotesk', system-ui, sans-serif;
   font-weight: 500;
   font-size: 14px;
   text-decoration: none;
