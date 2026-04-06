@@ -3456,11 +3456,24 @@ function showToast(msg, type) {
 document.addEventListener('DOMContentLoaded', () => {
   initVoice();
 
-  // Header scroll effect
   const header = document.getElementById('mainHeader');
-  window.addEventListener('scroll', () => {
-    header.classList.toggle('scrolled', window.scrollY > 20);
-  }, { passive: true });
+
+  // Embed mode: hide header when loaded inside iframe (?embed=true)
+  const isEmbed = new URLSearchParams(window.location.search).get('embed') === 'true';
+  if (isEmbed && header) {
+    header.style.display = 'none';
+    document.body.style.paddingTop = '0';
+    // Also adjust chat area top padding
+    const chatArea = document.getElementById('chatArea');
+    if (chatArea) chatArea.style.paddingTop = '20px';
+  }
+
+  // Header scroll effect (only when not embedded)
+  if (!isEmbed) {
+    window.addEventListener('scroll', () => {
+      header.classList.toggle('scrolled', window.scrollY > 20);
+    }, { passive: true });
+  }
 
   // Show immersive welcome state
   showWelcomeState();
