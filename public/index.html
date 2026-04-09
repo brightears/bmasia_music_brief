@@ -1398,13 +1398,13 @@ body.chat-active {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  text-align: center;
+  text-align: left;
   min-height: 100vh;
   padding: 84px 24px 80px;
   overflow: hidden;
-  background: linear-gradient(to bottom, var(--bg) 0%, var(--brand-navy) 40%, var(--bg) 100%);
+  background: var(--bg);
 }
 @media (min-width: 768px) {
   .welcome-hero { padding-top: 100px; }
@@ -1448,34 +1448,43 @@ body.chat-active {
   z-index: 2;
   max-width: 56rem;
   margin: 0 auto;
+  width: 100%;
   animation: welcomeFadeIn 0.8s var(--ease-out);
 }
 @keyframes welcomeFadeIn {
   from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+.welcome-label {
+  display: block;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 12px;
+  color: var(--brand-orange);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  margin-bottom: 16px;
+}
 .welcome-title {
   font-family: 'Libre Caslon Text', Georgia, serif;
-  font-size: clamp(2.25rem, 5vw, 3.75rem);
-  font-weight: 700;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 400;
   color: #ffffff;
   letter-spacing: -0.5px;
-  line-height: 1.15;
+  line-height: 1.1;
   margin-bottom: 16px;
 }
 .gradient-text {
-  background: linear-gradient(to right, var(--brand-orange), #fbbf24);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--brand-orange);
+  -webkit-text-fill-color: var(--brand-orange);
+  font-style: italic;
 }
 .welcome-subtitle {
   font-family: 'DM Sans', sans-serif;
   font-size: 18px;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255,255,255,0.5);
   line-height: 1.65;
-  max-width: 480px;
-  margin: 0 auto 48px;
+  max-width: 520px;
+  margin: 0 0 48px;
 }
 .welcome-tagline { display: none; /* removed — redundant on bmasiamusic.com */
 }
@@ -1483,18 +1492,16 @@ body.chat-active {
 .product-selector {
   display: flex;
   gap: 12px;
-  justify-content: center;
-  margin: 0 auto 32px;
-  max-width: 380px;
+  justify-content: flex-start;
+  margin: 0 0 40px;
+  max-width: 420px;
 }
 .product-btn {
   flex: 1;
   padding: 14px 16px;
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: transparent;
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
+  border-radius: 0;
   cursor: pointer;
   text-align: center;
   color: var(--text-secondary);
@@ -1502,15 +1509,15 @@ body.chat-active {
   font-family: inherit;
 }
 .product-btn:hover {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
   border-color: rgba(255,255,255,0.18);
   color: var(--text);
 }
 .product-btn.selected {
-  background: rgba(239,166,52,0.08);
+  background: transparent;
   border-color: var(--brand-orange);
   color: var(--text);
-  box-shadow: 0 0 20px rgba(239,166,52,0.1);
+  box-shadow: none;
 }
 .product-btn-name {
   display: block;
@@ -1529,37 +1536,40 @@ body.chat-active {
 }
 
 .mode-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
   width: 100%;
-  max-width: 520px;
-  margin: 0 auto;
+  max-width: 680px;
+  margin: 0;
 }
 .mode-card {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 24px 24px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0;
   cursor: pointer;
   transition: all var(--dur-normal) var(--ease-out);
   text-align: left;
   color: var(--text);
   font-family: inherit;
 }
+.mode-card:last-child {
+  border-right: none;
+}
 .mode-card:hover {
-  background: rgba(255,255,255,0.1);
-  border-color: rgba(255,255,255,0.2);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  background: rgba(255,255,255,0.03);
+  transform: none;
+  box-shadow: none;
 }
 .mode-card:active {
-  transform: translateY(-1px) scale(0.98);
+  transform: none;
+  opacity: 0.8;
 }
 .mode-card-icon {
   width: 40px;
@@ -1626,14 +1636,16 @@ body.chat-active {
   /* Reduce blur on mobile for performance */
   .msg-ai .msg-bubble,
   .playlist-card,
-  .chip,
-  .mode-card {
+  .chip {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
   /* Welcome hero mobile */
-  .welcome-hero { min-height: calc(100vh - 64px); padding: 40px 16px 80px; }
+  .welcome-hero { min-height: calc(100vh - 64px); padding: 40px 16px 80px; align-items: flex-start; }
   .welcome-subtitle { font-size: 15px; margin-bottom: 32px; }
+  .mode-cards { grid-template-columns: 1fr; gap: 0; }
+  .mode-card { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); flex-direction: row; padding: 18px 16px; }
+  .mode-card:last-child { border-bottom: none; }
   /* Input bar mobile */
   .input-bar { padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); }
   .input-bar-inner { border-radius: 14px; padding: 6px 6px 6px 12px; }
@@ -2060,9 +2072,9 @@ const i18n = {
     chip_new: 'Design music for a new venue',
     chip_event: 'Plan music for a special event',
     chip_update: 'Update my current music',
-    greeting_title: 'Music Design',
-    greeting_title_highlight: 'Assistant',
-    greeting_subtitle: "Create the perfect background music for your venue or event. Our AI music designer will craft a personalized playlist recommendation in minutes.",
+    greeting_title: 'Design Your',
+    greeting_title_highlight: 'Sound',
+    greeting_subtitle: "Tell us about your space. Our AI music designer will craft a personalized recommendation in minutes.",
     hero_tagline: 'Wherever Music Matters',
     chip_new_desc: 'Start fresh with a complete sonic identity',
     chip_event_desc: 'Curate the atmosphere for a one-time occasion',
@@ -2420,7 +2432,8 @@ function showWelcomeState() {
     </div>
     <div class="hero-overlay"></div>
     <div class="welcome-content">
-      <h1 class="welcome-title"><span data-i18n="greeting_title">Music Design</span> <span class="gradient-text" data-i18n="greeting_title_highlight">Assistant</span></h1>
+      <span class="welcome-label">Bespoke Curation</span>
+      <h1 class="welcome-title"><span data-i18n="greeting_title">Design Your</span> <span class="gradient-text" data-i18n="greeting_title_highlight">Sound</span></h1>
       <p class="welcome-subtitle" data-i18n="greeting_subtitle">${t.greeting_subtitle}</p>
       <div class="product-selector">
         <button class="product-btn selected" data-product="syb" onclick="selectProductHero(this)">
