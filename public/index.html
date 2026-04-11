@@ -1643,7 +1643,10 @@ body.chat-active {
   /* Welcome hero mobile */
   .welcome-hero { min-height: calc(100vh - 64px); padding: 40px 16px 80px; align-items: flex-start; }
   .welcome-subtitle { font-size: 15px; margin-bottom: 32px; }
-  .mode-cards { grid-template-columns: 1fr; gap: 0; }
+  /* Shrink hero image to top portion only on mobile — prevents 3 mode cards from overlapping the image */
+  .hero-bg { height: 52%; }
+  .hero-overlay { height: 52%; }
+  .mode-cards { grid-template-columns: 1fr; gap: 0; margin-top: 64px; }
   .mode-card { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); flex-direction: row; padding: 18px 16px; }
   .mode-card:last-child { border-bottom: none; }
   /* Input bar mobile */
