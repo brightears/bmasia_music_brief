@@ -2157,6 +2157,71 @@ const API_BASE = baseEl ? baseEl.getAttribute('href').replace(/\/$/, '') : '';
 const SITE_BASE = baseEl ? '' : 'https://bmasiamusic.com';
 
 // =========================================================================
+// Registration gate — collect user info before AI access
+// =========================================================================
+let sessionToken = localStorage.getItem('bmasia_design_token');
+let sessionUser = JSON.parse(localStorage.getItem('bmasia_design_user') || 'null');
+
+function showRegistrationGate() {
+  if (document.getElementById('regOverlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'regOverlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+      <h2 style="margin:0 0 8px;font-size:22px;color:#1a1a1a">Try Our Music Design Tool</h2>
+      <p style="margin:0 0 20px;color:#666;font-size:14px">Tell us a bit about yourself to get started — it's free.</p>
+      <form id="regForm" onsubmit="handleRegistration(event)">
+        <input id="regName" type="text" placeholder="Your name" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;font-size:14px;box-sizing:border-box">
+        <input id="regEmail" type="email" placeholder="Business email" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;font-size:14px;box-sizing:border-box">
+        <input id="regCompany" type="text" placeholder="Company / Venue name" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;margin-bottom:16px;font-size:14px;box-sizing:border-box">
+        <button type="submit" id="regBtn" style="width:100%;padding:12px;background:#e8a020;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s">Get Started</button>
+        <p id="regError" style="color:#e53e3e;font-size:13px;margin:10px 0 0;display:none"></p>
+      </form>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function handleRegistration(e) {
+  e.preventDefault();
+  const btn = document.getElementById('regBtn');
+  const errEl = document.getElementById('regError');
+  btn.textContent = 'Registering...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch(API_BASE + '/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: document.getElementById('regName').value.trim(),
+        email: document.getElementById('regEmail').value.trim(),
+        company: document.getElementById('regCompany').value.trim()
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Registration failed.';
+      errEl.style.display = 'block';
+      btn.textContent = 'Get Started';
+      btn.disabled = false;
+      return;
+    }
+    sessionToken = data.token;
+    sessionUser = { messagesUsed: data.messagesUsed, messageLimit: data.messageLimit };
+    localStorage.setItem('bmasia_design_token', data.token);
+    localStorage.setItem('bmasia_design_user', JSON.stringify(sessionUser));
+    document.getElementById('regOverlay').remove();
+  } catch (err) {
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = 'block';
+    btn.textContent = 'Get Started';
+    btn.disabled = false;
+  }
+}
+
+// =========================================================================
 // Navigation: mobile menu, language switcher, nav locale
 // =========================================================================
 function toggleMobileMenu() {
@@ -2946,9 +3011,10 @@ async function sendMessage(text) {
   showTypingIndicator();
 
   try {
+    if (!sessionToken) { showRegistrationGate(); isStreaming = false; hideTypingIndicator(); return; }
     const res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Session-Token': sessionToken },
       body: JSON.stringify({
         message: msg,
         history: conversationHistory.slice(0, -1), // exclude the current msg (server adds it)
@@ -2963,6 +3029,23 @@ async function sendMessage(text) {
     pendingToolUse = null;
 
     if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem('bmasia_design_token');
+        sessionToken = null;
+        showRegistrationGate();
+        hideTypingIndicator();
+        isStreaming = false;
+        return;
+      }
+      if (res.status === 429) {
+        const errData = await res.json().catch(() => ({}));
+        if (errData.limitReached) {
+          hideTypingIndicator();
+          isStreaming = false;
+          addMessage('assistant', 'You\'ve reached your free message limit. Please contact us at norbert@bmasiamusic.com to continue using the music design tool, or <a href="https://calendly.com/bmasia/sound-innovations" target="_blank">book a demo</a>.');
+          return;
+        }
+      }
       throw new Error('Chat request failed');
     }
 
@@ -3470,6 +3553,10 @@ function showToast(msg, type) {
 // Init
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
+  // Show registration gate if no session token
+  if (!sessionToken) {
+    showRegistrationGate();
+  }
   initVoice();
 
   const header = document.getElementById('mainHeader');

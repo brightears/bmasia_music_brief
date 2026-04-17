@@ -125,6 +125,20 @@ if (pool) {
     CREATE INDEX IF NOT EXISTS idx_schedule_active ON schedule_entries(status, start_time) WHERE status = 'active';
     CREATE INDEX IF NOT EXISTS idx_approval_token ON approval_tokens(token);
     CREATE INDEX IF NOT EXISTS idx_followup_pending ON follow_ups(scheduled_for) WHERE sent_at IS NULL;
+    CREATE TABLE IF NOT EXISTS design_users (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      company VARCHAR(255),
+      session_token VARCHAR(64) UNIQUE NOT NULL,
+      messages_used INTEGER DEFAULT 0,
+      message_limit INTEGER DEFAULT 50,
+      is_blocked BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT NOW(),
+      last_active_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_design_users_token ON design_users(session_token);
+    CREATE INDEX IF NOT EXISTS idx_design_users_email ON design_users(email);
   `).then(() => console.log('Database tables ready'))
     .catch(err => console.error('Database init error:', err.message));
 }
@@ -2088,10 +2102,148 @@ async function executeRecommendationTool(toolInput, product = 'syb') {
 // Routes
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Registration gate — users must register before using AI features
+// ---------------------------------------------------------------------------
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many registration attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.post('/api/register', registerLimiter, async (req, res) => {
+  const { name, email, company } = req.body;
+
+  if (!name || !email || typeof name !== 'string' || typeof email !== 'string') {
+    return res.status(400).json({ error: 'Name and email are required.' });
+  }
+
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  }
+
+  // Block disposable email domains
+  const disposableDomains = ['mailinator.com', 'guerrillamail.com', 'tempmail.com', 'throwaway.email', '10minutemail.com', 'yopmail.com', 'trashmail.com', 'sharklasers.com', 'grr.la', 'guerrillamailblock.com'];
+  const emailDomain = email.split('@')[1].toLowerCase();
+  if (disposableDomains.includes(emailDomain)) {
+    return res.status(400).json({ error: 'Please use a business email address.' });
+  }
+
+  const sessionToken = crypto.randomBytes(32).toString('hex');
+
+  if (pool) {
+    try {
+      // Check if email already registered
+      const existing = await pool.query('SELECT session_token, messages_used, message_limit, is_blocked FROM design_users WHERE email = $1', [email.toLowerCase()]);
+      if (existing.rows.length > 0) {
+        const user = existing.rows[0];
+        if (user.is_blocked) {
+          return res.status(403).json({ error: 'This account has been suspended. Please contact support.' });
+        }
+        // Return existing token with usage info
+        return res.json({
+          token: user.session_token,
+          messagesUsed: user.messages_used,
+          messageLimit: user.message_limit,
+          returning: true
+        });
+      }
+
+      // Create new user
+      await pool.query(
+        'INSERT INTO design_users (name, email, company, session_token) VALUES ($1, $2, $3, $4)',
+        [name.trim(), email.toLowerCase().trim(), (company || '').trim(), sessionToken]
+      );
+
+      console.log(`[Register] New user: ${name} <${email}> (${company || 'no company'})`);
+
+      // Notify via webhook (Lyra picks this up for lead tracking)
+      try {
+        const https = require('https');
+        const webhookData = JSON.stringify({
+          type: 'music_design_registration',
+          name: name.trim(),
+          email: email.toLowerCase().trim(),
+          company: (company || '').trim(),
+          timestamp: new Date().toISOString()
+        });
+        const webhookReq = https.request({
+          hostname: 'webhooks.bmasiamusic.com',
+          path: '/webhook/chat',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': webhookData.length }
+        });
+        webhookReq.write(webhookData);
+        webhookReq.end();
+      } catch (e) { /* non-critical */ }
+
+      return res.json({
+        token: sessionToken,
+        messagesUsed: 0,
+        messageLimit: 50,
+        returning: false
+      });
+    } catch (err) {
+      console.error('[Register] DB error:', err.message);
+      return res.status(500).json({ error: 'Registration failed. Please try again.' });
+    }
+  } else {
+    // No database — fall back to allowing access with in-memory token
+    return res.json({ token: sessionToken, messagesUsed: 0, messageLimit: 50, returning: false });
+  }
+});
+
+// Middleware to validate session token on AI endpoints
+async function requireRegistration(req, res, next) {
+  const token = req.headers['x-session-token'] || req.body.sessionToken;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Registration required. Please register to use the music design feature.' });
+  }
+
+  if (pool) {
+    try {
+      const result = await pool.query(
+        'SELECT id, email, messages_used, message_limit, is_blocked FROM design_users WHERE session_token = $1',
+        [token]
+      );
+      if (result.rows.length === 0) {
+        return res.status(401).json({ error: 'Invalid session. Please register again.' });
+      }
+      const user = result.rows[0];
+      if (user.is_blocked) {
+        return res.status(403).json({ error: 'This account has been suspended.' });
+      }
+      if (user.messages_used >= user.message_limit) {
+        return res.status(429).json({
+          error: 'You have reached your free message limit. Contact us at norbert@bmasiamusic.com to continue.',
+          limitReached: true
+        });
+      }
+      // Increment usage
+      await pool.query(
+        'UPDATE design_users SET messages_used = messages_used + 1, last_active_at = NOW() WHERE id = $1',
+        [user.id]
+      );
+      req.designUser = user;
+      next();
+    } catch (err) {
+      console.error('[Auth] DB error:', err.message);
+      next(); // Allow through on DB errors to avoid blocking legitimate users
+    }
+  } else {
+    next(); // No DB — allow through
+  }
+}
+
 // Chat endpoint with SSE streaming
 const chatLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 30,
+  max: 15,
   message: { error: 'Too many chat messages. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -2136,7 +2288,7 @@ Write in third person, professional tone. No bullet points — flowing sentences
   }
 }
 
-app.post('/api/chat', chatLimiter, async (req, res) => {
+app.post('/api/chat', chatLimiter, requireRegistration, async (req, res) => {
   const { message, history, mode, language, product, pendingToolUse } = req.body;
 
   if (!message || typeof message !== 'string') {
@@ -2405,7 +2557,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
     res.end();
   }
 });
-app.post('/api/recommend', recommendLimiter, async (req, res) => {
+app.post('/api/recommend', recommendLimiter, requireRegistration, async (req, res) => {
   try {
     const data = req.body;
     if (!data.vibes || (Array.isArray(data.vibes) && data.vibes.length === 0)) {
