@@ -2182,13 +2182,17 @@ function showRegistrationGate() {
   document.body.appendChild(overlay);
 }
 
+let pendingRegEmail = '';
+
 async function handleRegistration(e) {
   e.preventDefault();
   const btn = document.getElementById('regBtn');
   const errEl = document.getElementById('regError');
-  btn.textContent = 'Registering...';
+  btn.textContent = 'Sending code...';
   btn.disabled = true;
   errEl.style.display = 'none';
+
+  const email = document.getElementById('regEmail').value.trim();
 
   try {
     const res = await fetch(API_BASE + '/api/register', {
@@ -2196,7 +2200,7 @@ async function handleRegistration(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: document.getElementById('regName').value.trim(),
-        email: document.getElementById('regEmail').value.trim(),
+        email: email,
         company: document.getElementById('regCompany').value.trim()
       })
     });
@@ -2208,6 +2212,60 @@ async function handleRegistration(e) {
       btn.disabled = false;
       return;
     }
+
+    if (data.verified && data.token) {
+      // Returning verified user
+      sessionToken = data.token;
+      sessionUser = { messagesUsed: data.messagesUsed, messageLimit: data.messageLimit };
+      localStorage.setItem('bmasia_design_token', data.token);
+      localStorage.setItem('bmasia_design_user', JSON.stringify(sessionUser));
+      document.getElementById('regOverlay').remove();
+      return;
+    }
+
+    // Show verification code input
+    pendingRegEmail = email;
+    document.getElementById('regForm').innerHTML = `
+      <p style="color:#333;font-size:14px;margin:0 0 16px">We sent a 6-digit code to <b>${email}</b>. Enter it below:</p>
+      <input id="regCode" type="text" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required autofocus
+        style="width:100%;padding:14px;border:1px solid #ddd;border-radius:8px;margin-bottom:16px;font-size:20px;text-align:center;letter-spacing:8px;box-sizing:border-box">
+      <button type="submit" id="regBtn" style="width:100%;padding:12px;background:#e8a020;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">Verify</button>
+      <p style="color:#999;font-size:12px;margin:10px 0 0;text-align:center">Code expires in 10 minutes</p>
+      <p id="regError" style="color:#e53e3e;font-size:13px;margin:10px 0 0;display:none"></p>`;
+    document.getElementById('regForm').onsubmit = handleVerification;
+  } catch (err) {
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = 'block';
+    btn.textContent = 'Get Started';
+    btn.disabled = false;
+  }
+}
+
+async function handleVerification(e) {
+  e.preventDefault();
+  const btn = document.getElementById('regBtn');
+  const errEl = document.getElementById('regError');
+  btn.textContent = 'Verifying...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch(API_BASE + '/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: pendingRegEmail,
+        code: document.getElementById('regCode').value.trim()
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Verification failed.';
+      errEl.style.display = 'block';
+      btn.textContent = 'Verify';
+      btn.disabled = false;
+      return;
+    }
     sessionToken = data.token;
     sessionUser = { messagesUsed: data.messagesUsed, messageLimit: data.messageLimit };
     localStorage.setItem('bmasia_design_token', data.token);
@@ -2216,7 +2274,7 @@ async function handleRegistration(e) {
   } catch (err) {
     errEl.textContent = 'Network error. Please try again.';
     errEl.style.display = 'block';
-    btn.textContent = 'Get Started';
+    btn.textContent = 'Verify';
     btn.disabled = false;
   }
 }

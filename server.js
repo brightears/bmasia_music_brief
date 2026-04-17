@@ -137,6 +137,7 @@ if (pool) {
       created_at TIMESTAMP DEFAULT NOW(),
       last_active_at TIMESTAMP DEFAULT NOW()
     );
+    ALTER TABLE design_users ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT FALSE;
     CREATE INDEX IF NOT EXISTS idx_design_users_token ON design_users(session_token);
     CREATE INDEX IF NOT EXISTS idx_design_users_email ON design_users(email);
   `).then(() => console.log('Database tables ready'))
@@ -2113,6 +2114,15 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// In-memory store for pending verification codes (TTL 10 min)
+const pendingVerifications = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of pendingVerifications) {
+    if (now - val.created > 10 * 60 * 1000) pendingVerifications.delete(key);
+  }
+}, 60 * 1000);
+
 app.post('/api/register', registerLimiter, async (req, res) => {
   const { name, email, company } = req.body;
 
@@ -2120,55 +2130,136 @@ app.post('/api/register', registerLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Name and email are required.' });
   }
 
-  // Basic email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ error: 'Please enter a valid email address.' });
   }
 
   // Block disposable email domains
-  const disposableDomains = ['mailinator.com', 'guerrillamail.com', 'tempmail.com', 'throwaway.email', '10minutemail.com', 'yopmail.com', 'trashmail.com', 'sharklasers.com', 'grr.la', 'guerrillamailblock.com'];
+  const disposableDomains = ['mailinator.com', 'guerrillamail.com', 'tempmail.com', 'throwaway.email', '10minutemail.com', 'yopmail.com', 'trashmail.com', 'sharklasers.com', 'grr.la', 'guerrillamailblock.com', 'maildrop.cc', 'dispostable.com', 'fakeinbox.com', 'mailnesia.com', 'temp-mail.org'];
   const emailDomain = email.split('@')[1].toLowerCase();
   if (disposableDomains.includes(emailDomain)) {
     return res.status(400).json({ error: 'Please use a business email address.' });
   }
 
-  const sessionToken = crypto.randomBytes(32).toString('hex');
-
   if (pool) {
     try {
-      // Check if email already registered
-      const existing = await pool.query('SELECT session_token, messages_used, message_limit, is_blocked FROM design_users WHERE email = $1', [email.toLowerCase()]);
+      // Check if email already registered and verified
+      const existing = await pool.query('SELECT session_token, messages_used, message_limit, is_blocked, verified FROM design_users WHERE email = $1', [email.toLowerCase()]);
       if (existing.rows.length > 0) {
         const user = existing.rows[0];
         if (user.is_blocked) {
           return res.status(403).json({ error: 'This account has been suspended. Please contact support.' });
         }
-        // Return existing token with usage info
-        return res.json({
-          token: user.session_token,
-          messagesUsed: user.messages_used,
-          messageLimit: user.message_limit,
-          returning: true
-        });
+        if (user.verified) {
+          // Already verified — return existing token
+          return res.json({
+            token: user.session_token,
+            messagesUsed: user.messages_used,
+            messageLimit: user.message_limit,
+            returning: true,
+            verified: true
+          });
+        }
+        // Exists but not verified — resend code
+      }
+    } catch (err) {
+      console.error('[Register] DB check error:', err.message);
+    }
+  }
+
+  // Generate 6-digit verification code
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  pendingVerifications.set(email.toLowerCase(), {
+    code,
+    name: name.trim(),
+    company: (company || '').trim(),
+    created: Date.now()
+  });
+
+  // Send verification email
+  try {
+    await transporter.sendMail({
+      from: `"BMAsia Music Design" <${GMAIL_USER}>`,
+      to: email.trim(),
+      subject: 'Your verification code — BMAsia Music Design',
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px">
+          <h2 style="color:#1a1a1a;margin-bottom:8px">Verify your email</h2>
+          <p style="color:#666">Enter this code to start using the Music Design tool:</p>
+          <div style="background:#f5f5f5;border-radius:12px;padding:20px;text-align:center;margin:20px 0">
+            <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:#e8a020">${code}</span>
+          </div>
+          <p style="color:#999;font-size:13px">This code expires in 10 minutes.</p>
+          <p style="color:#666;font-size:14px">— The BMAsia Team</p>
+        </div>`
+    });
+    console.log(`[Register] Verification code sent to ${email}`);
+  } catch (err) {
+    console.error('[Register] Email send error:', err.message);
+    return res.status(500).json({ error: 'Failed to send verification email. Please try again.' });
+  }
+
+  return res.json({ needsVerification: true, message: 'Verification code sent to your email.' });
+});
+
+// Verify email code and create/activate account
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many verification attempts.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.post('/api/verify', verifyLimiter, async (req, res) => {
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    return res.status(400).json({ error: 'Email and code are required.' });
+  }
+
+  const pending = pendingVerifications.get(email.toLowerCase());
+  if (!pending) {
+    return res.status(400).json({ error: 'No pending verification. Please register again.' });
+  }
+
+  if (pending.code !== String(code).trim()) {
+    return res.status(400).json({ error: 'Invalid code. Please check and try again.' });
+  }
+
+  // Code is valid — remove from pending
+  pendingVerifications.delete(email.toLowerCase());
+
+  const sessionToken = crypto.randomBytes(32).toString('hex');
+
+  if (pool) {
+    try {
+      // Upsert: create or update existing unverified user
+      const existing = await pool.query('SELECT id FROM design_users WHERE email = $1', [email.toLowerCase()]);
+      if (existing.rows.length > 0) {
+        await pool.query(
+          'UPDATE design_users SET verified = TRUE, session_token = $1, name = $2, company = $3 WHERE email = $4',
+          [sessionToken, pending.name, pending.company, email.toLowerCase()]
+        );
+      } else {
+        await pool.query(
+          'INSERT INTO design_users (name, email, company, session_token, verified) VALUES ($1, $2, $3, $4, TRUE)',
+          [pending.name, email.toLowerCase(), pending.company, sessionToken]
+        );
       }
 
-      // Create new user
-      await pool.query(
-        'INSERT INTO design_users (name, email, company, session_token) VALUES ($1, $2, $3, $4)',
-        [name.trim(), email.toLowerCase().trim(), (company || '').trim(), sessionToken]
-      );
+      console.log(`[Verify] Email verified: ${pending.name} <${email}> (${pending.company || 'no company'})`);
 
-      console.log(`[Register] New user: ${name} <${email}> (${company || 'no company'})`);
-
-      // Notify via webhook (Lyra picks this up for lead tracking)
+      // Notify Lyra via webhook for lead tracking
       try {
         const https = require('https');
         const webhookData = JSON.stringify({
           type: 'music_design_registration',
-          name: name.trim(),
-          email: email.toLowerCase().trim(),
-          company: (company || '').trim(),
+          name: pending.name,
+          email: email.toLowerCase(),
+          company: pending.company,
+          verified: true,
           timestamp: new Date().toISOString()
         });
         const webhookReq = https.request({
@@ -2185,15 +2276,14 @@ app.post('/api/register', registerLimiter, async (req, res) => {
         token: sessionToken,
         messagesUsed: 0,
         messageLimit: 50,
-        returning: false
+        verified: true
       });
     } catch (err) {
-      console.error('[Register] DB error:', err.message);
-      return res.status(500).json({ error: 'Registration failed. Please try again.' });
+      console.error('[Verify] DB error:', err.message);
+      return res.status(500).json({ error: 'Verification failed. Please try again.' });
     }
   } else {
-    // No database — fall back to allowing access with in-memory token
-    return res.json({ token: sessionToken, messagesUsed: 0, messageLimit: 50, returning: false });
+    return res.json({ token: sessionToken, messagesUsed: 0, messageLimit: 50, verified: true });
   }
 });
 
@@ -2208,7 +2298,7 @@ async function requireRegistration(req, res, next) {
   if (pool) {
     try {
       const result = await pool.query(
-        'SELECT id, email, messages_used, message_limit, is_blocked FROM design_users WHERE session_token = $1',
+        'SELECT id, email, messages_used, message_limit, is_blocked, verified FROM design_users WHERE session_token = $1',
         [token]
       );
       if (result.rows.length === 0) {
@@ -2217,6 +2307,9 @@ async function requireRegistration(req, res, next) {
       const user = result.rows[0];
       if (user.is_blocked) {
         return res.status(403).json({ error: 'This account has been suspended.' });
+      }
+      if (!user.verified) {
+        return res.status(401).json({ error: 'Email not verified. Please complete registration.' });
       }
       if (user.messages_used >= user.message_limit) {
         return res.status(429).json({
