@@ -2227,8 +2227,8 @@ async function handleRegistration(e) {
     pendingRegEmail = email;
     document.getElementById('regForm').innerHTML = `
       <p style="color:#333;font-size:14px;margin:0 0 16px">We sent a 6-digit code to <b>${email}</b>. Enter it below:</p>
-      <input id="regCode" type="text" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required autofocus
-        style="width:100%;padding:14px;border:1px solid #ddd;border-radius:8px;margin-bottom:16px;font-size:20px;text-align:center;letter-spacing:8px;box-sizing:border-box">
+      <input id="regCode" type="text" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required autofocus
+        style="width:100%;padding:14px;border:1px solid #ddd;border-radius:8px;margin-bottom:16px;font-size:24px;text-align:center;letter-spacing:12px;box-sizing:border-box;font-family:monospace">
       <button type="submit" id="regBtn" style="width:100%;padding:12px;background:#e8a020;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">Verify</button>
       <p style="color:#999;font-size:12px;margin:10px 0 0;text-align:center">Code expires in 10 minutes</p>
       <p id="regError" style="color:#e53e3e;font-size:13px;margin:10px 0 0;display:none"></p>`;
