@@ -2342,11 +2342,45 @@ const chatLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Anthropic usage metrics — appended to data/anthropic-usage.jsonl on every call.
+// Read back via GET /api/metrics. Built 27.04.2026 after a $3.43 Opus burst on the
+// shared key showed up — wanting visibility into who/what/when going forward.
+const USAGE_LOG = path.join(__dirname, 'data', 'anthropic-usage.jsonl');
+const HIGH_INPUT_THRESHOLD = parseInt(process.env.METRICS_HIGH_INPUT || '100000', 10);
+
+function recordUsage(model, usage, ip, durationMs) {
+  if (!usage) return;
+  const entry = {
+    ts: new Date().toISOString(),
+    model: model || 'unknown',
+    in: usage.input_tokens || 0,
+    out: usage.output_tokens || 0,
+    cache_read: usage.cache_read_input_tokens || 0,
+    cache_create: usage.cache_creation_input_tokens || 0,
+    ip: (ip || '').split(',')[0].trim().slice(0, 45),
+    ms: durationMs || 0,
+  };
+  try {
+    fs.appendFileSync(USAGE_LOG, JSON.stringify(entry) + '\n');
+  } catch (err) {
+    console.log('[Usage] Failed to append usage log:', err.message);
+  }
+  if (entry.in > HIGH_INPUT_THRESHOLD) {
+    console.log(`[Usage] HIGH-INPUT request: ${entry.in} input tokens, model=${entry.model}, ip=${entry.ip}`);
+  }
+}
+
 // Retry wrapper for Anthropic API calls (handles 529 overloaded errors)
-async function anthropicRetry(fn, maxRetries = 3) {
+async function anthropicRetry(fn, maxRetries = 3, ctx = {}) {
+  const t0 = Date.now();
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await fn();
+      const result = await fn();
+      // Record usage on success — non-streaming responses expose .usage and .model
+      if (result && result.usage && result.model) {
+        recordUsage(result.model, result.usage, ctx.ip, Date.now() - t0);
+      }
+      return result;
     } catch (err) {
       if (err.status === 529 && attempt < maxRetries) {
         const delay = Math.min(1000 * Math.pow(2, attempt), 8000); // 1s, 2s, 4s, 8s
@@ -4025,6 +4059,50 @@ app.get('/follow-up/track/:trackingId', async (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// Anthropic usage metrics — auth via METRICS_TOKEN bearer header.
+// Returns rolling totals + recent high-input outliers. Built 27.04.2026.
+app.get('/api/metrics', (req, res) => {
+  const token = process.env.METRICS_TOKEN;
+  if (token) {
+    const auth = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    if (auth !== token) return res.status(401).json({ error: 'unauthorized' });
+  }
+  const days = Math.min(parseInt(req.query.days || '7', 10) || 7, 90);
+  const cutoff = Date.now() - days * 86400000;
+  let lines = [];
+  try {
+    const raw = fs.readFileSync(USAGE_LOG, 'utf-8');
+    lines = raw.split('\n').filter(Boolean);
+  } catch (err) {
+    return res.json({ days, requests: 0, by_model: {}, daily: {}, high_input: [], note: 'no usage log yet' });
+  }
+  const byModel = {};
+  const daily = {};
+  const highInput = [];
+  let total = 0;
+  for (const line of lines) {
+    let e;
+    try { e = JSON.parse(line); } catch { continue; }
+    const ts = new Date(e.ts).getTime();
+    if (ts < cutoff) continue;
+    total++;
+    const m = e.model;
+    if (!byModel[m]) byModel[m] = { req: 0, in: 0, out: 0 };
+    byModel[m].req++;
+    byModel[m].in += e.in || 0;
+    byModel[m].out += e.out || 0;
+    const day = e.ts.slice(0, 10);
+    if (!daily[day]) daily[day] = { req: 0, in: 0, out: 0 };
+    daily[day].req++;
+    daily[day].in += e.in || 0;
+    daily[day].out += e.out || 0;
+    if ((e.in || 0) > HIGH_INPUT_THRESHOLD) {
+      highInput.push({ ts: e.ts, model: e.model, in: e.in, out: e.out, ip: e.ip });
+    }
+  }
+  res.json({ days, requests: total, by_model: byModel, daily, high_input: highInput.slice(-50) });
+});
 
 app.listen(PORT, () => {
   console.log(`BMAsia Music Brief running on http://localhost:${PORT}`);
