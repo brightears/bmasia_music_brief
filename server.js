@@ -19,6 +19,14 @@ const PLAYLIST_CATALOG = JSON.parse(
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-6';
+// Model tiering (Stage-1 cost optimisation). Playlist selection is deterministic JS
+// (deterministicMatch / beatBreezeMatch), NOT the LLM — so the chat model only gathers the
+// brief, routes tool calls, and narrates. That runs fine on Haiku. The single customer-facing
+// presentation moment (recommendation narration) keeps the capable model by default for brand
+// voice. All env-overridable to tune/revert without code. Usage is tracked by recordUsage().
+const CHAT_MODEL = process.env.CHAT_MODEL || 'claude-haiku-4-5-20251001';      // gather / route / continue turns
+const CURATION_MODEL = process.env.CURATION_MODEL || AI_MODEL;                  // recommendation narration (brand voice)
+const SUMMARY_MODEL = process.env.SUMMARY_MODEL || 'claude-haiku-4-5-20251001'; // end-of-session brief summary
 const anthropic = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
 
 // ---------------------------------------------------------------------------
@@ -2393,19 +2401,26 @@ async function anthropicRetry(fn, maxRetries = 3, ctx = {}) {
   }
 }
 
+// Prompt caching: wrap a system-prompt string as a cacheable content block. The cache prefix is
+// [tools -> system]; a breakpoint on the system block caches the whole static tools+system prefix
+// (~6.5K tokens), read at ~10% price on every call after the first (per-session and within TTL).
+function cachedSystem(text) {
+  return [{ type: 'text', text, cache_control: { type: 'ephemeral' } }];
+}
+
 async function summarizeConversation(transcript) {
   if (!anthropic || !transcript) return transcript;
   try {
     const result = await anthropicRetry(() => anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: SUMMARY_MODEL,
       max_tokens: 400,
-      system: `You are summarizing a customer consultation for a music design team.
+      system: cachedSystem(`You are summarizing a customer consultation for a music design team.
 Write a concise 3-5 sentence summary capturing:
 - Venue concept and identity (type, location, positioning)
 - Target audience and atmosphere goals
 - Key music requirements (genres, energy, vocals, things to avoid)
 - Any notable decisions (weekend vs weekday differences, specific creative direction)
-Write in third person, professional tone. No bullet points — flowing sentences. No markdown formatting, no bold, no headers.`,
+Write in third person, professional tone. No bullet points — flowing sentences. No markdown formatting, no bold, no headers.`),
       messages: [{ role: 'user', content: transcript }]
     }));
     return result.content[0].text.replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1').replace(/^#+\s*/gm, '').trim();
@@ -2441,6 +2456,8 @@ app.post('/api/chat', chatLimiter, requireRegistration, async (req, res) => {
       return res.end();
     }
 
+    const MAX_TOOL_DEPTH = 6; // loop guard: cap chained tool-use recursion to prevent runaway call chains
+
     // Build messages array from history
     const messages = [];
     if (Array.isArray(history)) {
@@ -2456,9 +2473,9 @@ app.post('/api/chat', chatLimiter, requireRegistration, async (req, res) => {
 
     // First API call — may result in tool use or direct text
     const response = await anthropicRetry(() => anthropic.messages.create({
-      model: AI_MODEL,
+      model: CHAT_MODEL,
       max_tokens: 1500,
-      system: systemPrompt,
+      system: cachedSystem(systemPrompt),
       tools: ALL_TOOLS,
       messages,
     }));
@@ -2512,8 +2529,13 @@ app.post('/api/chat', chatLimiter, requireRegistration, async (req, res) => {
     }
 
     // Helper: handle a completed API response (tool use or text)
-    async function handleResponse(resp, msgs) {
+    async function handleResponse(resp, msgs, depth = 0) {
       if (resp.stop_reason === 'tool_use') {
+        if (depth >= MAX_TOOL_DEPTH) {
+          console.warn(`[LoopGuard] tool-use recursion hit MAX_TOOL_DEPTH=${MAX_TOOL_DEPTH}; stopping.`);
+          sendSSE('text_delta', { content: "Let me pause there — could you tell me a bit more about what you're looking for?" });
+          return;
+        }
         const toolUseBlocks = resp.content.filter(b => b.type === 'tool_use');
         const textBlocks = resp.content.filter(b => b.type === 'text');
 
@@ -2591,9 +2613,9 @@ app.post('/api/chat', chatLimiter, requireRegistration, async (req, res) => {
           ];
 
           const stream = anthropic.messages.stream({
-            model: AI_MODEL,
+            model: CURATION_MODEL,
             max_tokens: 500,
-            system: systemPrompt,
+            system: cachedSystem(systemPrompt),
             tools: ALL_TOOLS,
             messages: followUpMessages,
           });
@@ -2603,6 +2625,8 @@ app.post('/api/chat', chatLimiter, requireRegistration, async (req, res) => {
               sendSSE('text_delta', { content: event.delta.text });
             }
           }
+          // Streaming bypasses anthropicRetry, so record its usage into the metrics log directly.
+          try { const fm = await stream.finalMessage(); recordUsage(CURATION_MODEL, fm.usage, (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || ''), 0); } catch (_) {}
           return;
         }
 
@@ -2626,14 +2650,14 @@ app.post('/api/chat', chatLimiter, requireRegistration, async (req, res) => {
         ];
 
         const nextResp = await anthropicRetry(() => anthropic.messages.create({
-          model: AI_MODEL,
+          model: CHAT_MODEL,
           max_tokens: 1500,
-          system: systemPrompt,
+          system: cachedSystem(systemPrompt),
           tools: ALL_TOOLS,
           messages: nextMessages,
         }));
 
-        await handleResponse(nextResp, nextMessages);
+        await handleResponse(nextResp, nextMessages, depth + 1);
       } else {
         // No tool use — stream conversational response word by word
         for (const block of resp.content) {
@@ -2662,9 +2686,9 @@ app.post('/api/chat', chatLimiter, requireRegistration, async (req, res) => {
 
       // API call with tool result — Claude continues the conversation
       const toolResponse = await anthropicRetry(() => anthropic.messages.create({
-        model: AI_MODEL,
+        model: CHAT_MODEL,
         max_tokens: 1500,
-        system: systemPrompt,
+        system: cachedSystem(systemPrompt),
         tools: ALL_TOOLS,
         messages,
       }));
@@ -2684,43 +2708,12 @@ app.post('/api/chat', chatLimiter, requireRegistration, async (req, res) => {
     res.end();
   }
 });
-app.post('/api/recommend', recommendLimiter, requireRegistration, async (req, res) => {
-  try {
-    const data = req.body;
-    if (!data.vibes || (Array.isArray(data.vibes) && data.vibes.length === 0)) {
-      return res.status(400).json({ error: 'At least one vibe is required.' });
-    }
-
-    const energy = parseInt(data.energy, 10) || 5;
-    const dayparts = generateDayparts(data.hours, energy);
-
-    let result;
-    if (anthropic) {
-      try {
-        const response = await anthropicRetry(() => anthropic.messages.create({
-          model: AI_MODEL,
-          max_tokens: 1500,
-          system: buildSystemPrompt(dayparts),
-          messages: [{ role: 'user', content: buildUserMessage(data) }],
-        }));
-        const text = response.content[0].text.trim();
-        const jsonStr = text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
-        result = JSON.parse(jsonStr);
-      } catch (aiErr) {
-        console.error('AI recommendation error, falling back:', aiErr.message);
-        result = deterministicMatch(data, dayparts);
-      }
-    } else {
-      result = deterministicMatch(data, dayparts);
-    }
-
-    const enriched = enrichRecommendations(result);
-    res.json({ success: true, dayparts, ...enriched });
-  } catch (err) {
-    console.error('Recommend error:', err);
-    res.status(500).json({ error: 'Failed to generate recommendations.' });
-  }
-});
+// [Stage-1 cost optimisation] Removed the dead /api/recommend endpoint. The front-end never
+// called it (only /api/register, /api/verify, /api/chat, /submit are hit), and it inlined the
+// entire ~228-playlist SYB catalog into the system prompt via buildSystemPrompt() — a latent
+// cost bomb (~12K tokens/call). The live recommendation path is the /api/chat
+// `generate_recommendations` tool, which uses the deterministic JS matcher. The now-unused
+// helpers buildSystemPrompt()/buildUserMessage() are retained for reference; remove in cleanup.
 
 app.post('/submit', submitLimiter, async (req, res) => {
   try {
@@ -4088,15 +4081,19 @@ app.get('/api/metrics', (req, res) => {
     if (ts < cutoff) continue;
     total++;
     const m = e.model;
-    if (!byModel[m]) byModel[m] = { req: 0, in: 0, out: 0 };
+    if (!byModel[m]) byModel[m] = { req: 0, in: 0, out: 0, cache_read: 0, cache_create: 0 };
     byModel[m].req++;
     byModel[m].in += e.in || 0;
     byModel[m].out += e.out || 0;
+    byModel[m].cache_read += e.cache_read || 0;
+    byModel[m].cache_create += e.cache_create || 0;
     const day = e.ts.slice(0, 10);
-    if (!daily[day]) daily[day] = { req: 0, in: 0, out: 0 };
+    if (!daily[day]) daily[day] = { req: 0, in: 0, out: 0, cache_read: 0, cache_create: 0 };
     daily[day].req++;
     daily[day].in += e.in || 0;
     daily[day].out += e.out || 0;
+    daily[day].cache_read += e.cache_read || 0;
+    daily[day].cache_create += e.cache_create || 0;
     if ((e.in || 0) > HIGH_INPUT_THRESHOLD) {
       highInput.push({ ts: e.ts, model: e.model, in: e.in, out: e.out, ip: e.ip });
     }
